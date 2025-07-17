@@ -14,21 +14,25 @@ struct Task: Identifiable, Codable {
     let id: UUID
     var title: String
     var description: String?
+    var notes: String?
     var isCompleted: Bool
     var priority: TaskPriority
-    var dueDate: Date?
+    var emotion: EmotionType
+    var reminderAt: Date?
+    var naturalLanguageInput: String?
     var createdAt: Date
-    var category: TaskCategory
     
-    init(id: UUID = UUID(), title: String, description: String? = nil, isCompleted: Bool = false, priority: TaskPriority = .medium, dueDate: Date? = nil, category: TaskCategory = .personal) {
+    init(id: UUID = UUID(), title: String, description: String? = nil, notes: String? = nil, isCompleted: Bool = false, priority: TaskPriority = .medium, emotion: EmotionType = .focused, reminderAt: Date? = nil, naturalLanguageInput: String? = nil) {
         self.id = id
         self.title = title
         self.description = description
+        self.notes = notes
         self.isCompleted = isCompleted
         self.priority = priority
-        self.dueDate = dueDate
+        self.emotion = emotion
+        self.reminderAt = reminderAt
+        self.naturalLanguageInput = naturalLanguageInput
         self.createdAt = Date()
-        self.category = category
     }
 }
 
@@ -36,14 +40,6 @@ enum TaskPriority: String, CaseIterable, Codable {
     case low = "low"
     case medium = "medium"
     case high = "high"
-    
-    var color: Color {
-        switch self {
-        case .low: return .green
-        case .medium: return .orange
-        case .high: return .red
-        }
-    }
     
     var displayName: String {
         switch self {
@@ -54,30 +50,40 @@ enum TaskPriority: String, CaseIterable, Codable {
     }
 }
 
-enum TaskCategory: String, CaseIterable, Codable {
-    case personal = "personal"
-    case work = "work"
-    case health = "health"
-    case finance = "finance"
-    case education = "education"
+enum EmotionType: String, CaseIterable, Codable {
+    case positive = "positive"
+    case calm = "calm"
+    case urgent = "urgent"
+    case creative = "creative"
+    case focused = "focused"
     
     var displayName: String {
         switch self {
-        case .personal: return "Personal"
-        case .work: return "Work"
-        case .health: return "Health"
-        case .finance: return "Finance"
-        case .education: return "Education"
+        case .positive: return "Positive"
+        case .calm: return "Calm"
+        case .urgent: return "Urgent"
+        case .creative: return "Creative"
+        case .focused: return "Focused"
         }
     }
     
     var icon: String {
         switch self {
-        case .personal: return "person"
-        case .work: return "briefcase"
-        case .health: return "heart"
-        case .finance: return "dollarsign"
-        case .education: return "book"
+        case .positive: return "trophy"
+        case .calm: return "leaf"
+        case .urgent: return "exclamationmark.circle"
+        case .creative: return "lightbulb"
+        case .focused: return "brain.head.profile"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .positive: return Color(red: 0.22, green: 0.69, blue: 0.42) // mood-green
+        case .calm: return Color(red: 0.22, green: 0.56, blue: 0.94) // mood-blue
+        case .urgent: return Color(red: 0.91, green: 0.3, blue: 0.24) // mood-red
+        case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // mood-purple
+        case .focused: return Color(red: 0.4, green: 0.49, blue: 0.92) // bluey-purple
         }
     }
 }
@@ -85,75 +91,49 @@ enum TaskCategory: String, CaseIterable, Codable {
 struct MoodEntry: Identifiable, Codable {
     let id: UUID
     var mood: MoodType
-    var intensity: Int // 1-10
-    var notes: String?
-    var activities: [String]
     var timestamp: Date
     
-    init(id: UUID = UUID(), mood: MoodType, intensity: Int, notes: String? = nil, activities: [String] = []) {
+    init(id: UUID = UUID(), mood: MoodType) {
         self.id = id
         self.mood = mood
-        self.intensity = max(1, min(10, intensity))
-        self.notes = notes
-        self.activities = activities
         self.timestamp = Date()
     }
 }
 
 enum MoodType: String, CaseIterable, Codable {
-    case veryHappy = "very_happy"
-    case happy = "happy"
-    case neutral = "neutral"
-    case sad = "sad"
-    case verySad = "very_sad"
-    case anxious = "anxious"
-    case excited = "excited"
+    case positive = "positive"
     case calm = "calm"
-    case frustrated = "frustrated"
-    case grateful = "grateful"
+    case focused = "focused"
+    case stressed = "stressed"
+    case creative = "creative"
     
     var displayName: String {
         switch self {
-        case .veryHappy: return "Very Happy"
-        case .happy: return "Happy"
-        case .neutral: return "Neutral"
-        case .sad: return "Sad"
-        case .verySad: return "Very Sad"
-        case .anxious: return "Anxious"
-        case .excited: return "Excited"
+        case .positive: return "Positive"
         case .calm: return "Calm"
-        case .frustrated: return "Frustrated"
-        case .grateful: return "Grateful"
+        case .focused: return "Focused"
+        case .stressed: return "Stressed"
+        case .creative: return "Creative"
         }
     }
     
-    var emoji: String {
+    var icon: String {
         switch self {
-        case .veryHappy: return "😄"
-        case .happy: return "🙂"
-        case .neutral: return "😐"
-        case .sad: return "😔"
-        case .verySad: return "😢"
-        case .anxious: return "😰"
-        case .excited: return "🤩"
-        case .calm: return "😌"
-        case .frustrated: return "😤"
-        case .grateful: return "🙏"
+        case .positive: return "face.smiling"
+        case .calm: return "leaf"
+        case .focused: return "brain.head.profile"
+        case .stressed: return "face.dashed"
+        case .creative: return "lightbulb"
         }
     }
     
     var color: Color {
         switch self {
-        case .veryHappy: return .yellow
-        case .happy: return .green
-        case .neutral: return .gray
-        case .sad: return .blue
-        case .verySad: return .purple
-        case .anxious: return .orange
-        case .excited: return .pink
-        case .calm: return .mint
-        case .frustrated: return .red
-        case .grateful: return .teal
+        case .positive: return Color(red: 0.22, green: 0.69, blue: 0.42) // mood-green
+        case .calm: return Color(red: 0.22, green: 0.56, blue: 0.94) // mood-blue
+        case .focused: return Color(red: 0.4, green: 0.49, blue: 0.92) // bluey-purple
+        case .stressed: return Color(red: 0.91, green: 0.3, blue: 0.24) // mood-red
+        case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // mood-purple
         }
     }
 }
@@ -214,11 +194,39 @@ class TaskManager: ObservableObject {
     
     private func loadSampleData() {
         tasks = [
-            Task(title: "Complete project presentation", description: "Finish the slides for tomorrow's meeting", priority: .high, category: .work),
-            Task(title: "Go for a walk", description: "30 minutes in the park", priority: .medium, category: .health),
-            Task(title: "Read a book", description: "Continue reading 'Atomic Habits'", priority: .low, category: .education),
-            Task(title: "Call mom", description: "Check in and catch up", priority: .medium, category: .personal),
-            Task(title: "Pay bills", description: "Electricity and internet", priority: .high, category: .finance)
+            Task(
+                title: "Complete project presentation",
+                description: "Finish the slides for tomorrow's meeting",
+                notes: "Focus on key metrics and outcomes",
+                priority: .high,
+                emotion: .focused,
+                reminderAt: Calendar.current.date(byAdding: .hour, value: 2, to: Date())
+            ),
+            Task(
+                title: "Go for a walk",
+                description: "30 minutes in the park",
+                priority: .medium,
+                emotion: .calm
+            ),
+            Task(
+                title: "Brainstorm new ideas",
+                description: "Creative session for the new campaign",
+                priority: .low,
+                emotion: .creative
+            ),
+            Task(
+                title: "Call mom",
+                description: "Check in and catch up",
+                priority: .medium,
+                emotion: .positive
+            ),
+            Task(
+                title: "Pay bills",
+                description: "Electricity and internet",
+                priority: .high,
+                emotion: .urgent,
+                reminderAt: Calendar.current.date(byAdding: .day, value: 1, to: Date())
+            )
         ]
     }
 }
@@ -256,11 +264,11 @@ class MoodManager: ObservableObject {
         let now = Date()
         
         moodEntries = [
-            MoodEntry(mood: .happy, intensity: 8, notes: "Had a great workout this morning", activities: ["exercise", "meditation"]),
-            MoodEntry(mood: .calm, intensity: 6, notes: "Productive work session", activities: ["work", "coffee"]),
-            MoodEntry(mood: .excited, intensity: 9, notes: "Finished the big project!", activities: ["work", "celebration"]),
-            MoodEntry(mood: .neutral, intensity: 5, notes: "Regular day", activities: ["routine"]),
-            MoodEntry(mood: .grateful, intensity: 7, notes: "Spent time with family", activities: ["family", "dinner"])
+            MoodEntry(mood: .positive),
+            MoodEntry(mood: .calm),
+            MoodEntry(mood: .focused),
+            MoodEntry(mood: .creative),
+            MoodEntry(mood: .stressed)
         ]
         
         // Set different timestamps for the last 5 days
@@ -269,10 +277,7 @@ class MoodManager: ObservableObject {
             if calendar.date(byAdding: .day, value: -daysAgo, to: now) != nil {
                 moodEntries[index] = MoodEntry(
                     id: entry.id,
-                    mood: entry.mood,
-                    intensity: entry.intensity,
-                    notes: entry.notes,
-                    activities: entry.activities
+                    mood: entry.mood
                 )
             }
         }
@@ -297,9 +302,9 @@ class VoiceCheckinManager: ObservableObject {
     
     private func loadSampleData() {
         voiceCheckins = [
-            VoiceCheckin(transcript: "I'm feeling really good today. I completed my morning workout and I'm ready to tackle the day ahead.", mood: .happy, tasks: ["morning workout", "prepare for meeting"], duration: 45),
-            VoiceCheckin(transcript: "Today was a bit stressful at work, but I managed to stay focused and get things done.", mood: .neutral, tasks: ["work tasks", "stress management"], duration: 32),
-            VoiceCheckin(transcript: "I'm feeling grateful for my family and friends. They always support me when I need it.", mood: .grateful, tasks: ["call family", "plan weekend"], duration: 28)
+            VoiceCheckin(transcript: "I'm feeling really good today. I completed my morning workout and I'm ready to tackle the day ahead.", mood: .positive, tasks: ["morning workout", "prepare for meeting"], duration: 45),
+            VoiceCheckin(transcript: "Today was a bit stressful at work, but I managed to stay focused and get things done.", mood: .focused, tasks: ["work tasks", "stress management"], duration: 32),
+            VoiceCheckin(transcript: "I'm feeling grateful for my family and friends. They always support me when I need it.", mood: .positive, tasks: ["call family", "plan weekend"], duration: 28)
         ]
     }
 } 

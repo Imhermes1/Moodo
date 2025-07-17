@@ -7,182 +7,153 @@
 
 import SwiftUI
 
-// MARK: - Mood Check-in Component
+// MARK: - MoodLens Mood Check-in Component
 
-struct MoodCheckinView: View {
+struct MoodLensMoodCheckinView: View {
     @State private var selectedMood: MoodType?
-    @State private var intensity: Double = 5
-    @State private var notes: String = ""
-    @State private var showingMoodPicker = false
     @StateObject private var moodManager = MoodManager()
     
+    let moodOptions: [(type: MoodType, icon: String, label: String)] = [
+        (.positive, "face.smiling", "Positive"),
+        (.calm, "leaf", "Calm"),
+        (.focused, "brain.head.profile", "Focused"),
+        (.stressed, "face.dashed", "Stressed"),
+        (.creative, "lightbulb", "Creative")
+    ]
+    
     var body: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Image(systemName: "heart.fill")
-                    .foregroundColor(.pink)
-                    .font(.title2)
-                
+        VStack(spacing: 24) {
+            // Header
+            VStack(spacing: 8) {
                 Text("How are you feeling?")
-                    .font(.headline)
+                    .font(.title2)
+                    .fontWeight(.bold)
                     .foregroundColor(.white)
                 
-                Spacer()
+                Text("Start your day with a mood check-in")
+                    .font(.body)
+                    .foregroundColor(.white.opacity(0.7))
             }
             
-            // Mood Selection
-            VStack(spacing: 12) {
-                if let selectedMood = selectedMood {
-                    HStack {
-                        Text(selectedMood.emoji)
-                            .font(.title)
-                        
-                        Text(selectedMood.displayName)
-                            .font(.title3)
-                            .foregroundColor(.white)
-                        
-                        Spacer()
-                        
-                        Button("Change") {
-                            showingMoodPicker = true
-                        }
-                        .foregroundColor(.white.opacity(0.8))
-                        .font(.caption)
-                    }
-                } else {
-                    Button(action: { showingMoodPicker = true }) {
-                        HStack {
-                            Image(systemName: "plus.circle")
-                                .font(.title2)
-                            Text("Select your mood")
-                                .font(.body)
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.white.opacity(0.2))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+            // Mood selection buttons
+            HStack(spacing: 16) {
+                ForEach(moodOptions, id: \.type) { moodOption in
+                    MoodIndicatorButton(
+                        mood: moodOption.type,
+                        icon: moodOption.icon,
+                        label: moodOption.label,
+                        isSelected: selectedMood == moodOption.type
+                    ) {
+                        selectedMood = moodOption.type
                     }
                 }
             }
             
-            // Intensity Slider
-            if selectedMood != nil {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Intensity: \(Int(intensity))")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.8))
-                    
-                    Slider(value: $intensity, in: 1...10, step: 1)
-                        .accentColor(.white)
+            // Log mood button
+            Button(action: logMood) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                        .font(.body)
+                    Text("Log Mood")
+                        .font(.body)
+                        .fontWeight(.medium)
                 }
-                
-                // Notes
-                TextField("Add notes (optional)", text: $notes, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .lineLimit(3...6)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    GlassPanelBackground()
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 25))
             }
-            
-            // Save Button
-            if selectedMood != nil {
-                Button(action: saveMoodEntry) {
-                    Text("Save Mood")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(.white.opacity(0.2))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-            }
+            .disabled(selectedMood == nil)
+            .opacity(selectedMood == nil ? 0.5 : 1.0)
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .sheet(isPresented: $showingMoodPicker) {
-            MoodPickerView(selectedMood: $selectedMood)
-        }
+        .padding(32)
+        .background(
+            GlassPanelBackground()
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .overlay(
+            // Magnifying glass effect
+            RoundedRectangle(cornerRadius: 24)
+                .fill(
+                    RadialGradient(
+                        gradient: Gradient(colors: [
+                            .white.opacity(0.15),
+                            .white.opacity(0.05),
+                            .clear
+                        ]),
+                        center: .topLeading,
+                        startRadius: 0,
+                        endRadius: 100
+                    )
+                )
+                .opacity(0.6)
+        )
     }
     
-    private func saveMoodEntry() {
+    private func logMood() {
         guard let mood = selectedMood else { return }
         
-        let entry = MoodEntry(
-            mood: mood,
-            intensity: Int(intensity),
-            notes: notes.isEmpty ? nil : notes
-        )
-        
+        let entry = MoodEntry(mood: mood)
         moodManager.addMoodEntry(entry)
         
-        // Reset form
+        // Reset selection
         selectedMood = nil
-        intensity = 5
-        notes = ""
     }
 }
 
-struct MoodPickerView: View {
-    @Binding var selectedMood: MoodType?
-    @Environment(\.dismiss) private var dismiss
-    
-    let columns = Array(repeating: GridItem(.flexible()), count: 2)
+struct MoodIndicatorButton: View {
+    let mood: MoodType
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
     
     var body: some View {
-        NavigationView {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(MoodType.allCases, id: \.self) { mood in
-                        Button(action: {
-                            selectedMood = mood
-                            dismiss()
-                        }) {
-                            VStack(spacing: 8) {
-                                Text(mood.emoji)
-                                    .font(.title)
-                                
-                                Text(mood.displayName)
-                                    .font(.caption)
-                                    .foregroundColor(.primary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                }
-                .padding()
-            }
-            .navigationTitle("Select Mood")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(mood.color)
+                    .frame(width: 64, height: 64)
+                    .overlay(
+                        Circle()
+                            .stroke(.white.opacity(0.3), lineWidth: isSelected ? 3 : 1)
+                    )
+                    .shadow(
+                        color: mood.color.opacity(0.4),
+                        radius: isSelected ? 12 : 8,
+                        x: 0,
+                        y: isSelected ? 6 : 4
+                    )
+                
+                Image(systemName: icon)
+                    .foregroundColor(.white)
+                    .font(.title2)
+                    .fontWeight(.medium)
             }
         }
+        .scaleEffect(isSelected ? 1.1 : 1.0)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
     }
 }
 
-// MARK: - Task List Component
+// MARK: - MoodLens Task List Component
 
-struct TaskListView: View {
+struct MoodLensTaskListView: View {
     let tasks: [Task]
     let onAddTask: () -> Void
     @StateObject private var taskManager = TaskManager()
+    @State private var expandedTasks: Set<UUID> = []
     
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 24) {
+            // Header
             HStack {
-                Image(systemName: "checklist")
-                    .foregroundColor(.blue)
+                Text("Today's Tasks")
                     .font(.title2)
-                
-                Text("Tasks")
-                    .font(.headline)
+                    .fontWeight(.bold)
                     .foregroundColor(.white)
                 
                 Spacer()
@@ -191,88 +162,270 @@ struct TaskListView: View {
                     Image(systemName: "plus")
                         .foregroundColor(.white)
                         .font(.title3)
-                        .frame(width: 32, height: 32)
-                        .background(.white.opacity(0.2))
+                        .frame(width: 40, height: 40)
+                        .background(
+                            GlassPanelBackground()
+                        )
                         .clipShape(Circle())
                 }
             }
             
+            // Task list
             if tasks.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "checkmark.circle")
-                        .font(.title)
-                        .foregroundColor(.white.opacity(0.6))
-                    
+                VStack(spacing: 16) {
                     Text("No tasks yet")
                         .font(.body)
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.white.opacity(0.7))
                     
-                    Text("Tap the + button to add your first task")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
-                        .multilineTextAlignment(.center)
-                }
-                .padding()
-            } else {
-                LazyVStack(spacing: 8) {
-                    ForEach(tasks.prefix(5)) { task in
-                        TaskRowView(task: task) { updatedTask in
-                            taskManager.updateTask(updatedTask)
+                    Button(action: onAddTask) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "plus")
+                                .font(.body)
+                            Text("Add your first task")
+                                .font(.body)
+                                .fontWeight(.medium)
                         }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(
+                            GlassPanelBackground()
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 25))
+                    }
+                }
+                .padding(.vertical, 32)
+            } else {
+                LazyVStack(spacing: 12) {
+                    ForEach(tasks) { task in
+                        MoodLensTaskRowView(
+                            task: task,
+                            isExpanded: expandedTasks.contains(task.id),
+                            onToggleExpand: {
+                                if expandedTasks.contains(task.id) {
+                                    expandedTasks.remove(task.id)
+                                } else {
+                                    expandedTasks.insert(task.id)
+                                }
+                            },
+                            onToggleComplete: {
+                                taskManager.toggleTaskCompletion(task)
+                            }
+                        )
                     }
                 }
             }
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(24)
+        .background(
+            GlassPanelBackground()
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
 
-struct TaskRowView: View {
+struct MoodLensTaskRowView: View {
     let task: Task
-    let onUpdate: (Task) -> Void
+    let isExpanded: Bool
+    let onToggleExpand: () -> Void
+    let onToggleComplete: () -> Void
     
     var body: some View {
-        HStack(spacing: 12) {
-            Button(action: {
-                var updatedTask = task
-                updatedTask.isCompleted.toggle()
-                onUpdate(updatedTask)
-            }) {
-                Image(systemName: task.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(task.isCompleted ? .green : .white.opacity(0.6))
-                    .font(.title3)
-            }
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.title)
-                    .font(.body)
-                    .foregroundColor(.white)
-                    .strikethrough(task.isCompleted)
-                    .opacity(task.isCompleted ? 0.6 : 1.0)
-                
-                if let description = task.description {
-                    Text(description)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                        .lineLimit(1)
+        VStack(spacing: 0) {
+            // Main task row
+            HStack(spacing: 12) {
+                // Completion button
+                Button(action: onToggleComplete) {
+                    ZStack {
+                        Circle()
+                            .stroke(task.emotion.color, lineWidth: 2)
+                            .frame(width: 24, height: 24)
+                        
+                        if task.isCompleted {
+                            Circle()
+                                .fill(task.emotion.color)
+                                .frame(width: 24, height: 24)
+                            
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.white)
+                                .font(.caption)
+                                .fontWeight(.bold)
+                        }
+                    }
                 }
                 
-                HStack(spacing: 8) {
-                    Label(task.category.displayName, systemImage: task.category.icon)
-                        .font(.caption2)
-                        .foregroundColor(.white.opacity(0.6))
+                // Task content
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(task.title)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .strikethrough(task.isCompleted)
+                        .opacity(task.isCompleted ? 0.6 : 1.0)
                     
+                    HStack(spacing: 8) {
+                        Text(task.isCompleted ? "Completed • Great job!" : "\(task.priority.displayName) priority • \(task.emotion.displayName)")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.6))
+                        
+                        if let reminderAt = task.reminderAt, !task.isCompleted {
+                            HStack(spacing: 4) {
+                                Image(systemName: "bell")
+                                    .font(.caption2)
+                                Text(formatReminderTime(reminderAt))
+                                    .font(.caption2)
+                            }
+                            .foregroundColor(.white.opacity(0.7))
+                        }
+                    }
+                }
+                
+                Spacer()
+                
+                // Expand button and emotion indicator
+                HStack(spacing: 8) {
+                    if hasDetails {
+                        Button(action: onToggleExpand) {
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                .foregroundColor(.white)
+                                .font(.caption)
+                                .frame(width: 24, height: 24)
+                                .background(
+                                    GlassPanelBackground()
+                                )
+                                .clipShape(Circle())
+                        }
+                    }
+                    
+                    // Emotion color dot
                     Circle()
-                        .fill(task.priority.color)
-                        .frame(width: 8, height: 8)
+                        .fill(task.emotion.color)
+                        .frame(width: 12, height: 12)
+                    
+                    // Emotion icon
+                    Image(systemName: task.emotion.icon)
+                        .foregroundColor(task.emotion.color)
+                        .font(.caption)
                 }
             }
+            .padding(16)
+            .background(
+                GlassPanelBackground()
+            )
+            .overlay(
+                Rectangle()
+                    .fill(task.emotion.color)
+                    .frame(width: 4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .opacity(task.isCompleted ? 0.75 : 1.0)
             
-            Spacer()
+            // Expanded details
+            if isExpanded && hasDetails {
+                VStack(spacing: 12) {
+                    if let description = task.description {
+                        Text(description)
+                            .font(.body)
+                            .foregroundColor(.white.opacity(0.8))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    
+                    if let notes = task.notes {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "note.text")
+                                    .foregroundColor(.white)
+                                    .font(.caption)
+                                Text("Notes")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Text(notes)
+                                .font(.body)
+                                .foregroundColor(.white.opacity(0.8))
+                        }
+                        .padding(12)
+                        .background(
+                            GlassPanelBackground()
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    
+                    if let reminderAt = task.reminderAt {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "clock")
+                                    .foregroundColor(.white)
+                                    .font(.caption)
+                                Text("Reminder")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Text(formatFullReminderTime(reminderAt))
+                                .font(.body)
+                                .foregroundColor(.white.opacity(0.8))
+                            
+                            if let naturalLanguageInput = task.naturalLanguageInput {
+                                Text("Original: \"\(naturalLanguageInput)\"")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                        }
+                        .padding(12)
+                        .background(
+                            GlassPanelBackground()
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+                .background(
+                    GlassPanelBackground()
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
-        .padding(.vertical, 4)
+        .animation(.easeInOut(duration: 0.3), value: isExpanded)
+    }
+    
+    private var hasDetails: Bool {
+        task.description != nil || task.notes != nil || task.reminderAt != nil
+    }
+    
+    private func formatReminderTime(_ date: Date) -> String {
+        let now = Date()
+        let calendar = Calendar.current
+        
+        if calendar.isDate(date, inSameDayAs: now) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
+        
+        let daysUntil = calendar.dateComponents([.day], from: now, to: date).day ?? 0
+        if daysUntil <= 7 && daysUntil > 0 {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "E, HH:mm"
+            return formatter.string(from: date)
+        }
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, HH:mm"
+        return formatter.string(from: date)
+    }
+    
+    private func formatFullReminderTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 
@@ -315,9 +468,11 @@ struct WellnessPromptView: View {
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(24)
+        .background(
+            GlassPanelBackground()
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
     
     private func changePrompt() {
@@ -343,8 +498,8 @@ struct QuickStatsView: View {
     
     var averageMood: Double {
         guard !moodEntries.isEmpty else { return 0 }
-        let totalIntensity = moodEntries.reduce(0) { $0 + $1.intensity }
-        return Double(totalIntensity) / Double(moodEntries.count)
+        let moodValues = moodEntries.map { moodValue(for: $0.mood) }
+        return Double(moodValues.reduce(0, +)) / Double(moodEntries.count)
     }
     
     var body: some View {
@@ -366,20 +521,32 @@ struct QuickStatsView: View {
                     title: "Tasks",
                     value: "\(completedTasksCount)/\(totalTasksCount)",
                     subtitle: "Completed",
-                    color: .blue
+                    color: Color(red: 0.22, green: 0.56, blue: 0.94) // mood-blue
                 )
                 
                 StatCard(
                     title: "Mood",
                     value: String(format: "%.1f", averageMood),
                     subtitle: "Average",
-                    color: .pink
+                    color: Color(red: 0.22, green: 0.69, blue: 0.42) // mood-green
                 )
             }
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(24)
+        .background(
+            GlassPanelBackground()
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+    
+    private func moodValue(for mood: MoodType) -> Int {
+        switch mood {
+        case .positive: return 5
+        case .calm: return 4
+        case .focused: return 3
+        case .stressed: return 2
+        case .creative: return 4
+        }
     }
 }
 
@@ -405,7 +572,7 @@ struct StatCard: View {
                 .foregroundColor(.white.opacity(0.6))
         }
         .frame(maxWidth: .infinity)
-        .padding()
+        .padding(16)
         .background(color.opacity(0.2))
         .clipShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -466,7 +633,7 @@ struct VoiceCheckinView: View {
                     .foregroundColor(.white.opacity(0.7))
             }
             
-            // Sample transcript (in a real app, this would be from speech recognition)
+            // Sample transcript
             if !transcript.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Transcript:")
@@ -476,15 +643,17 @@ struct VoiceCheckinView: View {
                     Text(transcript)
                         .font(.body)
                         .foregroundColor(.white)
-                        .padding()
+                        .padding(12)
                         .background(.white.opacity(0.1))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
             }
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(24)
+        .background(
+            GlassPanelBackground()
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
     
     private func toggleRecording() {
@@ -494,7 +663,7 @@ struct VoiceCheckinView: View {
             recordingTime = 0
             transcript = ""
         } else {
-            // Simulate transcript (in a real app, this would come from speech recognition)
+            // Simulate transcript
             transcript = "I'm feeling good today. I completed my morning workout and I'm ready to tackle the day ahead."
             
             // Save voice check-in
@@ -540,7 +709,7 @@ struct VoiceCheckinHistoryView: View {
                         .font(.body)
                         .foregroundColor(.white.opacity(0.8))
                 }
-                .padding()
+                .padding(32)
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(voiceManager.voiceCheckins.prefix(3)) { checkin in
@@ -549,9 +718,11 @@ struct VoiceCheckinHistoryView: View {
                 }
             }
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(24)
+        .background(
+            GlassPanelBackground()
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
 
@@ -577,7 +748,7 @@ struct VoiceCheckinRowView: View {
                 .foregroundColor(.white)
                 .lineLimit(3)
         }
-        .padding()
+        .padding(16)
         .background(.white.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
@@ -612,7 +783,7 @@ struct MoodHistoryView: View {
                         .font(.body)
                         .foregroundColor(.white.opacity(0.8))
                 }
-                .padding()
+                .padding(32)
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(moodEntries.prefix(5)) { entry in
@@ -621,9 +792,11 @@ struct MoodHistoryView: View {
                 }
             }
         }
-        .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .padding(24)
+        .background(
+            GlassPanelBackground()
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
     }
 }
 
@@ -632,35 +805,25 @@ struct MoodEntryRowView: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            Text(entry.mood.emoji)
+            Image(systemName: entry.mood.icon)
+                .foregroundColor(entry.mood.color)
                 .font(.title2)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(entry.mood.displayName)
                     .font(.body)
                     .foregroundColor(.white)
-                
-                if let notes = entry.notes {
-                    Text(notes)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                        .lineLimit(1)
-                }
             }
             
             Spacer()
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text("\(entry.intensity)/10")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.7))
-                
                 Text(entry.timestamp, style: .time)
                     .font(.caption2)
                     .foregroundColor(.white.opacity(0.6))
             }
         }
-        .padding()
+        .padding(16)
         .background(.white.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
@@ -672,10 +835,11 @@ struct AddTaskModalView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
     @State private var description = ""
+    @State private var notes = ""
     @State private var priority: TaskPriority = .medium
-    @State private var category: TaskCategory = .personal
-    @State private var dueDate: Date = Date()
-    @State private var hasDueDate = false
+    @State private var emotion: EmotionType = .focused
+    @State private var reminderAt: Date = Date()
+    @State private var hasReminder = false
     @StateObject private var taskManager = TaskManager()
     
     var body: some View {
@@ -686,34 +850,37 @@ struct AddTaskModalView: View {
                     
                     TextField("Description (optional)", text: $description, axis: .vertical)
                         .lineLimit(3...6)
+                    
+                    TextField("Notes (optional)", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
                 }
                 
                 Section("Priority") {
                     Picker("Priority", selection: $priority) {
                         ForEach(TaskPriority.allCases, id: \.self) { priority in
-                            Label(priority.displayName, systemImage: "circle.fill")
-                                .foregroundColor(priority.color)
+                            Text(priority.displayName)
                                 .tag(priority)
                         }
                     }
                     .pickerStyle(.segmented)
                 }
                 
-                Section("Category") {
-                    Picker("Category", selection: $category) {
-                        ForEach(TaskCategory.allCases, id: \.self) { category in
-                            Label(category.displayName, systemImage: category.icon)
-                                .tag(category)
+                Section("Emotion") {
+                    Picker("Emotion", selection: $emotion) {
+                        ForEach(EmotionType.allCases, id: \.self) { emotion in
+                            Label(emotion.displayName, systemImage: emotion.icon)
+                                .foregroundColor(emotion.color)
+                                .tag(emotion)
                         }
                     }
                     .pickerStyle(.menu)
                 }
                 
-                Section("Due Date") {
-                    Toggle("Set due date", isOn: $hasDueDate)
+                Section("Reminder") {
+                    Toggle("Set reminder", isOn: $hasReminder)
                     
-                    if hasDueDate {
-                        DatePicker("Due date", selection: $dueDate, displayedComponents: .date)
+                    if hasReminder {
+                        DatePicker("Reminder time", selection: $reminderAt, displayedComponents: [.date, .hourAndMinute])
                     }
                 }
             }
@@ -740,9 +907,10 @@ struct AddTaskModalView: View {
         let task = Task(
             title: title,
             description: description.isEmpty ? nil : description,
+            notes: notes.isEmpty ? nil : notes,
             priority: priority,
-            dueDate: hasDueDate ? dueDate : nil,
-            category: category
+            emotion: emotion,
+            reminderAt: hasReminder ? reminderAt : nil
         )
         
         taskManager.addTask(task)

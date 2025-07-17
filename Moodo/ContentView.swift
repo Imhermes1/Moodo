@@ -13,21 +13,12 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.blue.opacity(0.4),
-                    Color.purple.opacity(0.5),
-                    Color.purple.opacity(0.6)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Liquid gradient background matching MoodLensTracker
+            LiquidGradientBackground()
             
             VStack(spacing: 0) {
-                // Header
-                HeaderView()
+                // Header with magnifying glass logo
+                MoodLensHeaderView()
                 
                 // Main content
                 TabView(selection: $selectedTab) {
@@ -43,7 +34,7 @@ struct ContentView: View {
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                 
                 // Bottom navigation
-                BottomNavigationView(selectedTab: $selectedTab, showingAddTaskModal: $showingAddTaskModal)
+                MoodLensBottomNavigationView(selectedTab: $selectedTab, showingAddTaskModal: $showingAddTaskModal)
             }
         }
         .sheet(isPresented: $showingAddTaskModal) {
@@ -52,64 +43,154 @@ struct ContentView: View {
     }
 }
 
-struct HeaderView: View {
+struct LiquidGradientBackground: View {
+    @State private var animationPhase: CGFloat = 0
+    
+    var body: some View {
+        LinearGradient(
+            gradient: Gradient(colors: [
+                Color(red: 0.4, green: 0.49, blue: 0.92), // #667eea
+                Color(red: 0.46, green: 0.29, blue: 0.64), // #764ba2
+                Color(red: 0.56, green: 0.49, blue: 0.76), // #8e7cc3
+                Color(red: 0.4, green: 0.49, blue: 0.92), // #667eea
+                Color(red: 0.46, green: 0.29, blue: 0.64)  // #764ba2
+            ]),
+            startPoint: UnitPoint(x: 0.5 + 0.5 * cos(animationPhase), y: 0.5 + 0.5 * sin(animationPhase)),
+            endPoint: UnitPoint(x: 0.5 + 0.5 * cos(animationPhase + .pi), y: 0.5 + 0.5 * sin(animationPhase + .pi))
+        )
+        .ignoresSafeArea()
+        .onAppear {
+            withAnimation(.linear(duration: 15).repeatForever(autoreverses: false)) {
+                animationPhase = 2 * .pi
+            }
+        }
+    }
+}
+
+struct MoodLensHeaderView: View {
     var body: some View {
         VStack {
             HStack {
-                // Logo and title
-                HStack(spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(.white.opacity(0.2))
-                            .frame(width: 48, height: 48)
-                        
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.white)
-                            .font(.title2)
-                    }
+                // Magnifying glass logo with liquid effects
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(0.1))
+                        .frame(width: 48, height: 48)
+                        .overlay(
+                            Circle()
+                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                        )
+                        .background(
+                            Circle()
+                                .fill(
+                                    RadialGradient(
+                                        gradient: Gradient(colors: [
+                                            .white.opacity(0.15),
+                                            .white.opacity(0.05),
+                                            .clear
+                                        ]),
+                                        center: .topLeading,
+                                        startRadius: 0,
+                                        endRadius: 24
+                                    )
+                                )
+                        )
                     
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("MoodLens")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                        
-                        Text("To-Do")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-                    }
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.white)
+                        .font(.title2)
+                        .fontWeight(.medium)
+                }
+                .overlay(
+                    // Liquid shine effect
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .clear,
+                                    .white.opacity(0.1),
+                                    .clear
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 48, height: 48)
+                        .opacity(0.6)
+                )
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("MoodLens")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Text("To-Do")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
                 }
                 
                 Spacer()
                 
-                // Action buttons
+                // Action buttons with glass effect
                 HStack(spacing: 16) {
-                    Button(action: {}) {
-                        Image(systemName: "bell")
-                            .foregroundColor(.white)
-                            .font(.title3)
-                            .frame(width: 44, height: 44)
-                            .background(.white.opacity(0.2))
-                            .clipShape(Circle())
-                    }
-                    
-                    Button(action: {}) {
-                        Image(systemName: "person")
-                            .foregroundColor(.white)
-                            .font(.title3)
-                            .frame(width: 44, height: 44)
-                            .background(.white.opacity(0.2))
-                            .clipShape(Circle())
-                    }
+                    GlassButton(icon: "bell", action: {})
+                    GlassButton(icon: "person", action: {})
                 }
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 16)
         }
-        .background(.ultraThinMaterial)
+        .background(
+            GlassPanelBackground()
+        )
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .padding(.horizontal, 16)
         .padding(.top, 16)
+    }
+}
+
+struct GlassButton: View {
+    let icon: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .foregroundColor(.white)
+                .font(.title3)
+                .frame(width: 44, height: 44)
+                .background(
+                    GlassPanelBackground()
+                )
+                .clipShape(Circle())
+        }
+    }
+}
+
+struct GlassPanelBackground: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: 16)
+            .fill(
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        .white.opacity(0.03),
+                        .white.opacity(0.08),
+                        .white.opacity(0.03)
+                    ]),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(.white.opacity(0.1), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -121,14 +202,14 @@ struct HomeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Mood Check-in
-                MoodCheckinView()
+                // Mood Check-in with original MoodLens design
+                MoodLensMoodCheckinView()
                 
                 // Wellness Prompt
                 WellnessPromptView()
                 
-                // Task List
-                TaskListView(tasks: taskManager.tasks) {
+                // Task List with emotion-based design
+                MoodLensTaskListView(tasks: taskManager.tasks) {
                     showingAddTaskModal = true
                 }
                 
@@ -177,7 +258,7 @@ struct InsightsView: View {
     }
 }
 
-struct BottomNavigationView: View {
+struct MoodLensBottomNavigationView: View {
     @Binding var selectedTab: Int
     @Binding var showingAddTaskModal: Bool
     
@@ -234,7 +315,9 @@ struct BottomNavigationView: View {
             }
             .padding(.vertical, 16)
         }
-        .background(.ultraThinMaterial)
+        .background(
+            GlassPanelBackground()
+        )
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .padding(.horizontal, 16)
         .padding(.bottom, 16)
