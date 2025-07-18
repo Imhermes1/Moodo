@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import _Concurrency
 
 // MARK: - Data Models
 
@@ -46,6 +47,14 @@ enum TaskPriority: String, CaseIterable, Codable {
         case .low: return "Low"
         case .medium: return "Medium"
         case .high: return "High"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .low: return Color(red: 0.22, green: 0.69, blue: 0.42) // Green for low priority
+        case .medium: return Color(red: 0.95, green: 0.61, blue: 0.07) // Orange for medium priority
+        case .high: return Color(red: 0.91, green: 0.3, blue: 0.24) // Red for high priority
         }
     }
 }
@@ -156,30 +165,46 @@ struct VoiceCheckin: Identifiable, Codable {
     }
 }
 
+
+
 // MARK: - Data Managers
 
 class TaskManager: ObservableObject {
     @Published var tasks: [Task] = []
+    let taskScheduler = TaskScheduler()
+    
+    var currentMood: MoodType {
+        return taskScheduler.currentMood
+    }
     
     init() {
         loadSampleData()
+        loadFromCloud()
     }
     
     func addTask(_ task: Task) {
         tasks.append(task)
+        
+        // Apply intelligent scheduling
+        let optimizedTasks = taskScheduler.optimizeTaskSchedule(tasks: tasks)
+        tasks = optimizedTasks
+        
         saveTasks()
+        saveToCloud()
     }
     
     func updateTask(_ task: Task) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks[index] = task
             saveTasks()
+            saveToCloud()
         }
     }
     
     func deleteTask(_ task: Task) {
         tasks.removeAll { $0.id == task.id }
         saveTasks()
+        deleteFromCloud(task.id)
     }
     
     func toggleTaskCompletion(_ task: Task) {
@@ -188,8 +213,52 @@ class TaskManager: ObservableObject {
         updateTask(updatedTask)
     }
     
+    func updateCurrentMood(_ mood: MoodType) {
+        taskScheduler.updateCurrentMood(mood)
+        
+        // Re-optimize all tasks based on new mood
+        let optimizedTasks = taskScheduler.optimizeTaskSchedule(tasks: tasks)
+        tasks = optimizedTasks
+        
+        saveTasks()
+        saveToCloud()
+    }
+    
     private func saveTasks() {
-        // In a real app, this would save to Core Data or UserDefaults
+        if let encoded = try? JSONEncoder().encode(tasks) {
+            UserDefaults.standard.set(encoded, forKey: "SavedTasks")
+        }
+    }
+    
+    // MARK: - CloudKit Integration
+    
+    private func saveToCloud() {
+        _Concurrency.Task {
+            await CloudKitManager.shared.saveTasks(tasks)
+        }
+    }
+    
+    private func loadFromCloud() {
+        _Concurrency.Task {
+            let cloudTasks = await CloudKitManager.shared.fetchTasks()
+            await MainActor.run {
+                // Merge cloud tasks with local tasks, avoiding duplicates
+                let localTaskIds = Set(tasks.map { $0.id })
+                let newCloudTasks = cloudTasks.filter { !localTaskIds.contains($0.id) }
+                tasks.append(contentsOf: newCloudTasks)
+                saveTasks() // Save merged data locally
+            }
+        }
+    }
+    
+    private func deleteFromCloud(_ taskId: UUID) {
+        _Concurrency.Task {
+            await CloudKitManager.shared.deleteTask(taskId)
+        }
+    }
+    
+    func syncWithCloud() {
+        loadFromCloud()
     }
     
     private func loadSampleData() {
@@ -236,27 +305,64 @@ class MoodManager: ObservableObject {
     
     init() {
         loadSampleData()
+        loadFromCloud()
     }
     
     func addMoodEntry(_ entry: MoodEntry) {
         moodEntries.append(entry)
         saveMoodEntries()
+        saveToCloud()
     }
     
     func updateMoodEntry(_ entry: MoodEntry) {
         if let index = moodEntries.firstIndex(where: { $0.id == entry.id }) {
             moodEntries[index] = entry
             saveMoodEntries()
+            saveToCloud()
         }
     }
     
     func deleteMoodEntry(_ entry: MoodEntry) {
         moodEntries.removeAll { $0.id == entry.id }
         saveMoodEntries()
+        deleteFromCloud(entry.id)
     }
     
     private func saveMoodEntries() {
-        // In a real app, this would save to Core Data or UserDefaults
+        if let encoded = try? JSONEncoder().encode(moodEntries) {
+            UserDefaults.standard.set(encoded, forKey: "SavedMoodEntries")
+        }
+    }
+    
+    // MARK: - CloudKit Integration
+    
+    private func saveToCloud() {
+        _Concurrency.Task {
+            await CloudKitManager.shared.saveMoodEntries(moodEntries)
+        }
+    }
+    
+    private func loadFromCloud() {
+        _Concurrency.Task {
+            let cloudEntries = await CloudKitManager.shared.fetchMoodEntries()
+            await MainActor.run {
+                // Merge cloud entries with local entries, avoiding duplicates
+                let localEntryIds = Set(moodEntries.map { $0.id })
+                let newCloudEntries = cloudEntries.filter { !localEntryIds.contains($0.id) }
+                moodEntries.append(contentsOf: newCloudEntries)
+                saveMoodEntries() // Save merged data locally
+            }
+        }
+    }
+    
+    private func deleteFromCloud(_ entryId: UUID) {
+        _Concurrency.Task {
+            await CloudKitManager.shared.deleteMoodEntry(entryId)
+        }
+    }
+    
+    func syncWithCloud() {
+        loadFromCloud()
     }
     
     private func loadSampleData() {
@@ -289,15 +395,57 @@ class VoiceCheckinManager: ObservableObject {
     
     init() {
         loadSampleData()
+        loadFromCloud()
     }
     
     func addVoiceCheckin(_ checkin: VoiceCheckin) {
         voiceCheckins.append(checkin)
         saveVoiceCheckins()
+        saveToCloud()
+    }
+    
+    func deleteVoiceCheckin(_ checkin: VoiceCheckin) {
+        voiceCheckins.removeAll { $0.id == checkin.id }
+        saveVoiceCheckins()
+        deleteFromCloud(checkin.id)
     }
     
     private func saveVoiceCheckins() {
-        // In a real app, this would save to Core Data or UserDefaults
+        if let encoded = try? JSONEncoder().encode(voiceCheckins) {
+            UserDefaults.standard.set(encoded, forKey: "SavedVoiceCheckins")
+        }
+    }
+    
+    // MARK: - CloudKit Integration
+    
+    private func saveToCloud() {
+        _Concurrency.Task {
+            await CloudKitManager.shared.saveVoiceCheckins(voiceCheckins)
+        }
+    }
+    
+    private func loadFromCloud() {
+        _Concurrency.Task {
+            let cloudCheckins = await CloudKitManager.shared.fetchVoiceCheckins()
+            await MainActor.run {
+                // Merge cloud checkins with local checkins, avoiding duplicates
+                let localCheckinIds = Set(voiceCheckins.map { $0.id })
+                let newCloudCheckins = cloudCheckins.filter { !localCheckinIds.contains($0.id) }
+                voiceCheckins.append(contentsOf: newCloudCheckins)
+                saveVoiceCheckins() // Save merged data locally
+            }
+        }
+    }
+    
+    private func deleteFromCloud(_ checkinId: UUID) {
+        _Concurrency.Task {
+            // Note: You may want to add a delete method for voice checkins in CloudKitManager
+            // await CloudKitManager.shared.deleteVoiceCheckin(checkinId)
+        }
+    }
+    
+    func syncWithCloud() {
+        loadFromCloud()
     }
     
     private func loadSampleData() {
