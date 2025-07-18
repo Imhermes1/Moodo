@@ -312,76 +312,157 @@ struct CompactTaskRowView: View {
     let onToggleComplete: () -> Void
     @State private var waveOffset: CGFloat = 0
     @State private var waveRotation: Double = 0
+    @State private var isExpanded: Bool = false
+    @State private var expandAnimation: CGFloat = 0
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Completion button
-            Button(action: onToggleComplete) {
-                ZStack {
-                    Circle()
-                        .stroke(task.emotion.color, lineWidth: 2)
-                        .frame(width: 24, height: 24)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(.regularMaterial)
-                                .opacity(0.8)
-                        )
+        VStack(spacing: 0) {
+            // Main compact row - tappable to expand
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isExpanded.toggle()
+                }
+            }) {
+                HStack(spacing: 12) {
+                    // Completion button
+                    Button(action: onToggleComplete) {
+                        ZStack {
+                            Circle()
+                                .stroke(task.emotion.color, lineWidth: 2)
+                                .frame(width: 24, height: 24)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.regularMaterial)
+                                        .opacity(0.8)
+                                )
+                            
+                            if task.isCompleted {
+                                Image(systemName: "checkmark")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(task.emotion.color)
+                            }
+                        }
+                    }
+                    .onTapGesture {
+                        onToggleComplete()
+                    }
                     
-                    if task.isCompleted {
-                        Image(systemName: "checkmark")
+                    // Task title
+                    Text(task.title)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .strikethrough(task.isCompleted)
+                        .opacity(task.isCompleted ? 0.6 : 1.0)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                    
+                    Spacer()
+                    
+                    // Priority badge
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(priorityColor)
+                            .frame(width: 6, height: 6)
+                        
+                        Text(priorityText)
                             .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(task.emotion.color)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(.regularMaterial)
+                            .opacity(0.8)
+                            .overlay(
+                                Capsule()
+                                    .stroke(.white.opacity(0.2), lineWidth: 1)
+                            )
+                    )
+                    
+                    // Expand indicator
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundColor(.white.opacity(0.7))
+                        .font(.caption)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                        .animation(.easeInOut(duration: 0.3), value: isExpanded)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(.regularMaterial)
+                        .opacity(0.8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                        )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Expanded details
+            if isExpanded {
+                VStack(spacing: 12) {
+                    // Description
+                    if let description = task.description, !description.isEmpty {
+                        Text(description)
+                            .font(.body)
+                            .foregroundColor(.white.opacity(0.8))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                    }
+                    
+                    // Notes
+                    if let notes = task.notes, !notes.isEmpty {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "note.text")
+                                .foregroundColor(.white.opacity(0.7))
+                                .font(.caption)
+                            Text(notes)
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.7))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.horizontal, 16)
+                    }
+                    
+                    // Reminder info
+                    if let reminderAt = task.reminderAt {
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock")
+                                .foregroundColor(.white.opacity(0.7))
+                                .font(.caption)
+                            Text("Reminder: \(formatReminderTime(reminderAt))")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .padding(.horizontal, 16)
                     }
                 }
-            }
-            
-            // Task title
-            Text(task.title)
-                .font(.body)
-                .fontWeight(.medium)
-                .foregroundColor(.white)
-                .strikethrough(task.isCompleted)
-                .opacity(task.isCompleted ? 0.6 : 1.0)
-                .lineLimit(2)
-            
-            Spacer()
-            
-            // Priority badge
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(priorityColor)
-                    .frame(width: 6, height: 6)
-                
-                Text(priorityText)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white.opacity(0.8))
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(
-                Capsule()
-                    .fill(.regularMaterial)
-                    .opacity(0.8)
-                    .overlay(
-                        Capsule()
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    )
-            )
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.regularMaterial)
-                .opacity(0.8)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(.regularMaterial)
+                        .opacity(0.6)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                        )
                 )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .transition(.asymmetric(
+                    insertion: .scale(scale: 0.95, anchor: .top).combined(with: .opacity),
+                    removal: .scale(scale: 0.95, anchor: .top).combined(with: .opacity)
+                ))
+            }
+        }
         .offset(y: waveOffset)
         .rotationEffect(.degrees(waveRotation))
         .onAppear {
@@ -442,7 +523,7 @@ struct MoodLensTaskRowView: View {
         VStack(spacing: 0) {
             // Main task row with fold animation
             VStack(spacing: 0) {
-                // Main task row - sits on top of background
+                // Main task row - sits on top of background (tappable to expand)
                 VStack(spacing: 16) {
                     // Row 1: Task title and completion button
                     HStack(spacing: 12) {
@@ -475,6 +556,9 @@ struct MoodLensTaskRowView: View {
                             }
                             .clipShape(Circle())
                         }
+                        .onTapGesture {
+                            onToggleComplete()
+                        }
                         
                         // Task title
                         Text(task.title)
@@ -488,26 +572,24 @@ struct MoodLensTaskRowView: View {
                         
                         Spacer()
                         
-                        // Expand button
+                        // Expand indicator (no button, just visual)
                         if hasDetails {
-                            Button(action: onToggleExpand) {
-                                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                                    .foregroundColor(.white)
-                                    .font(.caption)
-                                    .frame(width: 28, height: 28)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .fill(.regularMaterial)
-                                            .opacity(0.5)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 14)
-                                                    .stroke(.white.opacity(0.3), lineWidth: 1)
-                                            )
-                                    )
-                                    .clipShape(Circle())
-                                    .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                                    .animation(.easeInOut(duration: 0.3), value: isExpanded)
-                            }
+                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                .foregroundColor(.white.opacity(0.7))
+                                .font(.caption)
+                                .frame(width: 28, height: 28)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .fill(.regularMaterial)
+                                        .opacity(0.5)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14)
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                                .clipShape(Circle())
+                                .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                                .animation(.easeInOut(duration: 0.3), value: isExpanded)
                         }
                     }
                     
@@ -656,6 +738,11 @@ struct MoodLensTaskRowView: View {
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .opacity(task.isCompleted ? 0.75 : 1.0)
+                .onTapGesture {
+                    if hasDetails {
+                        onToggleExpand()
+                    }
+                }
                 
                 // Fold-out expanded content
                 if isExpanded && hasDetails {

@@ -7,26 +7,26 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		0B2CB4CA2E29C011006C59FD /* Moodo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Moodo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0B2CB4CA2E29C011006C59FD /* MooDo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MooDo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		0B2CB4E52E29CE3F006C59FD /* Exceptions for "Moodo" folder in "Moodo" target */ = {
+		0B2CB4E52E29CE3F006C59FD /* Exceptions for "MooDo" folder in "MooDo" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 0B2CB4C92E29C011006C59FD /* Moodo */;
+			target = 0B2CB4C92E29C011006C59FD /* MooDo */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0B2CB4CC2E29C011006C59FD /* Moodo */ = {
+		0B2CB4CC2E29C011006C59FD /* MooDo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				0B2CB4E52E29CE3F006C59FD /* Exceptions for "Moodo" folder in "Moodo" target */,
+				0B2CB4E52E29CE3F006C59FD /* Exceptions for "MooDo" folder in "MooDo" target */,
 			);
-			path = Moodo;
+			path = MooDo;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -45,7 +45,7 @@
 		0B2CB4C12E29C011006C59FD = {
 			isa = PBXGroup;
 			children = (
-				0B2CB4CC2E29C011006C59FD /* Moodo */,
+				0B2CB4CC2E29C011006C59FD /* MooDo */,
 				0B2CB4CB2E29C011006C59FD /* Products */,
 			);
 			sourceTree = "<group>";
@@ -53,7 +53,7 @@
 		0B2CB4CB2E29C011006C59FD /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0B2CB4CA2E29C011006C59FD /* Moodo.app */,
+				0B2CB4CA2E29C011006C59FD /* MooDo.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,9 +61,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0B2CB4C92E29C011006C59FD /* Moodo */ = {
+		0B2CB4C92E29C011006C59FD /* MooDo */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0B2CB4D62E29C013006C59FD /* Build configuration list for PBXNativeTarget "Moodo" */;
+			buildConfigurationList = 0B2CB4D62E29C013006C59FD /* Build configuration list for PBXNativeTarget "MooDo" */;
 			buildPhases = (
 				0B2CB4C62E29C011006C59FD /* Sources */,
 				0B2CB4C72E29C011006C59FD /* Frameworks */,
@@ -74,13 +74,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				0B2CB4CC2E29C011006C59FD /* Moodo */,
+				0B2CB4CC2E29C011006C59FD /* MooDo */,
 			);
-			name = Moodo;
+			name = MooDo;
 			packageProductDependencies = (
 			);
 			productName = Moodo;
-			productReference = 0B2CB4CA2E29C011006C59FD /* Moodo.app */;
+			productReference = 0B2CB4CA2E29C011006C59FD /* MooDo.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -98,7 +98,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 0B2CB4C52E29C011006C59FD /* Build configuration list for PBXProject "Moodo" */;
+			buildConfigurationList = 0B2CB4C52E29C011006C59FD /* Build configuration list for PBXProject "MooDo" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -112,7 +112,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0B2CB4C92E29C011006C59FD /* Moodo */,
+				0B2CB4C92E29C011006C59FD /* MooDo */,
 			);
 		};
 /* End PBXProject section */
@@ -339,7 +339,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0B2CB4C52E29C011006C59FD /* Build configuration list for PBXProject "Moodo" */ = {
+		0B2CB4C52E29C011006C59FD /* Build configuration list for PBXProject "MooDo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0B2CB4D42E29C013006C59FD /* Debug */,
@@ -348,7 +348,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0B2CB4D62E29C013006C59FD /* Build configuration list for PBXNativeTarget "Moodo" */ = {
+		0B2CB4D62E29C013006C59FD /* Build configuration list for PBXNativeTarget "MooDo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0B2CB4D72E29C013006C59FD /* Debug */,

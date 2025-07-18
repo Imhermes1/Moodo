@@ -6,6 +6,64 @@
 //
 
 import SwiftUI
+import Foundation
+
+// Liquid shine animation component
+struct LensflareView: View {
+    @State private var animationPhase: CGFloat = 0
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                // Liquid shine effect that fills the screen
+                liquidShineLayer
+                    .frame(width: geometry.size.width * 2, height: geometry.size.height * 2)
+                    .offset(x: -geometry.size.width * 0.5, y: -geometry.size.height * 0.5)
+            }
+        }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 4).repeatForever(autoreverses: false)) {
+                animationPhase = .pi * 2
+            }
+        }
+    }
+    
+    private var liquidShineLayer: some View {
+        ZStack {
+            // Multiple liquid layers for depth
+            ForEach(0..<3, id: \.self) { layer in
+                liquidLayer(for: layer)
+            }
+        }
+    }
+    
+    @ViewBuilder
+    private func liquidLayer(for layer: Int) -> some View {
+        let layerOffset = CGFloat(layer) * 0.3
+        let layerSpeed = 1.0 + CGFloat(layer) * 0.2
+        
+        RoundedRectangle(cornerRadius: 300)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.7, green: 1.0, blue: 0.3, opacity: 0.15), // Much more transparent like water
+                        Color(red: 0.7, green: 1.0, blue: 0.3, opacity: 0.08),
+                        Color(red: 0.7, green: 1.0, blue: 0.3, opacity: 0.03),
+                        Color.clear
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .scaleEffect(1.5 + Foundation.sin(animationPhase * layerSpeed) * 0.5)
+            .rotationEffect(.degrees(Foundation.sin(animationPhase * layerSpeed * 0.3) * 60))
+            .offset(
+                x: Foundation.sin(animationPhase * layerSpeed + layerOffset) * 150,
+                y: Foundation.cos(animationPhase * layerSpeed * 0.5 + layerOffset) * 120
+            )
+            .blur(radius: 30 + CGFloat(layer) * 15)
+    }
+}
 
 struct ContentView: View {
     @State private var selectedTab = 0
@@ -175,6 +233,10 @@ struct HomeView: View {
     
     var body: some View {
         ZStack {
+            // Lensflare animation behind all cards
+            LensflareView()
+                .offset(x: screenSize.width * 0.3, y: screenSize.height * 0.2)
+            
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: screenSize.height * 0.025) {
                     // Spacer for fixed header (smaller since nav is smaller)
@@ -231,6 +293,10 @@ struct TasksView: View {
     
     var body: some View {
         ZStack {
+            // Lensflare animation behind all cards
+            LensflareView()
+                .offset(x: screenSize.width * 0.3, y: screenSize.height * 0.2)
+            
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: screenSize.height * 0.025) {
                     // Spacer for fixed header
@@ -275,6 +341,10 @@ struct VoiceView: View {
     
     var body: some View {
         ZStack {
+            // Lensflare animation behind all cards
+            LensflareView()
+                .offset(x: screenSize.width * 0.3, y: screenSize.height * 0.2)
+            
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: screenSize.height * 0.025) {
                     // Spacer for fixed header (smaller since nav is smaller)
@@ -323,6 +393,10 @@ struct InsightsView: View {
     
     var body: some View {
         ZStack {
+            // Lensflare animation behind all cards
+            LensflareView()
+                .offset(x: screenSize.width * 0.3, y: screenSize.height * 0.2)
+            
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: screenSize.height * 0.025) {
                     // Spacer for fixed header (smaller since nav is smaller)
