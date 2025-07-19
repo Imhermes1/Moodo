@@ -155,8 +155,11 @@ struct AllTasksListView: View {
                         .padding(.vertical, 16)
                         .background(
                             RoundedRectangle(cornerRadius: 16)
-                                .fill(.white.opacity(0.1))
-                                .background(.thinMaterial)
+                                .fill(.green.opacity(0.2))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(.clear, lineWidth: 0)
+                                )
                         )
                     }
                 }
@@ -190,26 +193,13 @@ struct AllTasksListView: View {
         .padding(.vertical, 16) // Reduced vertical padding
         .frame(maxWidth: .infinity, maxHeight: .infinity) // Fill available space
         .background(
-            RoundedRectangle(cornerRadius: 24) // Slightly larger corner radius
-                .fill(.ultraThinMaterial) // Changed to ultraThinMaterial for better visibility
-                .opacity(0.3) // Increased opacity
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.ultraThinMaterial)
+                .opacity(0.15) // Reduced opacity to make it less visible
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
-                        .stroke(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    .white.opacity(0.6),
-                                    .white.opacity(0.25),
-                                    .white.opacity(0.15),
-                                    .white.opacity(0.4)
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.5
-                        )
+                        .stroke(.clear, lineWidth: 0) // Removed visible border
                 )
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4) // Added shadow for depth
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .animation(.easeInOut(duration: 0.4), value: selectedFilter)
