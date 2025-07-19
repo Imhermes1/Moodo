@@ -116,10 +116,6 @@
     <!-- iOS 14+ Privacy Requirements -->
     <key>NSUserTrackingUsageDescription</key>
     <string>MooDo does not track you across apps or websites. This app is designed to help you track your own mood and tasks for personal well-being.</string>
-    
-    <!-- iOS 17+ Enhanced Privacy -->
-    <key>NSLocalNetworkUsageDescription</key>
-    <string>MooDo may access your local network to sync data across your devices and provide seamless cloud backup functionality.</string>
 
     <!-- Add any other keys your project requires here -->
 
