@@ -105,7 +105,7 @@
     <string>MooDo uses speech recognition to allow you to voice your thoughts and feelings, making it easier to track your mood and emotional well-being through natural conversation.</string>
     
     <key>NSMicrophoneUsageDescription</key>
-    <string>MooDo needs microphone access to record your voice for speech-to-text conversion, enabling you to quickly capture tasks and mood insights through voice input.</string>
+    <string>MooDo processes your voice input to convert speech to text for task creation and mood tracking, helping you capture your thoughts quickly and naturally.</string>
     
     <key>NSCalendarsUsageDescription</key>
     <string>MooDo uses calendar access to create reminders for your tasks, helping you stay organized and never miss important deadlines or activities.</string>
@@ -116,6 +116,10 @@
     <!-- iOS 14+ Privacy Requirements -->
     <key>NSUserTrackingUsageDescription</key>
     <string>MooDo does not track you across apps or websites. This app is designed to help you track your own mood and tasks for personal well-being.</string>
+    
+    <!-- iOS 17+ Enhanced Privacy -->
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>MooDo may access your local network to sync data across your devices and provide seamless cloud backup functionality.</string>
 
     <!-- Add any other keys your project requires here -->
 
