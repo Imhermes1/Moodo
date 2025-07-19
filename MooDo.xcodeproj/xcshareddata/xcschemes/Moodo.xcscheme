@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1640"
+   LastUpgradeVersion = "2600"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -18,7 +18,7 @@
                BlueprintIdentifier = "0B2CB4C92E29C011006C59FD"
                BuildableName = "MooDo.app"
                BlueprintName = "MooDo"
-               ReferencedContainer = "container:Moodo.xcodeproj">
+               ReferencedContainer = "container:MooDo.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -47,7 +47,7 @@
             BlueprintIdentifier = "0B2CB4C92E29C011006C59FD"
             BuildableName = "MooDo.app"
             BlueprintName = "MooDo"
-            ReferencedContainer = "container:Moodo.xcodeproj">
+            ReferencedContainer = "container:MooDo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -64,7 +64,7 @@
             BlueprintIdentifier = "0B2CB4C92E29C011006C59FD"
             BuildableName = "MooDo.app"
             BlueprintName = "MooDo"
-            ReferencedContainer = "container:Moodo.xcodeproj">
+            ReferencedContainer = "container:MooDo.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

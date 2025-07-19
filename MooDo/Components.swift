@@ -769,11 +769,11 @@ struct BodyScanView: View {
                     Text("Body Scan")
                         .font(.headline)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     Text("Connect with yourself")
                         .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(.secondary)
                 }
                 
                 Spacer()
@@ -781,7 +781,7 @@ struct BodyScanView: View {
             
             Text("Starting from your toes, notice how each part of your body feels right now.")
                 .font(.body)
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -793,7 +793,7 @@ struct BodyScanView: View {
                         .font(.body)
                         .fontWeight(.medium)
                 }
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
                 .background(
@@ -812,11 +812,11 @@ struct BodyScanView: View {
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .opacity(0.6)
+                .fill(.thinMaterial)
+                .opacity(0.4)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
@@ -859,7 +859,7 @@ struct TodaysProgressView: View {
                 Text("Today's Progress")
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 Spacer()
             }
@@ -900,11 +900,11 @@ struct TodaysProgressView: View {
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .opacity(0.6)
+                .fill(.thinMaterial)
+                .opacity(0.4)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
@@ -946,7 +946,7 @@ struct ProgressCard: View {
             
             Text(title)
                 .font(.caption)
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -954,7 +954,7 @@ struct ProgressCard: View {
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(color.opacity(0.1))
-                .background(.ultraThinMaterial)
+                .background(.thinMaterial)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
@@ -1021,11 +1021,11 @@ struct MindfulMomentView: View {
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .opacity(0.6)
+                .fill(.thinMaterial)
+                .opacity(0.3)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
@@ -1097,11 +1097,11 @@ struct DailyVoiceCheckinView: View {
         .padding(32)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .opacity(0.6)
+                .fill(.thinMaterial)
+                .opacity(0.3)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))
@@ -1153,11 +1153,11 @@ struct MoodHistoryDetailedView: View {
         .padding(24)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .opacity(0.6)
+                .fill(.thinMaterial)
+                .opacity(0.3)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: 24))

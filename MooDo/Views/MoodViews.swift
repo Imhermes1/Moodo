@@ -31,11 +31,11 @@ struct MoodLensMoodCheckinView: View {
                 Text("How are you feeling?")
                     .font(.title3)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 Text("Start your day with a mood check-in")
                     .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(.secondary)
             }
             
             // Mood selection buttons (smaller and more compact)
@@ -66,15 +66,15 @@ struct MoodLensMoodCheckinView: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 25)
-                        .fill(.white.opacity(0.15))
+                        .fill(.black.opacity(0.15))
                         .overlay(
                             RoundedRectangle(cornerRadius: 25)
-                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                                .stroke(.white.opacity(0.1), lineWidth: 1)
                         )
                 )
             }
@@ -86,11 +86,11 @@ struct MoodLensMoodCheckinView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial)
-                .opacity(0.6)
+                .fill(.thinMaterial)
+                .opacity(0.4)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: 20))

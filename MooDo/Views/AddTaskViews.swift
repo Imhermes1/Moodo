@@ -20,17 +20,8 @@ struct AddTaskModalView: View {
     
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                gradient: Gradient(stops: [
-                    .init(color: Color(red: 0.34, green: 0.56, blue: 0.94), location: 0.0),
-                    .init(color: Color(red: 0.56, green: 0.27, blue: 0.68), location: 0.5),
-                    .init(color: Color(red: 0.76, green: 0.27, blue: 0.88), location: 1.0)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea(.all)
+            // Universal background
+            UniversalBackground()
             
             VStack(spacing: 0) {
                 // Header

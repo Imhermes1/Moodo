@@ -17,23 +17,31 @@ struct Task: Identifiable, Codable {
     var description: String?
     var notes: String?
     var isCompleted: Bool
+    var isFlagged: Bool
+    var isRecurring: Bool
     var priority: TaskPriority
     var emotion: EmotionType
     var reminderAt: Date?
     var naturalLanguageInput: String?
     var createdAt: Date
+    var list: TaskList?
+    var tags: [String]
     
-    init(id: UUID = UUID(), title: String, description: String? = nil, notes: String? = nil, isCompleted: Bool = false, priority: TaskPriority = .medium, emotion: EmotionType = .focused, reminderAt: Date? = nil, naturalLanguageInput: String? = nil) {
+    init(id: UUID = UUID(), title: String, description: String? = nil, notes: String? = nil, isCompleted: Bool = false, isFlagged: Bool = false, isRecurring: Bool = false, priority: TaskPriority = .medium, emotion: EmotionType = .focused, reminderAt: Date? = nil, naturalLanguageInput: String? = nil, list: TaskList? = nil, tags: [String] = []) {
         self.id = id
         self.title = title
         self.description = description
         self.notes = notes
         self.isCompleted = isCompleted
+        self.isFlagged = isFlagged
+        self.isRecurring = isRecurring
         self.priority = priority
         self.emotion = emotion
         self.reminderAt = reminderAt
         self.naturalLanguageInput = naturalLanguageInput
         self.createdAt = Date()
+        self.list = list
+        self.tags = tags
     }
 }
 
@@ -171,6 +179,7 @@ struct VoiceCheckin: Identifiable, Codable {
 
 class TaskManager: ObservableObject {
     @Published var tasks: [Task] = []
+    @Published var taskLists: [TaskList] = []
     let taskScheduler = TaskScheduler()
     
     var currentMood: MoodType {
@@ -210,6 +219,48 @@ class TaskManager: ObservableObject {
     func toggleTaskCompletion(_ task: Task) {
         var updatedTask = task
         updatedTask.isCompleted.toggle()
+        updateTask(updatedTask)
+    }
+    
+    func addTaskList(_ list: TaskList) {
+        taskLists.append(list)
+        // Save task lists to UserDefaults
+        if let encoded = try? JSONEncoder().encode(taskLists) {
+            UserDefaults.standard.set(encoded, forKey: "SavedTaskLists")
+        }
+    }
+    
+    // MARK: - Computed Properties
+    
+    var todayTasks: [Task] {
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        return tasks.filter { task in
+            guard let reminderAt = task.reminderAt else { return false }
+            return reminderAt >= today && reminderAt < tomorrow && !task.isCompleted
+        }
+    }
+    
+    var upcomingTasks: [Task] {
+        let today = Calendar.current.startOfDay(for: Date())
+        let nextWeek = Calendar.current.date(byAdding: .day, value: 7, to: today)!
+        return tasks.filter { task in
+            guard let reminderAt = task.reminderAt else { return false }
+            return reminderAt >= today && reminderAt < nextWeek && !task.isCompleted
+        }
+    }
+    
+    var importantTasks: [Task] {
+        return tasks.filter { $0.priority == .high && !$0.isCompleted }
+    }
+    
+    var completedTasks: [Task] {
+        return tasks.filter { $0.isCompleted }
+    }
+    
+    func toggleTaskFlag(_ task: Task) {
+        var updatedTask = task
+        updatedTask.isFlagged.toggle()
         updateTask(updatedTask)
     }
     
@@ -454,5 +505,109 @@ class VoiceCheckinManager: ObservableObject {
             VoiceCheckin(transcript: "Today was a bit stressful at work, but I managed to stay focused and get things done.", mood: .focused, tasks: ["work tasks", "stress management"], duration: 32),
             VoiceCheckin(transcript: "I'm feeling grateful for my family and friends. They always support me when I need it.", mood: .positive, tasks: ["call family", "plan weekend"], duration: 28)
         ]
+    }
+}
+
+// MARK: - Missing Types
+
+class TaskScheduler: ObservableObject {
+    @Published var currentMood: MoodType = .positive
+    
+    func updateCurrentMood(_ mood: MoodType) {
+        currentMood = mood
+    }
+    
+    func optimizeTaskSchedule(tasks: [Task]) -> [Task] {
+        // Simple optimization based on current mood
+        var optimizedTasks = tasks
+        
+        // Sort tasks based on mood and priority
+        optimizedTasks.sort { task1, task2 in
+            // High priority tasks first
+            if task1.priority == .high && task2.priority != .high {
+                return true
+            } else if task1.priority != .high && task2.priority == .high {
+                return false
+            }
+            
+            // Then by reminder time
+            return (task1.reminderAt ?? Date.distantFuture) < (task2.reminderAt ?? Date.distantFuture)
+        }
+        
+        return optimizedTasks
+    }
+}
+
+enum SmartListType: String, CaseIterable {
+    case today = "Today"
+    case tomorrow = "Tomorrow"
+    case thisWeek = "This Week"
+    case upcoming = "Upcoming"
+    case important = "Important"
+    case completed = "Completed"
+    case all = "All"
+    
+    var icon: String {
+        switch self {
+        case .today: return "calendar"
+        case .tomorrow: return "calendar.badge.plus"
+        case .thisWeek: return "calendar.badge.clock"
+        case .upcoming: return "calendar.badge.clock"
+        case .important: return "exclamationmark.triangle"
+        case .completed: return "checkmark.circle"
+        case .all: return "list.bullet"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .today: return .blue
+        case .tomorrow: return .green
+        case .thisWeek: return .orange
+        case .upcoming: return .cyan
+        case .important: return .red
+        case .completed: return .gray
+        case .all: return .purple
+        }
+    }
+}
+
+struct TaskList: Identifiable, Codable {
+    var id = UUID()
+    let name: String
+    let colorName: String
+    let icon: String
+    
+    var color: Color {
+        switch colorName {
+        case "red": return .red
+        case "blue": return .blue
+        case "green": return .green
+        case "orange": return .orange
+        case "purple": return .purple
+        case "pink": return .pink
+        case "yellow": return .yellow
+        case "cyan": return .cyan
+        default: return .blue
+        }
+    }
+    
+    init(name: String, color: Color, icon: String) {
+        self.name = name
+        self.icon = icon
+        self.colorName = Self.colorName(for: color)
+    }
+    
+    private static func colorName(for color: Color) -> String {
+        // Simple color mapping - you might want to expand this
+        if color == .red { return "red" }
+        if color == .blue { return "blue" }
+        if color == .green { return "green" }
+        if color == .orange { return "orange" }
+        if color == .purple { return "purple" }
+        if color == .pink { return "pink" }
+        if color == .yellow { return "yellow" }
+        if color == .cyan { return "cyan" }
+        return "blue"
     }
 } 

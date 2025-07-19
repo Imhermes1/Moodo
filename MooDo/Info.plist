@@ -18,6 +18,8 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CKSharingSupported</key>
+	<true/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
 	<key>LSRequiresIPhoneOS</key>
@@ -33,20 +35,6 @@
 	<string>MooDo uses the microphone to enable voice input for creating tasks and mood entries. This helps you quickly add content without typing.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>MooDo uses speech recognition to convert your voice input into text for creating tasks and mood entries efficiently.</string>
-	<key>NSUserNotificationsUsageDescription</key>
-	<string>MooDo sends smart reminders and mood check-in notifications to help you maintain your mental wellness routine.</string>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-	</dict>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>background-processing</string>
-		<string>remote-notification</string>
-	</array>
-	<key>CKSharingSupported</key>
-	<true/>
 	<key>NSUbiquitousContainers</key>
 	<dict>
 		<key>iCloud.$(CFBundleIdentifier)</key>
@@ -59,11 +47,27 @@
 			<string>Any</string>
 		</dict>
 	</dict>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>MooDo sends smart reminders and mood check-in notifications to help you maintain your mental wellness routine.</string>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>background-processing</string>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
 	</array>
 	<key>UIUserInterfaceStyle</key>
 	<string>Automatic</string>

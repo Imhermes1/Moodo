@@ -81,9 +81,9 @@ struct AllTasksListView: View {
                             .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(selectedFilter == filter ? .white.opacity(0.3) : .white.opacity(0.15))
-                                    .background(.regularMaterial)
-                                    .opacity(0.6)
+                                    .fill(selectedFilter == filter ? .white.opacity(0.2) : .white.opacity(0.1))
+                                    .background(.thinMaterial)
+                                    .opacity(0.3)
                                     .overlay(
                                         Capsule()
                                             .stroke(.white.opacity(0.3), lineWidth: 1)
@@ -118,7 +118,7 @@ struct AllTasksListView: View {
                         .background(
                             RoundedRectangle(cornerRadius: 16)
                                 .fill(.white.opacity(0.1))
-                                .background(.ultraThinMaterial)
+                                .background(.thinMaterial)
                         )
                     }
                 }
@@ -147,8 +147,8 @@ struct AllTasksListView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial)
-                .opacity(0.2)
+                .fill(.thinMaterial)
+                .opacity(0.1)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
                         .stroke(
@@ -225,13 +225,13 @@ struct MoodLensTaskListView: View {
                 Text("Optimized Tasks")
                     .font(.title2)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 Spacer()
                 
                 Button(action: onAddTask) {
                     Image(systemName: "plus")
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.primary)
                         .font(.title3)
                         .fontWeight(.medium)
                 }
@@ -243,7 +243,7 @@ struct MoodLensTaskListView: View {
                     Text("No tasks for today")
                         .font(.headline)
                         .fontWeight(.medium)
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(.secondary)
                     
                     Button(action: onAddTask) {
                         HStack(spacing: 8) {
@@ -254,13 +254,13 @@ struct MoodLensTaskListView: View {
                                 .font(.body)
                                 .fontWeight(.medium)
                         }
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
                         .background(
                             RoundedRectangle(cornerRadius: 16)
                                 .fill(.white.opacity(0.1))
-                                .background(.ultraThinMaterial)
+                                .background(.thinMaterial)
                         )
                     }
                 }
@@ -281,7 +281,7 @@ struct MoodLensTaskListView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial)
+                .fill(.thinMaterial)
                 .opacity(0.2)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
@@ -332,8 +332,8 @@ struct CompactTaskRowView: View {
                                 .frame(width: 24, height: 24)
                                 .background(
                                     RoundedRectangle(cornerRadius: 12)
-                                        .fill(.regularMaterial)
-                                        .opacity(0.8)
+                                        .fill(.thinMaterial)
+                                        .opacity(0.4)
                                 )
                             
                             if task.isCompleted {
@@ -352,7 +352,7 @@ struct CompactTaskRowView: View {
                     Text(task.title)
                         .font(.body)
                         .fontWeight(.medium)
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .strikethrough(task.isCompleted)
                         .opacity(task.isCompleted ? 0.6 : 1.0)
                         .lineLimit(2)
@@ -369,13 +369,13 @@ struct CompactTaskRowView: View {
                         Text(priorityText)
                             .font(.caption)
                             .fontWeight(.medium)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.primary)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
                         Capsule()
-                            .fill(.regularMaterial)
+                            .fill(.thinMaterial)
                             .opacity(0.8)
                             .overlay(
                                 Capsule()
@@ -385,7 +385,7 @@ struct CompactTaskRowView: View {
                     
                     // Expand indicator
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .foregroundColor(.white.opacity(0.7))
+                        .foregroundColor(.secondary)
                         .font(.caption)
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                         .animation(.easeInOut(duration: 0.3), value: isExpanded)
@@ -394,7 +394,7 @@ struct CompactTaskRowView: View {
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(.regularMaterial)
+                        .fill(.thinMaterial)
                         .opacity(0.8)
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
@@ -412,7 +412,7 @@ struct CompactTaskRowView: View {
                     if let description = task.description, !description.isEmpty {
                         Text(description)
                             .font(.body)
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 16)
                     }
@@ -421,11 +421,11 @@ struct CompactTaskRowView: View {
                     if let notes = task.notes, !notes.isEmpty {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "note.text")
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.secondary)
                                 .font(.caption)
                             Text(notes)
                                 .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.horizontal, 16)
@@ -435,11 +435,11 @@ struct CompactTaskRowView: View {
                     if let reminderAt = task.reminderAt {
                         HStack(spacing: 8) {
                             Image(systemName: "clock")
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.secondary)
                                 .font(.caption)
                             Text("Reminder: \(formatReminderTime(reminderAt))")
                                 .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
+                                .foregroundColor(.secondary)
                         }
                         .padding(.horizontal, 16)
                     }
@@ -447,11 +447,11 @@ struct CompactTaskRowView: View {
                 .padding(.vertical, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(.regularMaterial)
-                        .opacity(0.6)
+                        .fill(.thinMaterial)
+                        .opacity(0.3)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                                .stroke(.white.opacity(0.1), lineWidth: 1)
                         )
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -495,6 +495,29 @@ struct CompactTaskRowView: View {
         case .low: return "Low"
         }
     }
+    
+    private func formatReminderTime(_ date: Date) -> String {
+        let now = Date()
+        let calendar = Calendar.current
+        
+        if calendar.isDate(date, inSameDayAs: now) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
+        
+        let daysUntil = calendar.dateComponents([.day], from: now, to: date).day ?? 0
+        if daysUntil <= 7 && daysUntil > 0 {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "E, HH:mm"
+            return formatter.string(from: date)
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
+    }
 }
 
 // MARK: - Task Row View
@@ -535,7 +558,7 @@ struct MoodLensTaskRowView: View {
                                     .frame(width: 28, height: 28)
                                     .background(
                                         RoundedRectangle(cornerRadius: 14)
-                                            .fill(.regularMaterial)
+                                            .fill(.thinMaterial)
                                             .opacity(0.5)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 14)
@@ -580,7 +603,7 @@ struct MoodLensTaskRowView: View {
                                 .frame(width: 28, height: 28)
                                 .background(
                                     RoundedRectangle(cornerRadius: 14)
-                                        .fill(.regularMaterial)
+                                        .fill(.thinMaterial)
                                         .opacity(0.5)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 14)
@@ -607,7 +630,7 @@ struct MoodLensTaskRowView: View {
                                 .background(
                                     Capsule()
                                         .fill(task.priority.color.opacity(0.3))
-                                        .background(.regularMaterial)
+                                        .background(.thinMaterial)
                                         .opacity(0.6)
                                         .overlay(
                                             Capsule()
@@ -629,7 +652,7 @@ struct MoodLensTaskRowView: View {
                             .background(
                                 Capsule()
                                     .fill(task.emotion.color.opacity(0.25))
-                                    .background(.regularMaterial)
+                                    .background(.thinMaterial)
                                     .opacity(0.6)
                                     .overlay(
                                         Capsule()
@@ -656,7 +679,7 @@ struct MoodLensTaskRowView: View {
                             .background(
                                 Capsule()
                                     .fill(.yellow.opacity(0.25))
-                                    .background(.regularMaterial)
+                                    .background(.thinMaterial)
                                     .opacity(0.6)
                                     .overlay(
                                         Capsule()
@@ -689,8 +712,8 @@ struct MoodLensTaskRowView: View {
                             .padding(.vertical, 4)
                             .background(
                                 Capsule()
-                                    .fill(.white.opacity(0.15))
-                                    .background(.regularMaterial)
+                                    .fill(.white.opacity(0.05))
+                                    .background(.thinMaterial)
                                     .opacity(0.6)
                                     .overlay(
                                         Capsule()
@@ -704,7 +727,7 @@ struct MoodLensTaskRowView: View {
                 .background(
                     // Frosted glass effect for task rows
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(.regularMaterial)
+                        .fill(.thinMaterial)
                         .opacity(0.6)
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
@@ -773,12 +796,11 @@ struct MoodLensTaskRowView: View {
                                 TextEditor(text: $notesText)
                                     .font(.body)
                                     .foregroundColor(.white)
-                                    .background(Color.clear)
                                     .frame(minHeight: 60)
                                     .padding(8)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .fill(.regularMaterial)
+                                            .fill(.thinMaterial)
                                             .opacity(0.5)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 12)
@@ -808,7 +830,7 @@ struct MoodLensTaskRowView: View {
                                     .padding(8)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .fill(.regularMaterial)
+                                            .fill(.thinMaterial)
                                             .opacity(0.5)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 12)
@@ -833,7 +855,7 @@ struct MoodLensTaskRowView: View {
                                 .padding(.vertical, 12)
                                 .background(
                                     RoundedRectangle(cornerRadius: 20)
-                                        .fill(.regularMaterial)
+                                        .fill(.thinMaterial)
                                         .opacity(0.6)
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 20)
@@ -846,7 +868,7 @@ struct MoodLensTaskRowView: View {
                         .padding(20)
                         .background(
                             RoundedRectangle(cornerRadius: 16)
-                                .fill(.regularMaterial)
+                                .fill(.thinMaterial)
                                 .opacity(0.6)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16)
@@ -883,8 +905,8 @@ struct MoodLensTaskRowView: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.15)
+                    .fill(.thinMaterial)
+                    .opacity(0.1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .scaleEffect(y: isExpanded ? 1.0 : 1.0, anchor: .top)
@@ -957,5 +979,4 @@ struct MoodLensTaskRowView: View {
             // The task will be updated through the TaskManager
         }
     }
-} 
-
+}
