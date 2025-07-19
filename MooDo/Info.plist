@@ -112,10 +112,6 @@
     
     <key>NSRemindersUsageDescription</key>
     <string>MooDo creates reminders in your Reminders app to help you stay on track with your tasks and maintain your daily routine.</string>
-    
-    <!-- iOS 14+ Privacy Requirements -->
-    <key>NSUserTrackingUsageDescription</key>
-    <string>MooDo does not track you across apps or websites. This app is designed to help you track your own mood and tasks for personal well-being.</string>
 
     <!-- Add any other keys your project requires here -->
 
