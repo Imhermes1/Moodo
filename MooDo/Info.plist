@@ -93,6 +93,10 @@
         </dict>
     </dict>
 
+    <!-- Privacy Usage Descriptions -->
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>MooDo uses speech recognition to allow you to voice your thoughts and feelings, making it easier to track your mood and emotional well-being through natural conversation.</string>
+
     <!-- Add any other keys your project requires here -->
 
 </dict>
