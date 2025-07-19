@@ -105,22 +105,10 @@ struct MoodBasedTasksView: View {
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(.ultraThinMaterial)
-                .opacity(0.2)
+                .opacity(0.15) // Reduced opacity
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.4),
-                                    Color.white.opacity(0.15),
-                                    Color.white.opacity(0.08),
-                                    Color.white.opacity(0.25)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1.5
-                        )
+                        .stroke(.clear, lineWidth: 0) // Removed visible border
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: 20))
@@ -216,8 +204,11 @@ struct MoodBasedTasksView: View {
                 .padding(.vertical, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(.white.opacity(0.1))
-                        .background(.thinMaterial)
+                        .fill(.green.opacity(0.2))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(.clear, lineWidth: 0)
+                        )
                 )
             }
         }

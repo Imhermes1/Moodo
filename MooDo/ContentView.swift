@@ -105,7 +105,7 @@ struct ContentView: View {
             AddTaskModalView(taskManager: taskManager)
         }
         .sheet(isPresented: $showingNotifications) {
-            SettingsView()
+            NotificationsView()
         }
         .sheet(isPresented: $showingAccountSettings) {
             SettingsView()

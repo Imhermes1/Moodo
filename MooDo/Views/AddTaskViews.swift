@@ -12,6 +12,7 @@ import SwiftUI
 struct AddTaskModalView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var taskInput = ""
+    @State private var taskDescription = ""
     @State private var showingVoiceInput = false
     @State private var isProcessing = false
     @State private var showingAdvancedOptions = false
@@ -95,6 +96,29 @@ struct AddTaskModalView: View {
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                                 .lineLimit(3...6)
+                            
+                            // Description field
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "doc.text")
+                                        .foregroundColor(.white.opacity(0.8))
+                                        .font(.caption)
+                                    Text("Description (optional)")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.white.opacity(0.8))
+                                }
+                                
+                                TextField("Add more details about your task...", text: $taskDescription, axis: .vertical)
+                                    .font(.body)
+                                    .foregroundColor(.white)
+                                    .padding(16)
+                                    .background(
+                                        GlassPanelBackground()
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .lineLimit(2...4)
+                            }
                         }
                         
                         // Advanced Options
@@ -437,21 +461,52 @@ struct AddTaskModalView: View {
         
         let processedTask = nlpProcessor.processNaturalLanguage(input)
         
+        // Use description field if provided, otherwise use processed description
+        let finalDescription = taskDescription.isEmpty ? processedTask.description : taskDescription
+        
         // Use advanced options if they're set, otherwise use processed values
         let finalPriority = showingAdvancedOptions ? selectedPriority : processedTask.priority
-        let finalEmotion = showingAdvancedOptions ? selectedEmotion : (processedTask.emotion != .neutral ? processedTask.emotion : detectEmotionForTask(title: processedTask.title, description: processedTask.description, priority: finalPriority))
-        let finalReminderAt = hasReminder ? reminderDate : processedTask.reminderAt
-        let finalDeadlineAt = hasDeadline ? deadlineDate : nil
+        let finalEmotion = showingAdvancedOptions ? selectedEmotion : (processedTask.emotion != .neutral ? processedTask.emotion : detectEmotionForTask(title: processedTask.title, description: finalDescription, priority: finalPriority))
+        
+        // Handle future dates properly - use provided dates or processed dates
+        var finalReminderAt: Date? = nil
+        var finalDeadlineAt: Date? = nil
+        
+        if hasReminder {
+            // Ensure reminder date is in the future
+            if reminderDate > Date() {
+                finalReminderAt = reminderDate
+            } else {
+                // If selected date is in the past, add one day
+                finalReminderAt = Calendar.current.date(byAdding: .day, value: 1, to: reminderDate)
+            }
+        } else if let processedReminder = processedTask.reminderAt, processedReminder > Date() {
+            finalReminderAt = processedReminder
+        }
+        
+        if hasDeadline {
+            // Ensure deadline is in the future
+            if deadlineDate > Date() {
+                finalDeadlineAt = deadlineDate
+            } else {
+                // If selected date is in the past, add one day
+                finalDeadlineAt = Calendar.current.date(byAdding: .day, value: 1, to: deadlineDate)
+            }
+        }
         
         let task = Task(
             title: processedTask.title,
-            description: processedTask.description,
+            description: finalDescription,
             priority: finalPriority,
             emotion: finalEmotion,
             reminderAt: finalReminderAt,
             deadlineAt: finalDeadlineAt,
             naturalLanguageInput: input
         )
+        
+        print("📝 Creating task: \(task.title)")
+        print("⏰ Reminder: \(finalReminderAt?.description ?? "None")")
+        print("📅 Deadline: \(finalDeadlineAt?.description ?? "None")")
         
         taskManager.addTask(task)
         dismiss()

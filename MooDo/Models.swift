@@ -498,9 +498,32 @@ class MoodManager: ObservableObject {
     }
     
     private func loadSampleData() {
-        // Sample data removed for production
-        moodEntries = []
+        // Load from UserDefaults first
+        if let savedData = UserDefaults.standard.data(forKey: "SavedMoodEntries"),
+           let decodedEntries = try? JSONDecoder().decode([MoodEntry].self, from: savedData) {
+            moodEntries = decodedEntries
+        } else {
+            // Generate sample data for demonstration
+            generateSampleMoodEntries()
+        }
         updateCurrentMoodFromEntries()
+    }
+    
+    private func generateSampleMoodEntries() {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        moodEntries = [
+            MoodEntry(mood: .positive, timestamp: calendar.date(byAdding: .hour, value: -2, to: now) ?? now),
+            MoodEntry(mood: .focused, timestamp: calendar.date(byAdding: .hour, value: -5, to: now) ?? now),
+            MoodEntry(mood: .calm, timestamp: calendar.date(byAdding: .day, value: -1, to: now) ?? now),
+            MoodEntry(mood: .creative, timestamp: calendar.date(byAdding: .day, value: -1, to: now) ?? now),
+            MoodEntry(mood: .stressed, timestamp: calendar.date(byAdding: .day, value: -2, to: now) ?? now),
+            MoodEntry(mood: .positive, timestamp: calendar.date(byAdding: .day, value: -3, to: now) ?? now),
+            MoodEntry(mood: .calm, timestamp: calendar.date(byAdding: .day, value: -4, to: now) ?? now),
+        ]
+        
+        saveMoodEntries()
     }
 }
 
