@@ -25,6 +25,22 @@ struct TopNavigationView: View {
                         .opacity(0.05) // Added 5% frost layer
                 )
                 .background(
+                    // Subtle icy blue frost overlay
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color.white.opacity(0.35),
+                                    Color.blue.opacity(0.25),
+                                    Color.cyan.opacity(0.22),
+                                    Color.white.opacity(0.30)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .background(
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(
                             LinearGradient(
@@ -81,7 +97,7 @@ struct TopNavigationView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
+            .padding(.horizontal, 12)
             .padding(.vertical, 8)
         }
         .frame(height: max(44, screenSize.height * 0.06))

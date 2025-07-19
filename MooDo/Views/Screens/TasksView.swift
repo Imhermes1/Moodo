@@ -32,10 +32,11 @@ struct TasksView: View {
                     .frame(minHeight: screenSize.height * 0.8) // Ensure it takes up most of the screen
                 }
                 .padding(.horizontal, max(screenSize.width * 0.02, 8)) // Reduced horizontal padding
-                .padding(.top, max(screenSize.height * 0.10, 70)) // Reduced top padding
+                .padding(.top, max(screenSize.height * 0.08, 60)) // Reduced top padding since navigation is now at top
                 .padding(.bottom, 10)
             }
         }
+        .ignoresSafeArea(.container, edges: .top) // Ignore safe area for proper positioning
     }
 }
 

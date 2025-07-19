@@ -26,6 +26,8 @@ struct SuperlistTaskCard: View {
     @State private var selectedEmotion: EmotionType
     @State private var tagText: String = ""
     @State private var editedTags: [String]
+    @State private var showingActionButtons = false
+    @State private var longPressTimer: Timer?
     @StateObject private var taskManager = TaskManager()
     
     init(task: Task, isExpanded: Bool, onToggleExpand: @escaping () -> Void, onToggleComplete: @escaping () -> Void, onTaskUpdate: @escaping (Task) -> Void) {
@@ -45,6 +47,17 @@ struct SuperlistTaskCard: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Background tap to dismiss action buttons
+            if showingActionButtons {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showingActionButtons = false
+                        }
+                    }
+            }
+            
             // Main card content - always visible
             VStack(spacing: 8) {
                 // Row 1: Completion + Title + Priority
@@ -157,10 +170,141 @@ struct SuperlistTaskCard: View {
             .scaleEffect(task.isCompleted ? 0.98 : 1.0)
             .animation(.easeInOut(duration: 0.2), value: task.isCompleted)
             .onTapGesture {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    onToggleExpand()
+                if !showingActionButtons {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        onToggleExpand()
+                    }
                 }
             }
+            .onLongPressGesture(minimumDuration: 0.5, maximumDistance: 50) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showingActionButtons = true
+                }
+            } onPressingChanged: { isPressing in
+                if isPressing {
+                    // Start long press timer
+                    longPressTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showingActionButtons = true
+                        }
+                    }
+                } else {
+                    // Cancel timer if released early
+                    longPressTimer?.invalidate()
+                    longPressTimer = nil
+                }
+            }
+            .overlay(
+                // Action buttons overlay
+                Group {
+                    if showingActionButtons {
+                        HStack(spacing: 12) {
+                            // Edit button
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    showingActionButtons = false
+                                    onToggleExpand()
+                                }
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "pencil")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                    Text("Edit")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(.ultraThinMaterial)
+                                        .opacity(0.8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color.white.opacity(0.6),
+                                                            Color.white.opacity(0.2)
+                                                        ],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    ),
+                                                    lineWidth: 1
+                                                )
+                                        )
+                                )
+                                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                            }
+                            
+                            // Delete button
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    showingActionButtons = false
+                                    taskManager.deleteTask(task)
+                                }
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "trash")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                    Text("Delete")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(.ultraThinMaterial)
+                                        .opacity(0.8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color.red.opacity(0.6),
+                                                            Color.red.opacity(0.2)
+                                                        ],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    ),
+                                                    lineWidth: 1
+                                                )
+                                        )
+                                )
+                                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                            }
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(.ultraThinMaterial)
+                                .opacity(0.9)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color.white.opacity(0.6),
+                                                    Color.white.opacity(0.2)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1.5
+                                        )
+                                )
+                        )
+                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                , alignment: .center
+            )
             
             // Expanded content
             if isExpanded {

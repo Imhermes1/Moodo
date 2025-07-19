@@ -126,10 +126,6 @@ struct AllTasksListView: View {
                                     .fill(selectedFilter == filter ? .white.opacity(0.2) : .white.opacity(0.1))
                                     .background(.thinMaterial)
                                     .opacity(0.3)
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(.white.opacity(0.3), lineWidth: 1)
-                                    )
                             )
                         }
                     }
@@ -189,7 +185,8 @@ struct AllTasksListView: View {
                 }
             }
         }
-        .padding(20) // Increased padding
+        .padding(.horizontal, 20) // Horizontal padding only
+        .padding(.vertical, 16) // Reduced vertical padding
         .frame(maxWidth: .infinity, maxHeight: .infinity) // Fill available space
         .background(
             RoundedRectangle(cornerRadius: 24) // Slightly larger corner radius
@@ -406,13 +403,18 @@ struct CompactTaskRowView: View {
     @State private var waveRotation: Double = 0
     @State private var isExpanded: Bool = false
     @State private var expandAnimation: CGFloat = 0
+    @State private var showingActionButtons = false
+    @State private var longPressTimer: Timer?
+    @StateObject private var taskManager = TaskManager()
     
     var body: some View {
         VStack(spacing: 0) {
             // Main compact row - tappable to expand
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    isExpanded.toggle()
+                if !showingActionButtons {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isExpanded.toggle()
+                    }
                 }
             }) {
                 HStack(spacing: 12) {
@@ -568,27 +570,147 @@ struct CompactTaskRowView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(PlainButtonStyle())
+            .onLongPressGesture(minimumDuration: 0.5, maximumDistance: 50) {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    showingActionButtons = true
+                }
+            } onPressingChanged: { isPressing in
+                if isPressing {
+                    // Start long press timer
+                    longPressTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showingActionButtons = true
+                        }
+                    }
+                } else {
+                    // Cancel timer if released early
+                    longPressTimer?.invalidate()
+                    longPressTimer = nil
+                }
+            }
+            .overlay(
+                // Action buttons overlay
+                Group {
+                    if showingActionButtons {
+                        HStack(spacing: 12) {
+                            // Edit button
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    showingActionButtons = false
+                                    isExpanded = true
+                                }
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "pencil")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                    Text("Edit")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(.ultraThinMaterial)
+                                        .opacity(0.8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color.white.opacity(0.6),
+                                                            Color.white.opacity(0.2)
+                                                        ],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    ),
+                                                    lineWidth: 1
+                                                )
+                                        )
+                                )
+                                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                            }
+                            
+                            // Delete button
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    showingActionButtons = false
+                                    taskManager.deleteTask(task)
+                                }
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "trash")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                    Text("Delete")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .fill(.ultraThinMaterial)
+                                        .opacity(0.8)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color.red.opacity(0.6),
+                                                            Color.red.opacity(0.2)
+                                                        ],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    ),
+                                                    lineWidth: 1
+                                                )
+                                        )
+                                )
+                                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                            }
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(.ultraThinMaterial)
+                                .opacity(0.9)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color.white.opacity(0.6),
+                                                    Color.white.opacity(0.2)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1.5
+                                        )
+                                )
+                        )
+                        .shadow(color: .black.opacity(0.3), radius: 8, x: 0, y: 4)
+                        .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                , alignment: .center
+            )
             
             // Expanded details
             if isExpanded {
                 VStack(spacing: 12) {
                     // Description
                     if let description = task.description, !description.isEmpty {
-                        Text(description)
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 16)
-                    }
-                    
-                    // Notes
-                    if let description = task.description, !description.isEmpty {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "note.text")
                                 .foregroundColor(.secondary)
                                 .font(.caption)
                             Text(description)
-                                .font(.caption)
+                                .font(.body)
                                 .foregroundColor(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -1166,7 +1288,7 @@ struct MoodLensTaskRowView: View {
     
     private func saveChanges() {
         var updatedTask = task
-                                updatedTask.description = descriptionText.isEmpty ? nil : descriptionText
+        updatedTask.description = descriptionText.isEmpty ? nil : descriptionText
         updatedTask.reminderAt = reminderDate
         taskManager.updateTask(updatedTask)
         

@@ -95,7 +95,23 @@ struct MoodLensBottomNavigationView: View {
                     .background(
                         RoundedRectangle(cornerRadius: 20)
                             .fill(.ultraThinMaterial)
-                            .opacity(0.05) // Added 5% frost layer
+                            .opacity(0.15) // Added 15% frost layer (increased by 5% more)
+                    )
+                    .background(
+                        // Subtle icy blue frost overlay
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.35),
+                                        Color.blue.opacity(0.25),
+                                        Color.cyan.opacity(0.22),
+                                        Color.white.opacity(0.30)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
                     )
                     .background(
                         RoundedRectangle(cornerRadius: 20)

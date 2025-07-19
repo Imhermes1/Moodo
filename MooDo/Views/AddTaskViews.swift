@@ -14,6 +14,13 @@ struct AddTaskModalView: View {
     @State private var taskInput = ""
     @State private var showingVoiceInput = false
     @State private var isProcessing = false
+    @State private var showingAdvancedOptions = false
+    @State private var selectedPriority: TaskPriority = .medium
+    @State private var selectedEmotion: EmotionType = .focused
+    @State private var reminderDate = Date().addingTimeInterval(3600) // Default to 1 hour from now
+    @State private var deadlineDate = Date().addingTimeInterval(86400) // Default to tomorrow
+    @State private var hasReminder = false
+    @State private var hasDeadline = false
     @StateObject private var taskManager = TaskManager()
     @StateObject private var nlpProcessor = NaturalLanguageProcessor()
     @StateObject private var voiceRecognition = VoiceRecognitionManager()
@@ -88,6 +95,208 @@ struct AddTaskModalView: View {
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                                 .lineLimit(3...6)
+                        }
+                        
+                        // Advanced Options
+                        VStack(spacing: 12) {
+                            Button(action: {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    showingAdvancedOptions.toggle()
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "slider.horizontal.3")
+                                        .foregroundColor(.white)
+                                        .font(.title3)
+                                    Text("Advanced Options")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: showingAdvancedOptions ? "chevron.up" : "chevron.down")
+                                        .foregroundColor(.white.opacity(0.7))
+                                        .font(.caption)
+                                        .animation(.easeInOut(duration: 0.3), value: showingAdvancedOptions)
+                                }
+                                .padding(16)
+                                .background(
+                                    GlassPanelBackground()
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                            }
+                            
+                            if showingAdvancedOptions {
+                                VStack(spacing: 16) {
+                                    // Priority and Emotion
+                                    HStack(spacing: 12) {
+                                        // Priority selector
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "exclamationmark.triangle")
+                                                    .foregroundColor(.white.opacity(0.8))
+                                                    .font(.caption)
+                                                Text("Priority")
+                                                    .font(.caption)
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.white.opacity(0.8))
+                                            }
+                                            
+                                            Picker("Priority", selection: $selectedPriority) {
+                                                ForEach(TaskPriority.allCases, id: \.self) { priority in
+                                                    HStack {
+                                                        Circle()
+                                                            .fill(priority.color)
+                                                            .frame(width: 8, height: 8)
+                                                        Text(priority.displayName)
+                                                            .foregroundColor(.white)
+                                                    }
+                                                    .tag(priority)
+                                                }
+                                            }
+                                            .pickerStyle(MenuPickerStyle())
+                                            .foregroundColor(.white)
+                                            .padding(12)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(.ultraThinMaterial)
+                                                    .opacity(0.6)
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 8)
+                                                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                                                    )
+                                            )
+                                        }
+                                        
+                                        // Emotion selector
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "heart")
+                                                    .foregroundColor(.white.opacity(0.8))
+                                                    .font(.caption)
+                                                Text("Emotion")
+                                                    .font(.caption)
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.white.opacity(0.8))
+                                            }
+                                            
+                                            Picker("Emotion", selection: $selectedEmotion) {
+                                                ForEach(EmotionType.allCases, id: \.self) { emotion in
+                                                    HStack {
+                                                        Image(systemName: emotion.icon)
+                                                            .foregroundColor(emotion.color)
+                                                        Text(emotion.displayName)
+                                                            .foregroundColor(.white)
+                                                    }
+                                                    .tag(emotion)
+                                                }
+                                            }
+                                            .pickerStyle(MenuPickerStyle())
+                                            .foregroundColor(.white)
+                                            .padding(12)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(.ultraThinMaterial)
+                                                    .opacity(0.6)
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 8)
+                                                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                                                    )
+                                            )
+                                        }
+                                    }
+                                    
+                                    // Reminder and Deadline
+                                    VStack(spacing: 12) {
+                                        // Reminder toggle
+                                        HStack {
+                                            Toggle("", isOn: $hasReminder)
+                                                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                                                .scaleEffect(0.8)
+                                            
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "clock")
+                                                    .foregroundColor(.white.opacity(0.8))
+                                                    .font(.caption)
+                                                Text("Set Reminder")
+                                                    .font(.caption)
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.white.opacity(0.8))
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            if hasReminder {
+                                                DatePicker("", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
+                                                    .datePickerStyle(CompactDatePickerStyle())
+                                                    .labelsHidden()
+                                                    .colorScheme(.dark)
+                                            }
+                                        }
+                                        .padding(12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(.ultraThinMaterial)
+                                                .opacity(0.6)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                                                )
+                                        )
+                                        
+                                        // Deadline toggle
+                                        HStack {
+                                            Toggle("", isOn: $hasDeadline)
+                                                .toggleStyle(SwitchToggleStyle(tint: .orange))
+                                                .scaleEffect(0.8)
+                                            
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "exclamationmark.triangle")
+                                                    .foregroundColor(.white.opacity(0.8))
+                                                    .font(.caption)
+                                                Text("Set Deadline")
+                                                    .font(.caption)
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.white.opacity(0.8))
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            if hasDeadline {
+                                                DatePicker("", selection: $deadlineDate, displayedComponents: [.date, .hourAndMinute])
+                                                    .datePickerStyle(CompactDatePickerStyle())
+                                                    .labelsHidden()
+                                                    .colorScheme(.dark)
+                                            }
+                                        }
+                                        .padding(12)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(.ultraThinMaterial)
+                                                .opacity(0.6)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                                                )
+                                        )
+                                    }
+                                }
+                                .padding(16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                        .opacity(0.4)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                                        )
+                                )
+                                .transition(.asymmetric(
+                                    insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
+                                    removal: .opacity.combined(with: .scale(scale: 0.95, anchor: .top))
+                                ))
+                            }
                         }
                         
                         // Voice input option
@@ -228,12 +437,19 @@ struct AddTaskModalView: View {
         
         let processedTask = nlpProcessor.processNaturalLanguage(input)
         
+        // Use advanced options if they're set, otherwise use processed values
+        let finalPriority = showingAdvancedOptions ? selectedPriority : processedTask.priority
+        let finalEmotion = showingAdvancedOptions ? selectedEmotion : processedTask.emotion
+        let finalReminderAt = hasReminder ? reminderDate : processedTask.reminderAt
+        let finalDeadlineAt = hasDeadline ? deadlineDate : nil
+        
         let task = Task(
             title: processedTask.title,
             description: processedTask.description,
-            priority: processedTask.priority,
-            emotion: processedTask.emotion,
-            reminderAt: processedTask.reminderAt,
+            priority: finalPriority,
+            emotion: finalEmotion,
+            reminderAt: finalReminderAt,
+            deadlineAt: finalDeadlineAt,
             naturalLanguageInput: input
         )
         
