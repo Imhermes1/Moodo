@@ -67,7 +67,7 @@ struct ContentView: View {
                         .tag(3)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: selectedTab)
+                    .animation(.easeInOut(duration: 0.3), value: selectedTab)
                     
                     // Bottom navigation overlay
                     VStack {

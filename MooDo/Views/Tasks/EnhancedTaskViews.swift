@@ -351,8 +351,8 @@ struct EnhancedTaskRowView: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         
-                        if let notes = task.notes, !notes.isEmpty {
-                            Text(notes)
+                        if let description = task.description, !description.isEmpty {
+                                                          Text(description)
                                 .font(.caption2)
                                 .foregroundColor(.white.opacity(0.6))
                                 .lineLimit(1)

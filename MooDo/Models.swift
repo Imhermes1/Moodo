@@ -15,33 +15,37 @@ struct Task: Identifiable, Codable {
     let id: UUID
     var title: String
     var description: String?
-    var notes: String?
     var isCompleted: Bool
     var isFlagged: Bool
     var isRecurring: Bool
     var priority: TaskPriority
     var emotion: EmotionType
     var reminderAt: Date?
+    var deadlineAt: Date? // Separate deadline date from reminder
     var naturalLanguageInput: String?
     var createdAt: Date
     var list: TaskList?
     var tags: [String]
+    var subtasks: [Task]?
+    var eventKitIdentifier: String? // For linking to EventKit reminder
     
-    init(id: UUID = UUID(), title: String, description: String? = nil, notes: String? = nil, isCompleted: Bool = false, isFlagged: Bool = false, isRecurring: Bool = false, priority: TaskPriority = .medium, emotion: EmotionType = .focused, reminderAt: Date? = nil, naturalLanguageInput: String? = nil, list: TaskList? = nil, tags: [String] = []) {
+    init(id: UUID = UUID(), title: String, description: String? = nil, isCompleted: Bool = false, isFlagged: Bool = false, isRecurring: Bool = false, priority: TaskPriority = .medium, emotion: EmotionType = .focused, reminderAt: Date? = nil, deadlineAt: Date? = nil, naturalLanguageInput: String? = nil, list: TaskList? = nil, tags: [String] = [], subtasks: [Task]? = nil, eventKitIdentifier: String? = nil) {
         self.id = id
         self.title = title
         self.description = description
-        self.notes = notes
         self.isCompleted = isCompleted
         self.isFlagged = isFlagged
         self.isRecurring = isRecurring
         self.priority = priority
         self.emotion = emotion
         self.reminderAt = reminderAt
+        self.deadlineAt = deadlineAt
         self.naturalLanguageInput = naturalLanguageInput
         self.createdAt = Date()
         self.list = list
         self.tags = tags
+        self.subtasks = subtasks
+        self.eventKitIdentifier = eventKitIdentifier
     }
 }
 
@@ -177,10 +181,12 @@ struct VoiceCheckin: Identifiable, Codable {
 
 // MARK: - Data Managers
 
+@MainActor
 class TaskManager: ObservableObject {
     @Published var tasks: [Task] = []
     @Published var taskLists: [TaskList] = []
     let taskScheduler = TaskScheduler()
+    let eventKitManager = EventKitManager()
     
     var currentMood: MoodType {
         return taskScheduler.currentMood
@@ -189,28 +195,62 @@ class TaskManager: ObservableObject {
     init() {
         loadSampleData()
         loadFromCloud()
+        
+        // Setup notification actions
+        EventKitManager.setupNotificationActions()
     }
     
     func addTask(_ task: Task) {
-        tasks.append(task)
+        var newTask = task
         
-        // Apply intelligent scheduling
-        let optimizedTasks = taskScheduler.optimizeTaskSchedule(tasks: tasks)
-        tasks = optimizedTasks
-        
-        saveTasks()
-        saveToCloud()
+        // Create EventKit reminder if task has a reminder date
+        if task.reminderAt != nil {
+            _Concurrency.Task {
+                let eventKitID = await eventKitManager.createReminder(for: task)
+                await MainActor.run {
+                    newTask.eventKitIdentifier = eventKitID
+                    self.tasks.append(newTask)
+                    
+                    // Apply intelligent scheduling
+                    let optimizedTasks = self.taskScheduler.optimizeTaskSchedule(tasks: self.tasks)
+                    self.tasks = optimizedTasks
+                    
+                    self.saveTasks()
+                    self.saveToCloud()
+                }
+            }
+        } else {
+            tasks.append(newTask)
+            
+            // Apply intelligent scheduling
+            let optimizedTasks = taskScheduler.optimizeTaskSchedule(tasks: tasks)
+            tasks = optimizedTasks
+            
+            saveTasks()
+            saveToCloud()
+        }
     }
     
     func updateTask(_ task: Task) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks[index] = task
+            
+            // Update EventKit reminder if it exists
+            _Concurrency.Task {
+                await eventKitManager.updateReminder(for: task)
+            }
+            
             saveTasks()
             saveToCloud()
         }
     }
     
     func deleteTask(_ task: Task) {
+        // Delete EventKit reminder if it exists
+        if let eventKitID = task.eventKitIdentifier {
+            eventKitManager.deleteReminder(eventKitIdentifier: eventKitID)
+        }
+        
         tasks.removeAll { $0.id == task.id }
         saveTasks()
         deleteFromCloud(task.id)
@@ -233,12 +273,9 @@ class TaskManager: ObservableObject {
     // MARK: - Computed Properties
     
     var todayTasks: [Task] {
-        let today = Calendar.current.startOfDay(for: Date())
-        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
-        return tasks.filter { task in
-            guard let reminderAt = task.reminderAt else { return false }
-            return reminderAt >= today && reminderAt < tomorrow && !task.isCompleted
-        }
+        // Use adaptive optimization for today's tasks
+        let optimalCount = taskScheduler.getOptimalTaskCount(for: taskScheduler.currentMood)
+        return taskScheduler.optimizeTaskSchedule(tasks: tasks, maxTasks: optimalCount)
     }
     
     var upcomingTasks: [Task] {
@@ -267,8 +304,18 @@ class TaskManager: ObservableObject {
     func updateCurrentMood(_ mood: MoodType) {
         taskScheduler.updateCurrentMood(mood)
         
-        // Re-optimize all tasks based on new mood
-        let optimizedTasks = taskScheduler.optimizeTaskSchedule(tasks: tasks)
+        // Auto-optimize tasks based on new mood
+        autoOptimizeTasks()
+    }
+    
+    func autoOptimizeTasks() {
+        // Get optimal task count based on current mood
+        let optimalCount = taskScheduler.getOptimalTaskCount(for: taskScheduler.currentMood)
+        
+        // Optimize tasks with mood-based filtering and count limit
+        let optimizedTasks = taskScheduler.optimizeTaskSchedule(tasks: tasks, maxTasks: optimalCount)
+        
+        // Update tasks with optimized order
         tasks = optimizedTasks
         
         saveTasks()
@@ -316,8 +363,7 @@ class TaskManager: ObservableObject {
         tasks = [
             Task(
                 title: "Complete project presentation",
-                description: "Finish the slides for tomorrow's meeting",
-                notes: "Focus on key metrics and outcomes",
+                description: "Finish the slides for tomorrow's meeting. Focus on key metrics and outcomes.",
                 priority: .high,
                 emotion: .focused,
                 reminderAt: Calendar.current.date(byAdding: .hour, value: 2, to: Date())
@@ -517,24 +563,262 @@ class TaskScheduler: ObservableObject {
         currentMood = mood
     }
     
-    func optimizeTaskSchedule(tasks: [Task]) -> [Task] {
-        // Simple optimization based on current mood
-        var optimizedTasks = tasks
+    func optimizeTaskSchedule(tasks: [Task], maxTasks: Int? = nil) -> [Task] {
+        // Advanced mood-based optimization system
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        let incompleTasks = tasks.filter { !$0.isCompleted }
         
-        // Sort tasks based on mood and priority
-        optimizedTasks.sort { task1, task2 in
-            // High priority tasks first
-            if task1.priority == .high && task2.priority != .high {
-                return true
-            } else if task1.priority != .high && task2.priority == .high {
-                return false
-            }
-            
-            // Then by reminder time
-            return (task1.reminderAt ?? Date.distantFuture) < (task2.reminderAt ?? Date.distantFuture)
+        // Get mood-specific task preferences
+        let moodPreferences = getMoodTaskPreferences(for: currentMood)
+        
+        // Calculate mood compatibility scores for all tasks
+        let scoredTasks = incompleTasks.map { task in
+            (task: task, score: calculateMoodCompatibilityScore(task: task, preferences: moodPreferences))
         }
         
-        return optimizedTasks
+        // Filter and prioritize based on multiple criteria
+        let prioritizedTasks = scoredTasks.filter { scoredTask in
+            let task = scoredTask.task
+            let score = scoredTask.score
+            
+                    // Always include high-priority tasks and tasks due today
+        let isHighPriority = task.priority == .high
+        let isDueToday = (task.reminderAt != nil && 
+                         task.reminderAt! >= today && 
+                         task.reminderAt! < tomorrow) ||
+                        (task.deadlineAt != nil && 
+                         task.deadlineAt! >= today && 
+                         task.deadlineAt! < tomorrow)
+        let hasGoodMoodMatch = score >= 0.6
+        
+        return isHighPriority || isDueToday || hasGoodMoodMatch
+        }
+        
+        // Sort by comprehensive scoring system
+        let optimizedTasks = prioritizedTasks.sorted { scored1, scored2 in
+            let task1 = scored1.task
+            let task2 = scored2.task
+            let score1 = scored1.score
+            let score2 = scored2.score
+            
+            // 1. Urgent tasks first (due today + high priority)
+            let urgent1 = isUrgent(task: task1, today: today, tomorrow: tomorrow)
+            let urgent2 = isUrgent(task: task2, today: today, tomorrow: tomorrow)
+            
+            if urgent1 && !urgent2 { return true }
+            if !urgent1 && urgent2 { return false }
+            
+            // 2. Mood compatibility score
+            if abs(score1 - score2) > 0.1 {
+                return score1 > score2
+            }
+            
+            // 3. Priority level
+            if task1.priority != task2.priority {
+                return task1.priority.numericValue > task2.priority.numericValue
+            }
+            
+            // 4. Time sensitivity
+            let time1 = task1.reminderAt ?? Date.distantFuture
+            let time2 = task2.reminderAt ?? Date.distantFuture
+            
+            return time1 < time2
+        }
+        
+        // Apply mood-specific task count limits
+        let optimalCount = maxTasks ?? getOptimalTaskCount(for: currentMood)
+        let finalTasks = Array(optimizedTasks.prefix(optimalCount).map { $0.task })
+        
+        return finalTasks
+    }
+    
+    private func getMoodTaskPreferences(for mood: MoodType) -> MoodTaskPreferences {
+        switch mood {
+        case .positive:
+            return MoodTaskPreferences(
+                preferredEmotions: [.positive, .creative, .focused],
+                preferredPriorities: [.high, .medium],
+                timePreference: .flexible,
+                creativityBoost: 1.3,
+                focusCapacity: 1.2
+            )
+        case .calm:
+            return MoodTaskPreferences(
+                preferredEmotions: [.calm, .positive],
+                preferredPriorities: [.low, .medium],
+                timePreference: .morning,
+                creativityBoost: 0.8,
+                focusCapacity: 1.0
+            )
+        case .focused:
+            return MoodTaskPreferences(
+                preferredEmotions: [.focused, .positive],
+                preferredPriorities: [.high, .medium],
+                timePreference: .concentrated,
+                creativityBoost: 0.9,
+                focusCapacity: 1.5
+            )
+        case .stressed:
+            return MoodTaskPreferences(
+                preferredEmotions: [.calm, .positive],
+                preferredPriorities: [.low],
+                timePreference: .gentle,
+                creativityBoost: 0.5,
+                focusCapacity: 0.7
+            )
+        case .creative:
+            return MoodTaskPreferences(
+                preferredEmotions: [.creative, .positive, .focused],
+                preferredPriorities: [.medium, .high],
+                timePreference: .flexible,
+                creativityBoost: 1.5,
+                focusCapacity: 1.1
+            )
+        }
+    }
+    
+    private func calculateMoodCompatibilityScore(task: Task, preferences: MoodTaskPreferences) -> Double {
+        var score: Double = 0.0
+        
+        // Emotion compatibility (40% weight)
+        if preferences.preferredEmotions.contains(task.emotion) {
+            score += 0.4
+        } else {
+            score += 0.1 // Partial credit for non-conflicting emotions
+        }
+        
+        // Priority alignment (30% weight)
+        if preferences.preferredPriorities.contains(task.priority) {
+            score += 0.3
+        } else if task.priority == .high && currentMood != .stressed {
+            score += 0.2 // High priority tasks get partial credit unless stressed
+        }
+        
+        // Time sensitivity (20% weight) - consider both reminder and deadline
+        if let deadlineAt = task.deadlineAt {
+            let timeScore = calculateTimeCompatibilityScore(reminderAt: deadlineAt, preference: preferences.timePreference)
+            score += timeScore * 0.2
+        } else if let reminderAt = task.reminderAt {
+            let timeScore = calculateTimeCompatibilityScore(reminderAt: reminderAt, preference: preferences.timePreference)
+            score += timeScore * 0.15
+        } else {
+            score += 0.1 // No deadline gives moderate flexibility
+        }
+        
+        // Special boosts (10% weight)
+        if task.emotion == .creative {
+            score += (preferences.creativityBoost - 1.0) * 0.05
+        }
+        if task.emotion == .focused {
+            score += (preferences.focusCapacity - 1.0) * 0.05
+        }
+        
+        return max(0.0, min(1.0, score))
+    }
+    
+    private func calculateTimeCompatibilityScore(reminderAt: Date, preference: TimePreference) -> Double {
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: reminderAt)
+        
+        switch preference {
+        case .morning:
+            return hour < 12 ? 1.0 : 0.3
+        case .concentrated:
+            return (hour >= 9 && hour <= 11) || (hour >= 14 && hour <= 16) ? 1.0 : 0.5
+        case .gentle:
+            return hour < 10 || hour > 18 ? 1.0 : 0.4
+        case .flexible:
+            return 0.8 // Generally good at any time
+        }
+    }
+    
+    private func isUrgent(task: Task, today: Date, tomorrow: Date) -> Bool {
+        let isDueToday = (task.reminderAt != nil && 
+                         task.reminderAt! >= today && 
+                         task.reminderAt! < tomorrow) ||
+                        (task.deadlineAt != nil && 
+                         task.deadlineAt! >= today && 
+                         task.deadlineAt! < tomorrow)
+        let isHighPriority = task.priority == .high
+        
+        return isDueToday && isHighPriority
+    }
+    
+    // Get optimal number of tasks based on mood with time-of-day adjustment
+    func getOptimalTaskCount(for mood: MoodType) -> Int {
+        let baseCount: Int
+        
+        switch mood {
+        case .positive:
+            baseCount = 8 // High energy, can handle more tasks
+        case .calm:
+            baseCount = 5 // Peaceful state, fewer tasks
+        case .focused:
+            baseCount = 6 // Good focus, moderate task count
+        case .stressed:
+            baseCount = 3 // Lower capacity, fewer tasks
+        case .creative:
+            baseCount = 7 // Creative flow, can handle variety
+        }
+        
+        // Adjust based on time of day
+        let calendar = Calendar.current
+        let hour = calendar.component(.hour, from: Date())
+        
+        let timeMultiplier: Double
+        if hour < 9 {
+            timeMultiplier = 0.8 // Early morning - fewer tasks
+        } else if hour < 12 {
+            timeMultiplier = 1.0 // Morning peak
+        } else if hour < 14 {
+            timeMultiplier = 0.9 // Post-lunch dip
+        } else if hour < 17 {
+            timeMultiplier = 1.0 // Afternoon focus
+        } else if hour < 20 {
+            timeMultiplier = 0.8 // Evening wind-down
+        } else {
+            timeMultiplier = 0.6 // Night - minimal tasks
+        }
+        
+        return max(2, Int(Double(baseCount) * timeMultiplier))
+    }
+}
+
+// MARK: - Mood-Based Task Preferences
+
+struct MoodTaskPreferences {
+    let preferredEmotions: [EmotionType]
+    let preferredPriorities: [TaskPriority]
+    let timePreference: TimePreference
+    let creativityBoost: Double
+    let focusCapacity: Double
+}
+
+enum TimePreference {
+    case morning      // Best in morning hours
+    case concentrated // Best in focused work blocks
+    case gentle       // Best in low-energy times
+    case flexible     // Good anytime
+}
+
+// MARK: - Enhanced TaskPriority
+
+extension TaskPriority {
+    var rawValue: String {
+        switch self {
+        case .low: return "low"
+        case .medium: return "medium" 
+        case .high: return "high"
+        }
+    }
+    
+    var numericValue: Int {
+        switch self {
+        case .low: return 1
+        case .medium: return 2
+        case .high: return 3
+        }
     }
 }
 

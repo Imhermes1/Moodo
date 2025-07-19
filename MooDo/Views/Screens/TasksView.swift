@@ -21,18 +21,19 @@ struct TasksView: View {
                 .offset(x: screenSize.width * 0.3, y: screenSize.height * 0.2)
             
             ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(spacing: screenSize.height * 0.025) {
-                    // All Tasks List
+                LazyVStack(spacing: 0) {
+                    // All Tasks List - Full Screen
                     AllTasksListView(
                         tasks: taskManager.tasks,
                         onAddTask: {
                             showingAddTaskModal = true
                         }
                     )
+                    .frame(minHeight: screenSize.height * 0.8) // Ensure it takes up most of the screen
                 }
-                .padding(.horizontal, max(screenSize.width * 0.04, 12))
-                .padding(.top, max(screenSize.height * 0.12, 80))
-                .padding(.bottom, 20)
+                .padding(.horizontal, max(screenSize.width * 0.02, 8)) // Reduced horizontal padding
+                .padding(.top, max(screenSize.height * 0.10, 70)) // Reduced top padding
+                .padding(.bottom, 10)
             }
         }
     }

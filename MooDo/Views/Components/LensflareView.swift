@@ -8,60 +8,46 @@
 import SwiftUI
 import Foundation
 
-// Liquid shine animation component
+// Optimized liquid shine animation component
 struct LensflareView: View {
     @State private var animationPhase: CGFloat = 0
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Liquid shine effect that fills the entire screen
+                // Single optimized liquid layer for better performance
                 liquidShineLayer
-                    .frame(width: geometry.size.width * 3, height: geometry.size.height * 3)
-                    .offset(x: -geometry.size.width, y: -geometry.size.height)
+                    .frame(width: geometry.size.width * 2, height: geometry.size.height * 2)
+                    .offset(x: -geometry.size.width * 0.5, y: -geometry.size.height * 0.5)
             }
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 4)) {
+            withAnimation(.easeInOut(duration: 6).repeatForever(autoreverses: true)) {
                 animationPhase = .pi * 2
             }
         }
     }
     
     private var liquidShineLayer: some View {
-        ZStack {
-            // Multiple liquid layers for depth
-            ForEach(0..<3, id: \.self) { layer in
-                liquidLayer(for: layer)
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private func liquidLayer(for layer: Int) -> some View {
-        let layerOffset = CGFloat(layer) * 0.3
-        let layerSpeed = 1.0 + CGFloat(layer) * 0.2
-        
-                        RoundedRectangle(cornerRadius: 400)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.7, green: 0.8, blue: 1.0, opacity: 0.12), // Fixed green value
-                                Color(red: 0.7, green: 0.8, blue: 1.0, opacity: 0.06),
-                                Color(red: 0.7, green: 0.8, blue: 1.0, opacity: 0.02),
-                                Color.clear
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-            .scaleEffect(2.0 + Foundation.sin(animationPhase * layerSpeed) * 0.8)
-            .rotationEffect(.degrees(Foundation.sin(animationPhase * layerSpeed * 0.2) * 90))
-            .offset(
-                x: Foundation.sin(animationPhase * layerSpeed + layerOffset) * 300,
-                y: Foundation.cos(animationPhase * layerSpeed * 0.4 + layerOffset) * 250
+        RoundedRectangle(cornerRadius: 300)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.7, green: 0.8, blue: 1.0, opacity: 0.08),
+                        Color(red: 0.7, green: 0.8, blue: 1.0, opacity: 0.04),
+                        Color.clear
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
             )
-            .blur(radius: 40 + CGFloat(layer) * 20)
+            .scaleEffect(1.5 + Foundation.sin(animationPhase) * 0.3)
+            .rotationEffect(.degrees(Foundation.sin(animationPhase * 0.1) * 30))
+            .offset(
+                x: Foundation.sin(animationPhase * 0.5) * 150,
+                y: Foundation.cos(animationPhase * 0.3) * 100
+            )
+            .blur(radius: 30)
     }
 }
 

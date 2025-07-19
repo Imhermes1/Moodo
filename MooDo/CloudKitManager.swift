@@ -28,7 +28,7 @@ class CloudKitManager: ObservableObject {
     
     private init() {
         // Initialize CloudKit container with explicit identifier
-        self.container = CKContainer(identifier: "iCloud.Harmoniq.Moodo")
+        self.container = CKContainer(identifier: "iCloud.LumoraLabs.Moodo")
         self.database = container.privateCloudDatabase
         
         // Check account status asynchronously to avoid blocking initialization
@@ -71,13 +71,15 @@ class CloudKitManager: ObservableObject {
                 let record = CKRecord(recordType: "Task", recordID: CKRecord.ID(recordName: task.id.uuidString))
                 record["title"] = task.title
                 record["description"] = task.description
-                record["notes"] = task.notes
                 record["isCompleted"] = task.isCompleted
                 record["priority"] = task.priority.rawValue
                 record["emotion"] = task.emotion.rawValue
                 record["createdAt"] = task.createdAt
                 record["reminderAt"] = task.reminderAt
+                record["deadlineAt"] = task.deadlineAt
                 record["naturalLanguageInput"] = task.naturalLanguageInput
+                record["eventKitIdentifier"] = task.eventKitIdentifier
+                record["tags"] = task.tags
                 return record
             }
             
@@ -247,12 +249,14 @@ extension Task {
             id: id,
             title: title,
             description: record["description"] as? String,
-            notes: record["notes"] as? String,
             isCompleted: record["isCompleted"] as? Bool ?? false,
             priority: priority,
             emotion: emotion,
             reminderAt: record["reminderAt"] as? Date,
-            naturalLanguageInput: record["naturalLanguageInput"] as? String
+            deadlineAt: record["deadlineAt"] as? Date,
+            naturalLanguageInput: record["naturalLanguageInput"] as? String,
+            tags: record["tags"] as? [String] ?? [],
+            eventKitIdentifier: record["eventKitIdentifier"] as? String
         )
     }
 }

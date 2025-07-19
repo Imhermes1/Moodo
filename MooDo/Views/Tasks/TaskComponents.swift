@@ -32,13 +32,50 @@ struct SmartListButton: View {
             .padding(.horizontal, isCompact ? 10 : 12)
             .padding(.vertical, isCompact ? 6 : 8)
             .background(
+                ZStack {
+                                    // Base glass layer for smart list button
                 Capsule()
-                    .fill(isSelected ? type.color.opacity(0.2) : .white.opacity(0.05))
-                    .overlay(
-                        Capsule()
-                            .stroke(isSelected ? type.color.opacity(0.3) : .white.opacity(0.1), lineWidth: 0.5)
-                    )
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                    
+                    // Color overlay
+                    Capsule()
+                        .fill(isSelected ? type.color.opacity(0.25) : .white.opacity(0.08))
+                    
+                    // Inner highlight for 3D effect
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .white.opacity(0.15),
+                                    .white.opacity(0.05),
+                                    .clear,
+                                    .black.opacity(0.03)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    
+                    // Glass border
+                    Capsule()
+                        .strokeBorder(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .white.opacity(0.4),
+                                    .white.opacity(0.15),
+                                    .white.opacity(0.05),
+                                    .white.opacity(0.2)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                }
             )
+            .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 2)
+            .shadow(color: .white.opacity(0.08), radius: 1, x: 0, y: -0.5)
         }
     }
 }
@@ -66,13 +103,50 @@ struct TaskListButton: View {
             .padding(.horizontal, isCompact ? 10 : 12)
             .padding(.vertical, isCompact ? 6 : 8)
             .background(
+                ZStack {
+                                    // Base glass layer for task list button
                 Capsule()
-                    .fill(isSelected ? list.color.opacity(0.2) : .white.opacity(0.05))
-                    .overlay(
-                        Capsule()
-                            .stroke(isSelected ? list.color.opacity(0.3) : .white.opacity(0.1), lineWidth: 0.5)
-                    )
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                    
+                    // Color overlay
+                    Capsule()
+                        .fill(isSelected ? list.color.opacity(0.25) : .white.opacity(0.08))
+                    
+                    // Inner highlight for 3D effect
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .white.opacity(0.15),
+                                    .white.opacity(0.05),
+                                    .clear,
+                                    .black.opacity(0.03)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    
+                    // Glass border
+                    Capsule()
+                        .strokeBorder(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .white.opacity(0.4),
+                                    .white.opacity(0.15),
+                                    .white.opacity(0.05),
+                                    .white.opacity(0.2)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                }
             )
+            .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 2)
+            .shadow(color: .white.opacity(0.08), radius: 1, x: 0, y: -0.5)
         }
     }
 }
@@ -99,16 +173,46 @@ struct SearchBar: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(
-            // Consistent glass effect for search bar
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.thinMaterial)
-                .opacity(0.1)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(.white.opacity(0.15), lineWidth: 0.5)
-                )
-                .shadow(color: .black.opacity(0.02), radius: 2, x: 0, y: 1)
+            ZStack {
+                // Base glass layer for search bar
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.3)
+                
+                // Inner highlight for 3D effect
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.15),
+                                .white.opacity(0.05),
+                                .clear,
+                                .black.opacity(0.03)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Glass border
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.4),
+                                .white.opacity(0.15),
+                                .white.opacity(0.05),
+                                .white.opacity(0.2)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
         )
+        .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 2)
+        .shadow(color: .white.opacity(0.08), radius: 1, x: 0, y: -0.5)
     }
 }
 
@@ -147,16 +251,46 @@ struct EmptyStateView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(
-                    // Consistent glass effect for empty state button
-                    RoundedRectangle(cornerRadius: 18)
-                        .fill(.thinMaterial)
-                        .opacity(0.1)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 18)
-                                .stroke(.white.opacity(0.2), lineWidth: 0.5)
-                        )
-                        .shadow(color: .black.opacity(0.03), radius: 4, x: 0, y: 2)
+                    ZStack {
+                                        // Base glass layer for empty state button
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                        
+                        // Inner highlight for 3D effect
+                        RoundedRectangle(cornerRadius: 18)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.2),
+                                        .white.opacity(0.06),
+                                        .clear,
+                                        .black.opacity(0.04)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        // Glass border
+                        RoundedRectangle(cornerRadius: 18)
+                            .strokeBorder(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.5),
+                                        .white.opacity(0.15),
+                                        .white.opacity(0.05),
+                                        .white.opacity(0.25)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    }
                 )
+                .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 2)
+                .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
             }
         }
         .padding(.horizontal, 32)

@@ -47,20 +47,62 @@ struct AllTasksListView: View {
     
     var body: some View {
         VStack(spacing: 20) {
-            // Header
-            HStack {
-                Text("All Tasks")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    // Header with Quick Actions
+            VStack(spacing: 16) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("All Tasks")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Text("\(filteredTasks.count) tasks • \(filteredTasks.filter { $0.isCompleted }.count) completed")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    
+                    Spacer()
+                    
+                    HStack(spacing: 12) {
+                        // Quick add button
+                        Button(action: onAddTask) {
+                            Image(systemName: "plus")
+                                .foregroundColor(.white)
+                                .font(.title3)
+                                .fontWeight(.medium)
+                                .frame(width: 32, height: 32)
+                                .background(
+                                    Circle()
+                                        .fill(.green.opacity(0.3))
+                                        .overlay(
+                                            Circle()
+                                                .stroke(.green.opacity(0.5), lineWidth: 1)
+                                        )
+                                )
+                        }
+                        
+                        // View mode toggle (could be expanded in future)
+                        Button(action: {}) {
+                            Image(systemName: "list.bullet")
+                                .foregroundColor(.white.opacity(0.8))
+                                .font(.title3)
+                                .fontWeight(.medium)
+                                .frame(width: 32, height: 32)
+                                .background(
+                                    Circle()
+                                        .fill(.white.opacity(0.1))
+                                        .overlay(
+                                            Circle()
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                        }
+                    }
+                }
                 
-                Spacer()
-                
-                Button(action: onAddTask) {
-                    Image(systemName: "plus")
-                        .foregroundColor(.white.opacity(0.8))
-                        .font(.title3)
-                        .fontWeight(.medium)
+                // Smart insights section (inspired by Superlist AI features)
+                if !filteredTasks.isEmpty {
+                    smartInsightsSection
                 }
             }
             
@@ -124,9 +166,9 @@ struct AllTasksListView: View {
                 }
                 .padding(.vertical, 40)
             } else {
-                LazyVStack(spacing: 16) {
+                LazyVStack(spacing: 12) {
                     ForEach(filteredTasks) { task in
-                        MoodLensTaskRowView(
+                        SuperlistTaskCard(
                             task: task,
                             isExpanded: expandedTasks.contains(task.id),
                             onToggleExpand: {
@@ -138,35 +180,40 @@ struct AllTasksListView: View {
                             },
                             onToggleComplete: {
                                 taskManager.toggleTaskCompletion(task)
+                            },
+                            onTaskUpdate: { updatedTask in
+                                taskManager.updateTask(updatedTask)
                             }
                         )
                     }
                 }
             }
         }
-        .padding(16)
+        .padding(20) // Increased padding
+        .frame(maxWidth: .infinity, maxHeight: .infinity) // Fill available space
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.thinMaterial)
-                .opacity(0.1)
+            RoundedRectangle(cornerRadius: 24) // Slightly larger corner radius
+                .fill(.ultraThinMaterial) // Changed to ultraThinMaterial for better visibility
+                .opacity(0.3) // Increased opacity
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: 24)
                         .stroke(
                             LinearGradient(
                                 gradient: Gradient(colors: [
-                                    .white.opacity(0.5),
+                                    .white.opacity(0.6),
+                                    .white.opacity(0.25),
                                     .white.opacity(0.15),
-                                    .white.opacity(0.08),
-                                    .white.opacity(0.3)
+                                    .white.opacity(0.4)
                                 ]),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 1
+                            lineWidth: 1.5
                         )
                 )
+                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4) // Added shadow for depth
         )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .clipShape(RoundedRectangle(cornerRadius: 24))
         .animation(.easeInOut(duration: 0.4), value: selectedFilter)
     }
     
@@ -178,6 +225,49 @@ struct AllTasksListView: View {
         case .completed: return "No completed tasks"
         }
     }
+    
+    private var smartInsightsSection: some View {
+        HStack {
+            Image(systemName: "brain.head.profile")
+                .foregroundColor(.purple)
+                .font(.caption)
+            
+            let completionRate = filteredTasks.isEmpty ? 0 : (Double(filteredTasks.filter { $0.isCompleted }.count) / Double(filteredTasks.count)) * 100
+            
+            Text("Completion rate: \(Int(completionRate))%")
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.8))
+            
+            Spacer()
+            
+            if filteredTasks.filter({ !$0.isCompleted }).count > 0 {
+                Text("\(filteredTasks.filter { !$0.isCompleted }.count) remaining")
+                    .font(.caption)
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(.orange.opacity(0.15))
+                            .overlay(
+                                Capsule()
+                                    .stroke(.orange.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial)
+                .opacity(0.3)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                )
+        )
+    }
 }
 
 // MARK: - Task List View
@@ -187,53 +277,55 @@ struct MoodLensTaskListView: View {
     let onAddTask: () -> Void
     @StateObject private var taskManager = TaskManager()
     @State private var expandedTasks: Set<UUID> = []
+    @State private var showingMoodSelector = false
     
     var moodOptimizedTasks: [Task] {
-        // Update the task scheduler with current mood
-        taskManager.taskScheduler.updateCurrentMood(taskManager.currentMood)
+        // Get optimal task count based on current mood
+        let optimalCount = taskManager.taskScheduler.getOptimalTaskCount(for: taskManager.currentMood)
         
-        // Get mood-optimized tasks for today
-        let optimizedTasks = taskManager.taskScheduler.optimizeTaskSchedule(tasks: tasks)
-        let today = Calendar.current.startOfDay(for: Date())
-        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
-        
-        return optimizedTasks.filter { task in
-            // Show tasks scheduled for today
-            let isToday = task.reminderAt != nil && 
-                         task.reminderAt! >= today && 
-                         task.reminderAt! < tomorrow
-            // Also show high priority tasks that aren't completed
-            let isHighPriority = task.priority == .high && !task.isCompleted
-            
-            return isToday || isHighPriority
-        }.sorted { task1, task2 in
-            // Sort by priority first, then by reminder time
-            if task1.priority == .high && task2.priority != .high {
-                return true
-            } else if task1.priority != .high && task2.priority == .high {
-                return false
-            } else {
-                return (task1.reminderAt ?? Date.distantFuture) < (task2.reminderAt ?? Date.distantFuture)
-            }
-        }
+        // Get mood-optimized tasks with adaptive count
+        return taskManager.taskScheduler.optimizeTaskSchedule(tasks: tasks, maxTasks: optimalCount)
     }
     
     var body: some View {
         VStack(spacing: 20) {
-            // Header (matches web app)
+            // Header with mood indicator and optimization
             HStack {
-                Text("Optimized Tasks")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Mood-Adaptive Tasks")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: taskManager.currentMood.icon)
+                            .foregroundColor(taskManager.currentMood.color)
+                            .font(.caption)
+                        
+                        Text("Tasks tailored for your \(taskManager.currentMood.displayName.lowercased()) energy")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
                 
                 Spacer()
                 
-                Button(action: onAddTask) {
-                    Image(systemName: "plus")
-                        .foregroundColor(.primary)
-                        .font(.title3)
-                        .fontWeight(.medium)
+                HStack(spacing: 12) {
+                    Button(action: {
+                        taskManager.autoOptimizeTasks()
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                            .foregroundColor(.primary)
+                            .font(.title3)
+                            .fontWeight(.medium)
+                    }
+                    
+                    Button(action: onAddTask) {
+                        Image(systemName: "plus")
+                            .foregroundColor(.primary)
+                            .font(.title3)
+                            .fontWeight(.medium)
+                    }
                 }
             }
             
@@ -374,14 +466,46 @@ struct CompactTaskRowView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
                     .background(
-                        Capsule()
-                            .fill(.thinMaterial)
-                            .opacity(0.8)
-                            .overlay(
-                                Capsule()
-                                    .stroke(.white.opacity(0.2), lineWidth: 1)
-                            )
+                        ZStack {
+                                            // Base glass layer for priority badge
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.5)
+                            
+                            // Highlight layer for 3D glass effect
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            .white.opacity(0.2),
+                                            .white.opacity(0.06),
+                                            .clear,
+                                            .black.opacity(0.04)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            
+                            // Glass border
+                            Capsule()
+                                .strokeBorder(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            .white.opacity(0.5),
+                                            .white.opacity(0.15),
+                                            .white.opacity(0.05),
+                                            .white.opacity(0.25)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        }
                     )
+                    .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 2)
+                    .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
                     
                     // Expand indicator
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -393,14 +517,54 @@ struct CompactTaskRowView: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(.thinMaterial)
-                        .opacity(0.8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(.white.opacity(0.2), lineWidth: 1)
-                        )
+                    ZStack {
+                                        // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                        
+                        // Inner highlight layer for 3D effect
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.25),
+                                        .white.opacity(0.08),
+                                        .clear,
+                                        .black.opacity(0.05)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        // Outer stroke with glass shimmer
+                        RoundedRectangle(cornerRadius: 16)
+                            .strokeBorder(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.6),
+                                        .white.opacity(0.2),
+                                        .white.opacity(0.05),
+                                        .white.opacity(0.3)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1.5
+                            )
+                        
+                        // Inner stroke for depth
+                        RoundedRectangle(cornerRadius: 15)
+                            .strokeBorder(
+                                .white.opacity(0.1),
+                                lineWidth: 0.5
+                            )
+                    }
                 )
+                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+                .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+                .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(PlainButtonStyle())
@@ -418,12 +582,12 @@ struct CompactTaskRowView: View {
                     }
                     
                     // Notes
-                    if let notes = task.notes, !notes.isEmpty {
+                    if let description = task.description, !description.isEmpty {
                         HStack(alignment: .top, spacing: 8) {
                             Image(systemName: "note.text")
                                 .foregroundColor(.secondary)
                                 .font(.caption)
-                            Text(notes)
+                            Text(description)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -446,14 +610,46 @@ struct CompactTaskRowView: View {
                 }
                 .padding(.vertical, 12)
                 .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(.thinMaterial)
-                        .opacity(0.3)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(.white.opacity(0.1), lineWidth: 1)
-                        )
+                    ZStack {
+                                        // Base glass layer for expanded content
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.3)
+                        
+                        // Inner highlight for glass effect
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.15),
+                                        .white.opacity(0.05),
+                                        .clear,
+                                        .black.opacity(0.03)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        // Subtle border with glass shimmer
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.4),
+                                        .white.opacity(0.15),
+                                        .white.opacity(0.05),
+                                        .white.opacity(0.2)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    }
                 )
+                .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 2)
+                .shadow(color: .white.opacity(0.08), radius: 1, x: 0, y: -0.5)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
@@ -527,7 +723,7 @@ struct MoodLensTaskRowView: View {
     let isExpanded: Bool
     let onToggleExpand: () -> Void
     let onToggleComplete: () -> Void
-    @State private var notesText: String
+    @State private var descriptionText: String
     @State private var reminderDate: Date
     @State private var foldAnimation: CGFloat = 0.0
     @State private var contentOpacity: Double = 0.0
@@ -538,7 +734,7 @@ struct MoodLensTaskRowView: View {
         self.isExpanded = isExpanded
         self.onToggleExpand = onToggleExpand
         self.onToggleComplete = onToggleComplete
-        self._notesText = State(initialValue: task.notes ?? "")
+        self._descriptionText = State(initialValue: task.description ?? "")
         self._reminderDate = State(initialValue: task.reminderAt ?? Date())
     }
     
@@ -787,13 +983,13 @@ struct MoodLensTaskRowView: View {
                                     Image(systemName: "note.text")
                                         .foregroundColor(.white)
                                         .font(.caption)
-                                    Text("Notes")
+                                    Text("Description")
                                         .font(.caption)
                                         .fontWeight(.medium)
                                         .foregroundColor(.white)
                                 }
                                 
-                                TextEditor(text: $notesText)
+                                TextEditor(text: $descriptionText)
                                     .font(.body)
                                     .foregroundColor(.white)
                                     .frame(minHeight: 60)
@@ -970,7 +1166,7 @@ struct MoodLensTaskRowView: View {
     
     private func saveChanges() {
         var updatedTask = task
-        updatedTask.notes = notesText.isEmpty ? nil : notesText
+                                updatedTask.description = descriptionText.isEmpty ? nil : descriptionText
         updatedTask.reminderAt = reminderDate
         taskManager.updateTask(updatedTask)
         

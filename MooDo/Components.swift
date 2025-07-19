@@ -62,9 +62,8 @@ struct WellnessPromptView: View {
     }
     
     private func changePrompt() {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            currentPrompt = prompts.randomElement() ?? currentPrompt
-        }
+        // Remove animation for better performance
+        currentPrompt = prompts.randomElement() ?? currentPrompt
     }
 }
 
@@ -718,7 +717,6 @@ struct TaskSuggestionCardView: View {
                 let task = Task(
                     title: suggestion.title,
                     description: suggestion.description,
-                    notes: nil,
                     priority: suggestion.priority,
                     emotion: suggestion.emotion,
                     reminderAt: nil
@@ -762,8 +760,8 @@ struct BodyScanView: View {
                 Image(systemName: "heart.circle.fill")
                     .foregroundColor(.pink)
                     .font(.title2)
-                    .scaleEffect(isAnimating ? 1.2 : 1.0)
-                    .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isAnimating)
+                    .scaleEffect(1.0)
+                    // .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isAnimating)
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Body Scan")
@@ -811,17 +809,58 @@ struct BodyScanView: View {
         }
         .padding(24)
         .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.thinMaterial)
-                .opacity(0.4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                )
+            ZStack {
+                // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                
+                // Inner highlight layer for 3D effect
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.25),
+                                .white.opacity(0.08),
+                                .clear,
+                                .black.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Outer stroke with glass shimmer
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.6),
+                                .white.opacity(0.2),
+                                .white.opacity(0.05),
+                                .white.opacity(0.3)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                // Inner stroke for depth
+                RoundedRectangle(cornerRadius: 23)
+                    .strokeBorder(
+                        .white.opacity(0.1),
+                        lineWidth: 0.5
+                    )
+            }
         )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+        .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .onAppear {
-            isAnimating = true
+            // Disable animation for better performance
+            // isAnimating = true
         }
     }
 }
@@ -832,10 +871,11 @@ struct TodaysProgressView: View {
     let tasks: [Task]
     let moodEntries: [MoodEntry]
     
-    @State private var animatedTasksCount: Int = 0
-    @State private var animatedMindfulCount: Int = 0
-    @State private var animatedMoodCount: Int = 0
-    @State private var animatedWellnessScore: Int = 0
+    // Remove animated counters for better performance
+    // @State private var animatedTasksCount: Int = 0
+    // @State private var animatedMindfulCount: Int = 0
+    // @State private var animatedMoodCount: Int = 0
+    // @State private var animatedWellnessScore: Int = 0
     
     var completedTasksCount: Int {
         tasks.filter { $0.isCompleted }.count
@@ -870,28 +910,28 @@ struct TodaysProgressView: View {
             ], spacing: 16) {
                 ProgressCard(
                     title: "Tasks Done",
-                    value: animatedTasksCount,
+                    value: completedTasksCount,
                     color: Color.green,
                     isPercentage: false
                 )
                 
                 ProgressCard(
                     title: "Mindful Moments", 
-                    value: animatedMindfulCount,
+                    value: mindfulMomentsCount,
                     color: Color.blue,
                     isPercentage: false
                 )
                 
                 ProgressCard(
                     title: "Mood Check-ins",
-                    value: animatedMoodCount,
+                    value: moodCheckinsCount,
                     color: Color.purple,
                     isPercentage: false
                 )
                 
                 ProgressCard(
                     title: "Wellness Score",
-                    value: animatedWellnessScore,
+                    value: wellnessScore,
                     color: Color.orange,
                     isPercentage: true
                 )
@@ -899,37 +939,61 @@ struct TodaysProgressView: View {
         }
         .padding(24)
         .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.thinMaterial)
-                .opacity(0.4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                )
+            ZStack {
+                // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                
+                // Inner highlight layer for 3D effect
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.25),
+                                .white.opacity(0.08),
+                                .clear,
+                                .black.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Outer stroke with glass shimmer
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.6),
+                                .white.opacity(0.2),
+                                .white.opacity(0.05),
+                                .white.opacity(0.3)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                // Inner stroke for depth
+                RoundedRectangle(cornerRadius: 23)
+                    .strokeBorder(
+                        .white.opacity(0.1),
+                        lineWidth: 0.5
+                    )
+            }
         )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+        .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .onAppear {
-            animateCounters()
+            // Removed animation for better performance
         }
     }
     
-    private func animateCounters() {
-        withAnimation(.easeOut(duration: 1.0)) {
-            animatedTasksCount = completedTasksCount
-        }
-        
-        withAnimation(.easeOut(duration: 1.2).delay(0.2)) {
-            animatedMindfulCount = mindfulMomentsCount
-        }
-        
-        withAnimation(.easeOut(duration: 1.4).delay(0.4)) {
-            animatedMoodCount = moodCheckinsCount
-        }
-        
-        withAnimation(.easeOut(duration: 1.6).delay(0.6)) {
-            animatedWellnessScore = wellnessScore
-        }
-    }
+    // Removed animateCounters function for better performance
 }
 
 struct ProgressCard: View {
@@ -952,10 +1016,50 @@ struct ProgressCard: View {
         .frame(maxWidth: .infinity)
         .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(color.opacity(0.1))
-                .background(.thinMaterial)
+            ZStack {
+                // Base glass layer for progress cards
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.7)
+                
+                // Color overlay with glass effect
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(color.opacity(0.15))
+                
+                // Inner highlight for 3D effect
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.2),
+                                .white.opacity(0.06),
+                                .clear,
+                                .black.opacity(0.03)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Glass border
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.4),
+                                .white.opacity(0.15),
+                                .white.opacity(0.05),
+                                .white.opacity(0.2)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
         )
+        .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 2)
+        .shadow(color: .white.opacity(0.08), radius: 1, x: 0, y: -0.5)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
@@ -996,8 +1100,8 @@ struct MindfulMomentView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "play.circle.fill")
                         .font(.title3)
-                        .scaleEffect(breathingScale)
-                        .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: breathingScale)
+                        .scaleEffect(1.0)
+                        // .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: breathingScale)
                     Text("Start 2-min session")
                         .font(.body)
                         .fontWeight(.medium)
@@ -1020,14 +1124,54 @@ struct MindfulMomentView: View {
         }
         .padding(24)
         .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.thinMaterial)
-                .opacity(0.3)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                )
+            ZStack {
+                // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                
+                // Inner highlight layer for 3D effect
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.25),
+                                .white.opacity(0.08),
+                                .clear,
+                                .black.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Outer stroke with glass shimmer
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.6),
+                                .white.opacity(0.2),
+                                .white.opacity(0.05),
+                                .white.opacity(0.3)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                // Inner stroke for depth
+                RoundedRectangle(cornerRadius: 23)
+                    .strokeBorder(
+                        .white.opacity(0.1),
+                        lineWidth: 0.5
+                    )
+            }
         )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+        .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .onAppear {
             breathingScale = 1.2
@@ -1096,14 +1240,54 @@ struct DailyVoiceCheckinView: View {
         }
         .padding(32)
         .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.thinMaterial)
-                .opacity(0.3)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                )
+            ZStack {
+                // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                
+                // Inner highlight layer for 3D effect
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.25),
+                                .white.opacity(0.08),
+                                .clear,
+                                .black.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Outer stroke with glass shimmer
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.6),
+                                .white.opacity(0.2),
+                                .white.opacity(0.05),
+                                .white.opacity(0.3)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                // Inner stroke for depth
+                RoundedRectangle(cornerRadius: 23)
+                    .strokeBorder(
+                        .white.opacity(0.1),
+                        lineWidth: 0.5
+                    )
+            }
         )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+        .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .onAppear {
             pulseScale = 1.1
@@ -1152,14 +1336,54 @@ struct MoodHistoryDetailedView: View {
         }
         .padding(24)
         .background(
-            RoundedRectangle(cornerRadius: 24)
-                .fill(.thinMaterial)
-                .opacity(0.3)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                )
+            ZStack {
+                // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                
+                // Inner highlight layer for 3D effect
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.25),
+                                .white.opacity(0.08),
+                                .clear,
+                                .black.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Outer stroke with glass shimmer
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.6),
+                                .white.opacity(0.2),
+                                .white.opacity(0.05),
+                                .white.opacity(0.3)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                // Inner stroke for depth
+                RoundedRectangle(cornerRadius: 23)
+                    .strokeBorder(
+                        .white.opacity(0.1),
+                        lineWidth: 0.5
+                    )
+            }
         )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+        .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
         .clipShape(RoundedRectangle(cornerRadius: 24))
     }
-} 
+}

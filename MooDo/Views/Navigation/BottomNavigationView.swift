@@ -88,10 +88,15 @@ struct MoodLensBottomNavigationView: View {
         .padding(.vertical, max(10, screenSize.height * 0.015))
         .background(
             ZStack {
-                // Glass background matching the top navigation
+                // Glass background with subtle frost effect matching the top navigation
                 RoundedRectangle(cornerRadius: 20)
                     .fill(.thinMaterial)
-                    .opacity(0.3)
+                    .opacity(0.35) // Increased opacity for frost effect
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .fill(.ultraThinMaterial)
+                            .opacity(0.05) // Added 5% frost layer
+                    )
                     .background(
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(

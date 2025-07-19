@@ -19,8 +19,8 @@ class NaturalLanguageProcessor: ObservableObject {
     func processNaturalLanguage(_ input: String) -> ProcessedTask {
         isProcessing = true
         
-        // Simulate AI processing delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        // Reduced processing delay for better performance
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             self.isProcessing = false
             self.processedText = self.analyzeText(input)
         }

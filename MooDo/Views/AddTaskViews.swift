@@ -216,8 +216,8 @@ struct AddTaskModalView: View {
         isProcessing = true
         _ = nlpProcessor.processNaturalLanguage(input)
         
-        // Simulate processing delay for better UX
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+        // Reduced processing delay for better performance
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             isProcessing = false
         }
     }
@@ -231,7 +231,6 @@ struct AddTaskModalView: View {
         let task = Task(
             title: processedTask.title,
             description: processedTask.description,
-            notes: nil,
             priority: processedTask.priority,
             emotion: processedTask.emotion,
             reminderAt: processedTask.reminderAt,

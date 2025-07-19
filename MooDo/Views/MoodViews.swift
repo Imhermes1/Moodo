@@ -17,11 +17,11 @@ struct MoodLensMoodCheckinView: View {
     @State private var swayRotation: Double = 0
     
     let moodOptions: [(type: MoodType, icon: String, label: String)] = [
-        (.positive, "face.smiling", "Positive"),
-        (.calm, "leaf", "Calm"),
-        (.focused, "brain.head.profile", "Focused"),
-        (.stressed, "face.dashed", "Stressed"),
-        (.creative, "lightbulb", "Creative")
+        (MoodType.positive, "face.smiling", "Positive"),
+        (MoodType.calm, "leaf", "Calm"),
+        (MoodType.focused, "brain.head.profile", "Focused"),
+        (MoodType.stressed, "face.dashed", "Stressed"),
+        (MoodType.creative, "lightbulb", "Creative")
     ]
     
     var body: some View {
@@ -33,7 +33,7 @@ struct MoodLensMoodCheckinView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
                 
-                Text("Start your day with a mood check-in")
+                Text("Log your mood to get personalized task recommendations")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -47,7 +47,7 @@ struct MoodLensMoodCheckinView: View {
                         label: moodOption.label,
                         isSelected: selectedMood == moodOption.type,
                         action: {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
                                 selectedMood = moodOption.type
                             }
                         },
@@ -70,29 +70,102 @@ struct MoodLensMoodCheckinView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
                 .background(
-                    RoundedRectangle(cornerRadius: 25)
-                        .fill(.black.opacity(0.15))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 25)
-                                .stroke(.white.opacity(0.1), lineWidth: 1)
-                        )
+                    ZStack {
+                                        // Base glass layer for button
+                RoundedRectangle(cornerRadius: 25)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                        
+                        // Inner highlight for 3D effect
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.2),
+                                        .white.opacity(0.06),
+                                        .clear,
+                                        .black.opacity(0.04)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                        
+                        // Glass border
+                        RoundedRectangle(cornerRadius: 25)
+                            .strokeBorder(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.5),
+                                        .white.opacity(0.15),
+                                        .white.opacity(0.05),
+                                        .white.opacity(0.25)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    }
                 )
+                .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 2)
+                .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
             }
             .disabled(selectedMood == nil)
             .opacity(selectedMood == nil ? 0.4 : 1.0)
             .scaleEffect(selectedMood == nil ? 0.95 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: selectedMood)
+            .animation(.easeInOut(duration: 0.2), value: selectedMood)
         }
         .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.thinMaterial)
-                .opacity(0.4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
-                )
+            ZStack {
+                // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                
+                // Inner highlight layer for 3D effect
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.25),
+                                .white.opacity(0.08),
+                                .clear,
+                                .black.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Outer stroke with glass shimmer
+                RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.6),
+                                .white.opacity(0.2),
+                                .white.opacity(0.05),
+                                .white.opacity(0.3)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                // Inner stroke for depth
+                RoundedRectangle(cornerRadius: 19)
+                    .strokeBorder(
+                        .white.opacity(0.1),
+                        lineWidth: 0.5
+                    )
+            }
         )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+        .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .offset(y: bounceOffset)
         .rotationEffect(.degrees(swayRotation))

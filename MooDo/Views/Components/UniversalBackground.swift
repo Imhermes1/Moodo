@@ -13,7 +13,7 @@ struct UniversalBackground: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Base pink & purple gradient background
+                // Base pink & purple gradient background (static for better performance)
                 LinearGradient(
                     gradient: Gradient(stops: [
                         .init(color: Color(red: 0.98, green: 0.45, blue: 0.65), location: 0.0), // Soft pink
@@ -21,28 +21,23 @@ struct UniversalBackground: View {
                         .init(color: Color(red: 0.70, green: 0.25, blue: 0.85), location: 0.7), // Purple
                         .init(color: Color(red: 0.55, green: 0.15, blue: 0.95), location: 1.0)  // Deep purple
                     ]),
-                    startPoint: UnitPoint(x: 0.0 + animationOffset * 0.3, y: 0.0),
-                    endPoint: UnitPoint(x: 1.0 + animationOffset * 0.3, y: 1.0)
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea(.all)
-                .animation(.easeInOut(duration: 8).repeatForever(autoreverses: true), value: animationOffset)
                 
-                // Subtle animated overlay for depth
+                // Static overlay for depth (removed animation)
                 LinearGradient(
                     gradient: Gradient(stops: [
-                        .init(color: Color(red: 0.90, green: 0.30, blue: 0.80).opacity(0.3), location: 0.0),
+                        .init(color: Color(red: 0.90, green: 0.30, blue: 0.80).opacity(0.2), location: 0.0),
                         .init(color: Color.clear, location: 0.5),
-                        .init(color: Color(red: 0.60, green: 0.20, blue: 0.90).opacity(0.3), location: 1.0)
+                        .init(color: Color(red: 0.60, green: 0.20, blue: 0.90).opacity(0.2), location: 1.0)
                     ]),
-                    startPoint: UnitPoint(x: 1.0 - animationOffset * 0.5, y: 0.0),
-                    endPoint: UnitPoint(x: 0.0 + animationOffset * 0.5, y: 1.0)
+                    startPoint: .topTrailing,
+                    endPoint: .bottomLeading
                 )
                 .ignoresSafeArea(.all)
-                .animation(.easeInOut(duration: 12).repeatForever(autoreverses: true), value: animationOffset)
             }
-        }
-        .onAppear {
-            animationOffset = 1.0
         }
     }
 }

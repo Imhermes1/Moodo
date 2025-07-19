@@ -15,10 +15,15 @@ struct TopNavigationView: View {
     
     var body: some View {
         ZStack {
-            // Glass background
+            // Glass background with subtle frost effect
             RoundedRectangle(cornerRadius: 16)
                 .fill(.thinMaterial)
-                .opacity(0.3)
+                .opacity(0.35) // Increased opacity for frost effect
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(.ultraThinMaterial)
+                        .opacity(0.05) // Added 5% frost layer
+                )
                 .background(
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(
