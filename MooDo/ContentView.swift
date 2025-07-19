@@ -102,7 +102,7 @@ struct ContentView: View {
         .background(Color.clear)
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showingAddTaskModal) {
-            AddTaskModalView()
+            AddTaskModalView(taskManager: taskManager)
         }
         .sheet(isPresented: $showingNotifications) {
             SettingsView()

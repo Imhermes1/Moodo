@@ -12,7 +12,7 @@ import SwiftUI
 struct MoodLensMoodCheckinView: View {
     @State private var selectedMood: MoodType?
     @StateObject private var moodManager = MoodManager()
-    @StateObject private var taskManager = TaskManager()
+    @ObservedObject var taskManager: TaskManager
     @State private var bounceOffset: CGFloat = 0
     @State private var swayRotation: Double = 0
     
@@ -59,12 +59,24 @@ struct MoodLensMoodCheckinView: View {
             // Log mood button (matching web app style)
             Button(action: logMood) {
                 HStack(spacing: 6) {
-                    Image(systemName: "plus")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                    Text("Log Mood")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
+                    if let selectedMood = selectedMood {
+                        // Show mood icon and "Feeling (Mood)" when mood is selected
+                        Image(systemName: selectedMood.icon)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(selectedMood.color)
+                        Text("Feeling \(selectedMood.displayName)")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    } else {
+                        // Show plus icon and "Log Mood" when no mood is selected
+                        Image(systemName: "plus")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                        Text("Log Mood")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                    }
                 }
                 .foregroundColor(.primary)
                 .frame(maxWidth: .infinity)
@@ -185,15 +197,43 @@ struct MoodLensMoodCheckinView: View {
     private func logMood() {
         guard let mood = selectedMood else { return }
         
+        print("😊 Logging mood: \(mood.displayName)")
+        
         let entry = MoodEntry(mood: mood)
         moodManager.addMoodEntry(entry)
         
-        // Trigger intelligent task optimization based on new mood
+        // Convert MoodType to EmotionType and update both managers
+        let emotionType = convertMoodTypeToEmotionType(mood)
+        moodManager.updateCurrentMood(emotionType)
         taskManager.updateCurrentMood(mood)
+        
+        print("🔄 Updated MoodManager current mood to: \(emotionType)")
+        print("🔄 Updated TaskManager current mood to: \(mood)")
+        print("📊 Mood saved to history - Total entries: \(moodManager.moodEntries.count)")
+        
+        // Show haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
         
         // Reset selection with animation
         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
             selectedMood = nil
+        }
+        
+        // Show success message (you could add a toast notification here)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // Optional: Add a success animation or notification
+            print("✅ Mood logged successfully: \(mood.displayName)")
+        }
+    }
+    
+    private func convertMoodTypeToEmotionType(_ moodType: MoodType) -> EmotionType {
+        switch moodType {
+        case .positive: return .positive
+        case .calm: return .calm
+        case .focused: return .focused
+        case .stressed: return .stressed
+        case .creative: return .creative
         }
     }
 }

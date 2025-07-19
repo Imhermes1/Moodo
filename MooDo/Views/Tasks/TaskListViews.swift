@@ -12,7 +12,7 @@ import SwiftUI
 struct AllTasksListView: View {
     let tasks: [Task]
     let onAddTask: () -> Void
-    @StateObject private var taskManager = TaskManager()
+    @ObservedObject var taskManager: TaskManager
     @State private var expandedTasks: Set<UUID> = []
     @State private var selectedFilter: TaskFilter = .all
     
@@ -179,7 +179,8 @@ struct AllTasksListView: View {
                             },
                             onTaskUpdate: { updatedTask in
                                 taskManager.updateTask(updatedTask)
-                            }
+                            },
+                            taskManager: taskManager
                         )
                     }
                 }
@@ -272,7 +273,7 @@ struct AllTasksListView: View {
 struct MoodLensTaskListView: View {
     let tasks: [Task]
     let onAddTask: () -> Void
-    @StateObject private var taskManager = TaskManager()
+    @ObservedObject var taskManager: TaskManager
     @State private var expandedTasks: Set<UUID> = []
     @State private var showingMoodSelector = false
     
@@ -361,7 +362,8 @@ struct MoodLensTaskListView: View {
                             task: task,
                             onToggleComplete: {
                                 taskManager.toggleTaskCompletion(task)
-                            }
+                            },
+                            taskManager: taskManager
                         )
                     }
                 }
@@ -405,7 +407,7 @@ struct CompactTaskRowView: View {
     @State private var expandAnimation: CGFloat = 0
     @State private var showingActionButtons = false
     @State private var longPressTimer: Timer?
-    @StateObject private var taskManager = TaskManager()
+    @ObservedObject var taskManager: TaskManager
     
     var body: some View {
         VStack(spacing: 0) {
@@ -849,13 +851,14 @@ struct MoodLensTaskRowView: View {
     @State private var reminderDate: Date
     @State private var foldAnimation: CGFloat = 0.0
     @State private var contentOpacity: Double = 0.0
-    @StateObject private var taskManager = TaskManager()
+    @ObservedObject var taskManager: TaskManager
     
-    init(task: Task, isExpanded: Bool, onToggleExpand: @escaping () -> Void, onToggleComplete: @escaping () -> Void) {
+    init(task: Task, isExpanded: Bool, onToggleExpand: @escaping () -> Void, onToggleComplete: @escaping () -> Void, taskManager: TaskManager) {
         self.task = task
         self.isExpanded = isExpanded
         self.onToggleExpand = onToggleExpand
         self.onToggleComplete = onToggleComplete
+        self.taskManager = taskManager
         self._descriptionText = State(initialValue: task.description ?? "")
         self._reminderDate = State(initialValue: task.reminderAt ?? Date())
     }

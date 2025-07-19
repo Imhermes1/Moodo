@@ -24,14 +24,16 @@ struct HomeView: View {
             ScrollView(.vertical, showsIndicators: false) {
                 LazyVStack(spacing: screenSize.height * 0.025) {
                     // Mood Check-in (matches web app exactly)
-                    MoodLensMoodCheckinView()
+                    MoodLensMoodCheckinView(taskManager: taskManager)
                     
-                    // Task List (second position)
-                    MoodLensTaskListView(
-                        tasks: taskManager.tasks,
+                    // Smart Tasks (mood-based, second position)
+                    MoodBasedTasksView(
+                        taskManager: taskManager,
+                        moodManager: moodManager,
                         onAddTask: {
                             showingAddTaskModal = true
-                        }
+                        },
+                        screenSize: screenSize
                     )
                     
                     // Body Scan feature

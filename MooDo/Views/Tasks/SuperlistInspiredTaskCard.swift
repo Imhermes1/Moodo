@@ -28,14 +28,15 @@ struct SuperlistTaskCard: View {
     @State private var editedTags: [String]
     @State private var showingActionButtons = false
     @State private var longPressTimer: Timer?
-    @StateObject private var taskManager = TaskManager()
+    @ObservedObject var taskManager: TaskManager
     
-    init(task: Task, isExpanded: Bool, onToggleExpand: @escaping () -> Void, onToggleComplete: @escaping () -> Void, onTaskUpdate: @escaping (Task) -> Void) {
+    init(task: Task, isExpanded: Bool, onToggleExpand: @escaping () -> Void, onToggleComplete: @escaping () -> Void, onTaskUpdate: @escaping (Task) -> Void, taskManager: TaskManager) {
         self.task = task
         self.isExpanded = isExpanded
         self.onToggleExpand = onToggleExpand
         self.onToggleComplete = onToggleComplete
         self.onTaskUpdate = onTaskUpdate
+        self.taskManager = taskManager
         self._descriptionText = State(initialValue: task.description ?? "")
         self._reminderDate = State(initialValue: task.reminderAt ?? Date().addingTimeInterval(3600))
         self._deadlineDate = State(initialValue: task.deadlineAt ?? Date().addingTimeInterval(86400)) // Default to tomorrow
@@ -991,7 +992,8 @@ struct SuperlistTaskCard: View {
             isExpanded: false,
             onToggleExpand: {},
             onToggleComplete: {},
-            onTaskUpdate: { _ in }
+            onTaskUpdate: { _ in },
+            taskManager: TaskManager()
         )
         
         SuperlistTaskCard(
@@ -1006,7 +1008,8 @@ struct SuperlistTaskCard: View {
             isExpanded: true,
             onToggleExpand: {},
             onToggleComplete: {},
-            onTaskUpdate: { _ in }
+            onTaskUpdate: { _ in },
+            taskManager: TaskManager()
         )
     }
     .padding()

@@ -31,7 +31,7 @@ struct InsightsView: View {
                     SmartInsightsView(insights: smartInsights.insights)
                     
                     // Smart Suggestions
-                    SmartSuggestionsView(suggestions: smartSuggestions.suggestions)
+                    SmartSuggestionsView(suggestions: smartSuggestions.suggestions, taskManager: taskManager)
                     
                     // Mood History with detailed view
                     MoodHistoryDetailedView(moodEntries: moodManager.moodEntries)

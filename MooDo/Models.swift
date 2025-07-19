@@ -11,7 +11,7 @@ import _Concurrency
 
 // MARK: - Data Models
 
-struct Task: Identifiable, Codable {
+struct Task: Identifiable, Codable, Equatable {
     let id: UUID
     var title: String
     var description: String?
@@ -47,6 +47,11 @@ struct Task: Identifiable, Codable {
         self.subtasks = subtasks
         self.eventKitIdentifier = eventKitIdentifier
     }
+    
+    // MARK: - Equatable
+    static func == (lhs: Task, rhs: Task) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
 
 enum TaskPriority: String, CaseIterable, Codable {
@@ -77,6 +82,13 @@ enum EmotionType: String, CaseIterable, Codable {
     case urgent = "urgent"
     case creative = "creative"
     case focused = "focused"
+    case stressed = "stressed"
+    case overwhelmed = "overwhelmed"
+    case energetic = "energetic"
+    case content = "content"
+    case anxious = "anxious"
+    case tired = "tired"
+    case neutral = "neutral"
     
     var displayName: String {
         switch self {
@@ -85,6 +97,13 @@ enum EmotionType: String, CaseIterable, Codable {
         case .urgent: return "Urgent"
         case .creative: return "Creative"
         case .focused: return "Focused"
+        case .stressed: return "Stressed"
+        case .overwhelmed: return "Overwhelmed"
+        case .energetic: return "Energetic"
+        case .content: return "Content"
+        case .anxious: return "Anxious"
+        case .tired: return "Tired"
+        case .neutral: return "Neutral"
         }
     }
     
@@ -95,6 +114,13 @@ enum EmotionType: String, CaseIterable, Codable {
         case .urgent: return "exclamationmark.circle"
         case .creative: return "lightbulb"
         case .focused: return "brain.head.profile"
+        case .stressed: return "exclamationmark.triangle"
+        case .overwhelmed: return "multiply.circle"
+        case .energetic: return "bolt"
+        case .content: return "heart"
+        case .anxious: return "questionmark.circle"
+        case .tired: return "moon"
+        case .neutral: return "circle"
         }
     }
     
@@ -105,6 +131,13 @@ enum EmotionType: String, CaseIterable, Codable {
         case .urgent: return Color(red: 0.91, green: 0.3, blue: 0.24) // mood-red
         case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // mood-purple
         case .focused: return Color(red: 0.4, green: 0.49, blue: 0.92) // bluey-purple
+        case .stressed: return Color(red: 0.91, green: 0.3, blue: 0.24) // stress-red
+        case .overwhelmed: return Color(red: 0.8, green: 0.2, blue: 0.2) // dark-red
+        case .energetic: return Color(red: 1.0, green: 0.6, blue: 0.0) // energy-orange
+        case .content: return Color(red: 0.0, green: 0.8, blue: 0.4) // content-green
+        case .anxious: return Color(red: 0.9, green: 0.7, blue: 0.1) // anxiety-yellow
+        case .tired: return Color(red: 0.5, green: 0.5, blue: 0.5) // tired-gray
+        case .neutral: return Color(red: 0.6, green: 0.6, blue: 0.6) // neutral-gray
         }
     }
 }
@@ -114,10 +147,10 @@ struct MoodEntry: Identifiable, Codable {
     var mood: MoodType
     var timestamp: Date
     
-    init(id: UUID = UUID(), mood: MoodType) {
+    init(id: UUID = UUID(), mood: MoodType, timestamp: Date = Date()) {
         self.id = id
         self.mood = mood
-        self.timestamp = Date()
+        self.timestamp = timestamp
     }
 }
 
@@ -302,24 +335,30 @@ class TaskManager: ObservableObject {
     }
     
     func updateCurrentMood(_ mood: MoodType) {
+        print("🔄 TaskManager: updateCurrentMood called with: \(mood)")
         taskScheduler.updateCurrentMood(mood)
         
         // Auto-optimize tasks based on new mood
+        print("🔄 TaskManager: Calling autoOptimizeTasks")
         autoOptimizeTasks()
     }
     
     func autoOptimizeTasks() {
+        print("🔄 TaskManager: autoOptimizeTasks called")
         // Get optimal task count based on current mood
         let optimalCount = taskScheduler.getOptimalTaskCount(for: taskScheduler.currentMood)
+        print("🔄 TaskManager: Optimal task count for mood \(taskScheduler.currentMood): \(optimalCount)")
         
         // Optimize tasks with mood-based filtering and count limit
         let optimizedTasks = taskScheduler.optimizeTaskSchedule(tasks: tasks, maxTasks: optimalCount)
+        print("🔄 TaskManager: Optimized \(tasks.count) tasks to \(optimizedTasks.count) tasks")
         
         // Update tasks with optimized order
         tasks = optimizedTasks
         
         saveTasks()
         saveToCloud()
+        print("🔄 TaskManager: Tasks updated and saved")
     }
     
     private func saveTasks() {
@@ -360,55 +399,51 @@ class TaskManager: ObservableObject {
     }
     
     private func loadSampleData() {
-        tasks = [
-            Task(
-                title: "Complete project presentation",
-                description: "Finish the slides for tomorrow's meeting. Focus on key metrics and outcomes.",
-                priority: .high,
-                emotion: .focused,
-                reminderAt: Calendar.current.date(byAdding: .hour, value: 2, to: Date())
-            ),
-            Task(
-                title: "Go for a walk",
-                description: "30 minutes in the park",
-                priority: .medium,
-                emotion: .calm
-            ),
-            Task(
-                title: "Brainstorm new ideas",
-                description: "Creative session for the new campaign",
-                priority: .low,
-                emotion: .creative
-            ),
-            Task(
-                title: "Call mom",
-                description: "Check in and catch up",
-                priority: .medium,
-                emotion: .positive
-            ),
-            Task(
-                title: "Pay bills",
-                description: "Electricity and internet",
-                priority: .high,
-                emotion: .urgent,
-                reminderAt: Calendar.current.date(byAdding: .day, value: 1, to: Date())
-            )
-        ]
+        // Sample data removed for production
+        tasks = []
     }
 }
 
 class MoodManager: ObservableObject {
     @Published var moodEntries: [MoodEntry] = []
+    @Published var currentMood: EmotionType = .content
+    
+    var latestMoodEntry: MoodEntry? {
+        moodEntries.sorted(by: { $0.timestamp > $1.timestamp }).first
+    }
     
     init() {
         loadSampleData()
         loadFromCloud()
+        updateCurrentMoodFromEntries()
     }
     
     func addMoodEntry(_ entry: MoodEntry) {
         moodEntries.append(entry)
+        updateCurrentMoodFromEntries()
         saveMoodEntries()
         saveToCloud()
+    }
+    
+    func updateCurrentMood(_ mood: EmotionType) {
+        currentMood = mood
+    }
+    
+    private func updateCurrentMoodFromEntries() {
+        if let latestEntry = latestMoodEntry {
+            // Convert MoodType to EmotionType
+            currentMood = convertMoodTypeToEmotionType(latestEntry.mood)
+        }
+    }
+    
+    private func convertMoodTypeToEmotionType(_ moodType: MoodType) -> EmotionType {
+        switch moodType {
+        case .positive: return .positive
+        case .calm: return .calm
+        case .focused: return .focused
+        case .stressed: return .stressed
+        case .creative: return .creative
+        }
     }
     
     func updateMoodEntry(_ entry: MoodEntry) {
@@ -463,27 +498,9 @@ class MoodManager: ObservableObject {
     }
     
     private func loadSampleData() {
-        let calendar = Calendar.current
-        let now = Date()
-        
-        moodEntries = [
-            MoodEntry(mood: .positive),
-            MoodEntry(mood: .calm),
-            MoodEntry(mood: .focused),
-            MoodEntry(mood: .creative),
-            MoodEntry(mood: .stressed)
-        ]
-        
-        // Set different timestamps for the last 5 days
-        for (index, entry) in moodEntries.enumerated() {
-            let daysAgo = 4 - index
-            if calendar.date(byAdding: .day, value: -daysAgo, to: now) != nil {
-                moodEntries[index] = MoodEntry(
-                    id: entry.id,
-                    mood: entry.mood
-                )
-            }
-        }
+        // Sample data removed for production
+        moodEntries = []
+        updateCurrentMoodFromEntries()
     }
 }
 
@@ -546,16 +563,14 @@ class VoiceCheckinManager: ObservableObject {
     }
     
     private func loadSampleData() {
-        voiceCheckins = [
-            VoiceCheckin(transcript: "I'm feeling really good today. I completed my morning workout and I'm ready to tackle the day ahead.", mood: .positive, tasks: ["morning workout", "prepare for meeting"], duration: 45),
-            VoiceCheckin(transcript: "Today was a bit stressful at work, but I managed to stay focused and get things done.", mood: .focused, tasks: ["work tasks", "stress management"], duration: 32),
-            VoiceCheckin(transcript: "I'm feeling grateful for my family and friends. They always support me when I need it.", mood: .positive, tasks: ["call family", "plan weekend"], duration: 28)
-        ]
+        // Sample data removed for production
+        voiceCheckins = []
     }
 }
 
-// MARK: - Missing Types
+// MARK: - Data Managers
 
+@MainActor
 class TaskScheduler: ObservableObject {
     @Published var currentMood: MoodType = .positive
     
@@ -582,17 +597,28 @@ class TaskScheduler: ObservableObject {
             let task = scoredTask.task
             let score = scoredTask.score
             
-                    // Always include high-priority tasks and tasks due today
-        let isHighPriority = task.priority == .high
-        let isDueToday = (task.reminderAt != nil && 
-                         task.reminderAt! >= today && 
-                         task.reminderAt! < tomorrow) ||
-                        (task.deadlineAt != nil && 
-                         task.deadlineAt! >= today && 
-                         task.deadlineAt! < tomorrow)
-        let hasGoodMoodMatch = score >= 0.6
-        
-        return isHighPriority || isDueToday || hasGoodMoodMatch
+            // Special therapeutic filtering for stressed users
+            if currentMood == .stressed {
+                // When stressed, avoid stressful tasks entirely
+                if task.emotion == .stressed {
+                    return false  // Filter out stressful tasks
+                }
+                // Only include tasks that are calming or have good mood compatibility
+                return score >= 0.5 || task.emotion == .calm || task.emotion == .positive
+            }
+            
+            // Normal filtering for other moods
+            // Always include high-priority tasks and tasks due today
+            let isHighPriority = task.priority == .high
+            let isDueToday = (task.reminderAt != nil && 
+                             task.reminderAt! >= today && 
+                             task.reminderAt! < tomorrow) ||
+                            (task.deadlineAt != nil && 
+                             task.deadlineAt! >= today && 
+                             task.deadlineAt! < tomorrow)
+            let hasGoodMoodMatch = score >= 0.6
+            
+            return isHighPriority || isDueToday || hasGoodMoodMatch
         }
         
         // Sort by comprehensive scoring system
@@ -610,7 +636,7 @@ class TaskScheduler: ObservableObject {
             if !urgent1 && urgent2 { return false }
             
             // 2. Mood compatibility score
-            if abs(score1 - score2) > 0.1 {
+            if (score1 - score2) > 0.1 || (score2 - score1) > 0.1 {
                 return score1 > score2
             }
             
@@ -782,6 +808,116 @@ class TaskScheduler: ObservableObject {
         }
         
         return max(2, Int(Double(baseCount) * timeMultiplier))
+    }
+    
+    // Get mood-optimized tasks for the main screen
+    func getMoodOptimizedTasks(from tasks: [Task], for mood: EmotionType, maxTasks: Int) -> [Task] {
+        let incompleteTasks = tasks.filter { !$0.isCompleted }
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        
+        // Score tasks based on mood compatibility
+        let scoredTasks = incompleteTasks.map { task in
+            (task: task, score: calculateMoodScore(task: task, mood: mood, today: today, tomorrow: tomorrow))
+        }
+        
+        // Sort by score and take the top tasks
+        let sortedTasks = scoredTasks.sorted { $0.score > $1.score }
+        return Array(sortedTasks.prefix(maxTasks).map { $0.task })
+    }
+    
+    private func calculateMoodScore(task: Task, mood: EmotionType, today: Date, tomorrow: Date) -> Double {
+        var score: Double = 0.0
+        
+        // Base score for emotion compatibility
+        if task.emotion == mood {
+            score += 1.0
+        } else if areEmotionsCompatible(task.emotion, mood) {
+            score += 0.7
+        } else {
+            score += 0.3
+        }
+        
+        // Priority boost - but be therapeutic for stressed users
+        switch task.priority {
+        case .high: 
+            if mood == .stressed {
+                score += 0.2  // Reduced boost for high-priority tasks when stressed
+            } else {
+                score += 0.8
+            }
+        case .medium: 
+            if mood == .stressed {
+                score += 0.4  // Moderate boost for medium-priority tasks when stressed
+            } else {
+                score += 0.5
+            }
+        case .low: 
+            if mood == .stressed {
+                score += 0.8  // High boost for low-priority tasks when stressed (therapeutic)
+            } else {
+                score += 0.2
+            }
+        }
+        
+        // Time sensitivity boost - but be gentle with stressed users
+        let isDueToday = (task.reminderAt != nil && task.reminderAt! >= today && task.reminderAt! < tomorrow) ||
+                        (task.deadlineAt != nil && task.deadlineAt! >= today && task.deadlineAt! < tomorrow)
+        if isDueToday {
+            if mood == .stressed {
+                score += 0.3  // Reduced urgency boost when stressed
+            } else {
+                score += 0.6
+            }
+        }
+        
+        // Mood-specific therapeutic adjustments
+        switch mood {
+        case .stressed:
+            // Heavily favor calming, therapeutic tasks
+            if task.emotion == .calm { 
+                score += 0.8  // Big boost for calm tasks
+            }
+            if task.emotion == .positive { 
+                score += 0.6  // Good boost for positive tasks
+            }
+            if task.priority == .low { 
+                score += 0.5  // Additional boost for low-priority tasks
+            }
+            // Penalize stressful tasks
+            if task.emotion == .stressed {
+                score -= 0.5  // Penalty for stressful tasks
+            }
+            if task.priority == .high && task.emotion != .calm {
+                score -= 0.3  // Penalty for high-priority non-calm tasks
+            }
+        case .energetic, .focused:
+            // Prefer challenging tasks
+            if task.priority == .high { score += 0.4 }
+        case .calm, .content:
+            // Balanced approach
+            if task.priority == .medium { score += 0.3 }
+        default:
+            break
+        }
+        
+        return max(0.0, score)  // Ensure score doesn't go negative
+    }
+    
+    private func areEmotionsCompatible(_ emotion1: EmotionType, _ emotion2: EmotionType) -> Bool {
+        let compatibilityMap: [EmotionType: [EmotionType]] = [
+            .focused: [.content, .calm, .energetic],
+            .energetic: [.focused, .content, .creative],
+            .calm: [.content, .focused],
+            .content: [.calm, .focused, .energetic],
+            .stressed: [.calm, .content],
+            .overwhelmed: [.calm],
+            .anxious: [.calm, .content],
+            .tired: [.calm],
+            .creative: [.energetic, .content, .focused]
+        ]
+        
+        return compatibilityMap[emotion2]?.contains(emotion1) ?? false
     }
 }
 

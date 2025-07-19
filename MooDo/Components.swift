@@ -666,6 +666,7 @@ struct InsightCardView: View {
 
 struct SmartSuggestionsView: View {
     let suggestions: [TaskSuggestion]
+    @ObservedObject var taskManager: TaskManager
     
     var body: some View {
         if !suggestions.isEmpty {
@@ -682,7 +683,7 @@ struct SmartSuggestionsView: View {
                 
                 LazyVStack(spacing: 8) {
                     ForEach(suggestions.prefix(3)) { suggestion in
-                        TaskSuggestionCardView(suggestion: suggestion)
+                        TaskSuggestionCardView(suggestion: suggestion, taskManager: taskManager)
                     }
                 }
             }
@@ -692,7 +693,7 @@ struct SmartSuggestionsView: View {
 
 struct TaskSuggestionCardView: View {
     let suggestion: TaskSuggestion
-    @StateObject private var taskManager = TaskManager()
+    @ObservedObject var taskManager: TaskManager
     
     var body: some View {
         HStack(spacing: 8) {
@@ -1299,9 +1300,41 @@ struct DailyVoiceCheckinView: View {
 
 struct MoodHistoryDetailedView: View {
     let moodEntries: [MoodEntry]
+    @State private var selectedTimeframe: TimeFrame = .week
+    
+    enum TimeFrame: String, CaseIterable {
+        case day = "Today"
+        case week = "This Week"
+        case month = "This Month"
+    }
+    
+    var filteredEntries: [MoodEntry] {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        switch selectedTimeframe {
+        case .day:
+            let startOfDay = calendar.startOfDay(for: now)
+            return moodEntries.filter { $0.timestamp >= startOfDay }
+        case .week:
+            let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+            return moodEntries.filter { $0.timestamp >= startOfWeek }
+        case .month:
+            let startOfMonth = calendar.dateInterval(of: .month, for: now)?.start ?? now
+            return moodEntries.filter { $0.timestamp >= startOfMonth }
+        }
+    }
+    
+    var dailyMoodSummary: [Date: [MoodEntry]] {
+        let calendar = Calendar.current
+        return Dictionary(grouping: filteredEntries) { entry in
+            calendar.startOfDay(for: entry.timestamp)
+        }
+    }
     
     var body: some View {
         VStack(spacing: 20) {
+            // Header with timeframe selector
             HStack {
                 Text("Mood History")
                     .font(.title2)
@@ -1310,28 +1343,49 @@ struct MoodHistoryDetailedView: View {
                 
                 Spacer()
                 
-                HStack(spacing: 8) {
-                    Text("This Week")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.7))
-                    
-                    Text("No entries yet")
-                        .font(.subheadline)
-                        .foregroundColor(.white.opacity(0.5))
+                // Timeframe picker
+                Picker("Timeframe", selection: $selectedTimeframe) {
+                    ForEach(TimeFrame.allCases, id: \.self) { timeframe in
+                        Text(timeframe.rawValue).tag(timeframe)
+                    }
                 }
+                .pickerStyle(SegmentedPickerStyle())
+                .scaleEffect(0.8)
+                .frame(width: 200)
             }
             
-            Button(action: {}) {
-                Text("View Detailed History")
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(.white.opacity(0.1))
-                    )
+            if filteredEntries.isEmpty {
+                // Empty state
+                VStack(spacing: 16) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 48))
+                        .foregroundColor(.white.opacity(0.6))
+                    
+                    Text("No mood entries yet")
+                        .font(.headline)
+                        .foregroundColor(.white.opacity(0.8))
+                    
+                    Text("Log your first mood to start tracking your emotional patterns")
+                        .font(.subheadline)
+                        .foregroundColor(.white.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(32)
+            } else {
+                // Mood timeline
+                LazyVStack(spacing: 16) {
+                    ForEach(Array(dailyMoodSummary.keys.sorted(by: >)), id: \.self) { date in
+                        DailyMoodTimelineView(
+                            date: date,
+                            entries: dailyMoodSummary[date] ?? []
+                        )
+                    }
+                }
+                
+                // Mood pattern summary
+                if filteredEntries.count > 1 {
+                    MoodPatternSummaryView(entries: filteredEntries)
+                }
             }
         }
         .padding(24)
@@ -1385,5 +1439,210 @@ struct MoodHistoryDetailedView: View {
         .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
         .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
         .clipShape(RoundedRectangle(cornerRadius: 24))
+    }
+}
+
+// MARK: - Daily Mood Timeline Component
+
+struct DailyMoodTimelineView: View {
+    let date: Date
+    let entries: [MoodEntry]
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Date header
+            HStack {
+                Text(formatDate(date))
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                
+                Spacer()
+                
+                Text("\(entries.count) entries")
+                    .font(.subheadline)
+                    .foregroundColor(.white.opacity(0.7))
+            }
+            
+            // Mood timeline
+            VStack(spacing: 8) {
+                ForEach(entries.sorted(by: { $0.timestamp < $1.timestamp })) { entry in
+                    MoodTimelineEntryView(entry: entry)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
+    }
+    
+    private func formatDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        let calendar = Calendar.current
+        
+        if calendar.isDateInToday(date) {
+            return "Today"
+        } else if calendar.isDateInYesterday(date) {
+            return "Yesterday"
+        } else {
+            formatter.dateFormat = "EEEE, MMM d"
+            return formatter.string(from: date)
+        }
+    }
+}
+
+// MARK: - Mood Timeline Entry Component
+
+struct MoodTimelineEntryView: View {
+    let entry: MoodEntry
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Time
+            Text(formatTime(entry.timestamp))
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.7))
+                .frame(width: 50, alignment: .leading)
+            
+            // Mood indicator
+            Circle()
+                .fill(entry.mood.color)
+                .frame(width: 12, height: 12)
+                .overlay(
+                    Circle()
+                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                )
+            
+            // Mood info
+            HStack(spacing: 8) {
+                Image(systemName: entry.mood.icon)
+                    .font(.caption)
+                    .foregroundColor(entry.mood.color)
+                
+                Text(entry.mood.displayName)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, 4)
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
+    }
+}
+
+// MARK: - Mood Pattern Summary Component
+
+struct MoodPatternSummaryView: View {
+    let entries: [MoodEntry]
+    
+    var moodCounts: [MoodType: Int] {
+        Dictionary(grouping: entries, by: { $0.mood })
+            .mapValues { $0.count }
+    }
+    
+    var dominantMood: MoodType? {
+        moodCounts.max(by: { $0.value < $1.value })?.key
+    }
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Text("Mood Pattern")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                
+                Spacer()
+            }
+            
+            if let dominant = dominantMood {
+                HStack(spacing: 16) {
+                    // Dominant mood indicator
+                    VStack(spacing: 8) {
+                        Image(systemName: dominant.icon)
+                            .font(.title2)
+                            .foregroundColor(dominant.color)
+                        
+                        Text(dominant.displayName)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(dominant.color.opacity(0.1))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(dominant.color.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+                    
+                    // Stats
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Most frequent")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+                        
+                        Text("\(moodCounts[dominant] ?? 0) times")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        
+                        let percentage = Int(Double(moodCounts[dominant] ?? 0) / Double(entries.count) * 100)
+                        Text("\(percentage)%")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                }
+            }
+            
+            // Mood distribution
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 8) {
+                ForEach(MoodType.allCases, id: \.self) { mood in
+                    if let count = moodCounts[mood], count > 0 {
+                        VStack(spacing: 4) {
+                            Text("\(count)")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                            
+                            Text(mood.displayName)
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(mood.color.opacity(0.1))
+                        )
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.white.opacity(0.05))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                )
+        )
     }
 }

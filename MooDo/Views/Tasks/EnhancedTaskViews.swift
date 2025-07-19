@@ -10,7 +10,7 @@ import SwiftUI
 // MARK: - Enhanced Task List View
 
 struct EnhancedTaskListView: View {
-    @StateObject private var taskManager = TaskManager()
+    @ObservedObject var taskManager: TaskManager
     @State private var selectedSmartList: SmartListType = .today
     @State private var selectedTaskList: TaskList?
     @State private var showingAddTaskModal = false
@@ -139,7 +139,7 @@ struct EnhancedTaskListView: View {
             })
         }
         .sheet(isPresented: $showingAddTaskModal) {
-            AddTaskModalView()
+            AddTaskModalView(taskManager: taskManager)
         }
         .sheet(isPresented: $showingAddListModal) {
             AddTaskListView { list in

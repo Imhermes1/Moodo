@@ -27,7 +27,8 @@ struct TasksView: View {
                         tasks: taskManager.tasks,
                         onAddTask: {
                             showingAddTaskModal = true
-                        }
+                        },
+                        taskManager: taskManager
                     )
                     .frame(minHeight: screenSize.height * 0.8) // Ensure it takes up most of the screen
                 }

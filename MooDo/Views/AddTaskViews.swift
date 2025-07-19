@@ -21,7 +21,7 @@ struct AddTaskModalView: View {
     @State private var deadlineDate = Date().addingTimeInterval(86400) // Default to tomorrow
     @State private var hasReminder = false
     @State private var hasDeadline = false
-    @StateObject private var taskManager = TaskManager()
+    @ObservedObject var taskManager: TaskManager
     @StateObject private var nlpProcessor = NaturalLanguageProcessor()
     @StateObject private var voiceRecognition = VoiceRecognitionManager()
     
@@ -439,7 +439,7 @@ struct AddTaskModalView: View {
         
         // Use advanced options if they're set, otherwise use processed values
         let finalPriority = showingAdvancedOptions ? selectedPriority : processedTask.priority
-        let finalEmotion = showingAdvancedOptions ? selectedEmotion : processedTask.emotion
+        let finalEmotion = showingAdvancedOptions ? selectedEmotion : (processedTask.emotion != .neutral ? processedTask.emotion : detectEmotionForTask(title: processedTask.title, description: processedTask.description, priority: finalPriority))
         let finalReminderAt = hasReminder ? reminderDate : processedTask.reminderAt
         let finalDeadlineAt = hasDeadline ? deadlineDate : nil
         
@@ -455,5 +455,46 @@ struct AddTaskModalView: View {
         
         taskManager.addTask(task)
         dismiss()
+    }
+    
+    private func detectEmotionForTask(title: String, description: String?, priority: TaskPriority) -> EmotionType {
+        let titleLower = title.lowercased()
+        let descriptionLower = description?.lowercased() ?? ""
+        let content = titleLower + " " + descriptionLower
+        
+        // Keyword-based emotion detection
+        if content.contains("urgent") || content.contains("deadline") || content.contains("emergency") {
+            return .stressed
+        }
+        
+        if content.contains("creative") || content.contains("design") || content.contains("brainstorm") || content.contains("idea") {
+            return .creative
+        }
+        
+        if content.contains("exercise") || content.contains("workout") || content.contains("run") || content.contains("gym") {
+            return .energetic
+        }
+        
+        if content.contains("meeting") || content.contains("presentation") || content.contains("work") || content.contains("project") {
+            return .focused
+        }
+        
+        if content.contains("relax") || content.contains("meditate") || content.contains("read") || content.contains("rest") {
+            return .calm
+        }
+        
+        if content.contains("family") || content.contains("friend") || content.contains("social") || content.contains("celebrate") {
+            return .content
+        }
+        
+        // Priority-based fallback
+        switch priority {
+        case .high:
+            return .focused
+        case .medium:
+            return .content
+        case .low:
+            return .calm
+        }
     }
 } 
