@@ -60,6 +60,13 @@
     <!-- Dark / Light Mode -->
     <key>UIUserInterfaceStyle</key>
     <string>Automatic</string>
+    
+    <!-- App Transport Security -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+    </dict>
 
     <!-- Background Processing -->
     <key>UIBackgroundModes</key>
@@ -92,6 +99,19 @@
             </array>
         </dict>
     </dict>
+
+    <!-- Privacy Usage Descriptions -->
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>MooDo uses speech recognition to allow you to voice your thoughts and feelings, making it easier to track your mood and emotional well-being through natural conversation.</string>
+    
+    <key>NSMicrophoneUsageDescription</key>
+    <string>MooDo processes your voice input to convert speech to text for task creation and mood tracking, helping you capture your thoughts quickly and naturally.</string>
+    
+    <key>NSCalendarsUsageDescription</key>
+    <string>MooDo uses calendar access to create reminders for your tasks, helping you stay organized and never miss important deadlines or activities.</string>
+    
+    <key>NSRemindersUsageDescription</key>
+    <string>MooDo creates reminders in your Reminders app to help you stay on track with your tasks and maintain your daily routine.</string>
 
     <!-- Add any other keys your project requires here -->
 
