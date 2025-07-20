@@ -40,12 +40,15 @@ class EventKitManager: ObservableObject {
     private func requestNotificationPermissions() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
             if let error = error {
-                print("Failed to request notification permissions: \(error)")
+                print("❌ Failed to request notification permissions: \(error)")
+            } else {
+                print("🔔 Notification permissions granted: \(granted)")
             }
         }
     }
     
     // MARK: - Reminder Management
+    // Note: We use EventKit for calendar sync but MooDo notifications for user alerts
     
     func createReminder(for task: Task) async -> String? {
         if !isAuthorized {
@@ -74,8 +77,8 @@ class EventKitManager: ObservableObject {
         do {
             try eventStore.save(reminder, commit: true)
             
-            // Schedule local notification as backup
-            await scheduleLocalNotification(for: task, eventKitIdentifier: reminder.calendarItemIdentifier)
+            // Schedule MooDo notification as primary
+            await scheduleMooDoNotification(for: task, eventKitIdentifier: reminder.calendarItemIdentifier)
             
             return reminder.calendarItemIdentifier
         } catch {
@@ -109,8 +112,8 @@ class EventKitManager: ObservableObject {
         do {
             try eventStore.save(reminder, commit: true)
             
-            // Update local notification
-            await updateLocalNotification(for: task)
+            // Update MooDo notification
+            await updateMooDoNotification(for: task)
         } catch {
             print("Failed to update reminder: \(error)")
         }
@@ -124,23 +127,30 @@ class EventKitManager: ObservableObject {
         do {
             try eventStore.remove(reminder, commit: true)
             
-            // Remove local notification
+            // Remove MooDo notification
             UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [eventKitIdentifier])
         } catch {
             print("Failed to delete reminder: \(error)")
         }
     }
     
-    // MARK: - Local Notifications (Backup)
+    // MARK: - MooDo Notifications (Primary)
     
-    private func scheduleLocalNotification(for task: Task, eventKitIdentifier: String) async {
-        guard let reminderDate = task.reminderAt, reminderDate > Date() else { return }
+    private func scheduleMooDoNotification(for task: Task, eventKitIdentifier: String) async {
+        guard let reminderDate = task.reminderAt, reminderDate > Date() else { 
+            print("🔔 Notification: Reminder date is in the past or nil")
+            return 
+        }
+        
+        print("🔔 Scheduling notification for task: \(task.title)")
+        print("🔔 Reminder date: \(reminderDate)")
         
         let content = UNMutableNotificationContent()
-        content.title = task.title
-        content.body = task.description ?? "Task reminder"
+        content.title = "MooDo Task Reminder"
+        content.subtitle = task.title
+        content.body = task.description ?? "Time to complete your task!"
         content.sound = .default
-        content.categoryIdentifier = "TASK_REMINDER"
+        content.categoryIdentifier = "MOODO_TASK_REMINDER"
         
         // Add action buttons
         content.userInfo = [
@@ -159,19 +169,56 @@ class EventKitManager: ObservableObject {
         
         do {
             try await UNUserNotificationCenter.current().add(request)
+            print("✅ Notification scheduled successfully for: \(task.title)")
         } catch {
-            print("Failed to schedule notification: \(error)")
+            print("❌ Failed to schedule notification: \(error)")
         }
     }
     
-    private func updateLocalNotification(for task: Task) async {
+    private func updateMooDoNotification(for task: Task) async {
         guard let eventKitID = task.eventKitIdentifier else { return }
         
         // Remove existing notification
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [eventKitID])
         
         // Schedule new one if needed
-        await scheduleLocalNotification(for: task, eventKitIdentifier: eventKitID)
+        await scheduleMooDoNotification(for: task, eventKitIdentifier: eventKitID)
+    }
+    
+    // MARK: - Testing Functions
+    
+    func testMooDoNotification() async {
+        print("🧪 Testing MooDo notification...")
+        
+        let content = UNMutableNotificationContent()
+        content.title = "MooDo Task Reminder"
+        content.subtitle = "Test Task"
+        content.body = "This is a test notification from MooDo!"
+        content.sound = .default
+        content.categoryIdentifier = "MOODO_TASK_REMINDER"
+        
+        // Add test user info
+        content.userInfo = [
+            "taskID": UUID().uuidString,
+            "eventKitID": "test-notification",
+            "isTest": true
+        ]
+        
+        // Trigger immediately (5 seconds from now)
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 5, repeats: false)
+        
+        let request = UNNotificationRequest(
+            identifier: "test-moodo-notification",
+            content: content,
+            trigger: trigger
+        )
+        
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            print("✅ Test notification scheduled! It will appear in 5 seconds.")
+        } catch {
+            print("❌ Failed to schedule test notification: \(error)")
+        }
     }
     
     // MARK: - Bulk Operations
@@ -205,20 +252,26 @@ extension TaskPriority {
 extension EventKitManager {
     static func setupNotificationActions() {
         let completeAction = UNNotificationAction(
-            identifier: "COMPLETE_TASK",
-            title: "Mark Complete",
+            identifier: "MOODO_COMPLETE_TASK",
+            title: "✅ Complete",
             options: [.foreground]
         )
         
         let snoozeAction = UNNotificationAction(
-            identifier: "SNOOZE_TASK",
-            title: "Snooze 15min",
+            identifier: "MOODO_SNOOZE_TASK",
+            title: "⏰ Snooze 15min",
             options: []
         )
         
+        let openAction = UNNotificationAction(
+            identifier: "MOODO_OPEN_TASK",
+            title: "📱 Open in MooDo",
+            options: [.foreground]
+        )
+        
         let category = UNNotificationCategory(
-            identifier: "TASK_REMINDER",
-            actions: [completeAction, snoozeAction],
+            identifier: "MOODO_TASK_REMINDER",
+            actions: [completeAction, snoozeAction, openAction],
             intentIdentifiers: [],
             options: [.customDismissAction]
         )

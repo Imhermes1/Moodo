@@ -16,11 +16,20 @@ class NaturalLanguageProcessor: ObservableObject {
     @Published var isProcessing = false
     @Published var processedText = ""
     
+    // Performance optimization: Reuse date components
+    private let calendar = Calendar.current
+    private let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter
+    }()
+    
     func processNaturalLanguage(_ input: String) -> ProcessedTask {
         isProcessing = true
         
         // Reduced processing delay for better performance
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             self.isProcessing = false
             self.processedText = self.analyzeText(input)
         }
@@ -52,143 +61,217 @@ class NaturalLanguageProcessor: ObservableObject {
             analysis += "😌 Detected: Calm activity\n"
         }
         
-        // Detect time references
-        if let timeMatch = extractTime(from: input) {
-            analysis += "⏰ Detected: Time reference - \(timeMatch)\n"
-        }
-        
         return analysis
     }
     
-    private func analyzeTextForTask(_ input: String) -> ProcessedTask {
-        let lowercased = input.lowercased()
-        
-        // Extract title (first sentence or key phrase)
-        let title = extractTitle(from: input)
-        
-        // Determine priority
-        let priority: TaskPriority = if lowercased.contains("urgent") || lowercased.contains("asap") {
-            .high
-        } else if lowercased.contains("important") || lowercased.contains("today") {
-            .medium
-        } else {
-            .low
+    func analyzeTextForTask(_ input: String) -> ProcessedTask {
+        // Performance optimization: Early return for empty input
+        guard !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return ProcessedTask(title: input, description: nil, priority: .medium, emotion: .neutral, reminderAt: nil, deadlineAt: nil, tags: [])
         }
         
-        // Determine emotion
-        let emotion: EmotionType = if lowercased.contains("creative") || lowercased.contains("brainstorm") {
-            .creative
-        } else if lowercased.contains("focus") || lowercased.contains("work") {
-            .focused
-        } else if lowercased.contains("urgent") || lowercased.contains("asap") {
-            .urgent
-        } else if lowercased.contains("calm") || lowercased.contains("relax") {
-            .calm
+        let lowercased = input.lowercased()
+        
+        // Extract title (remove time and priority indicators)
+        var cleanTitle = input
+        let timePatterns = ["at \\d{1,2}(:\\d{2})?(am|pm)?", "in \\d+ (minutes?|hours?|days?)", "tomorrow", "today"]
+        for pattern in timePatterns {
+            cleanTitle = cleanTitle.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
+        }
+        cleanTitle = cleanTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Determine priority
+        let priority: TaskPriority
+        if lowercased.contains("urgent") || lowercased.contains("asap") || lowercased.contains("important") {
+            priority = .high
+        } else if lowercased.contains("later") || lowercased.contains("sometime") {
+            priority = .low
         } else {
-            .positive
+            priority = .medium
+        }
+        
+        // Determine emotion based on context
+        let emotion: EmotionType
+        if lowercased.contains("urgent") || lowercased.contains("asap") || lowercased.contains("deadline") || lowercased.contains("emergency") {
+            emotion = .urgent
+        } else if lowercased.contains("creative") || lowercased.contains("brainstorm") || lowercased.contains("idea") || lowercased.contains("design") {
+            emotion = .creative
+        } else if lowercased.contains("focus") || lowercased.contains("work") || lowercased.contains("study") || lowercased.contains("concentrate") {
+            emotion = .focused
+        } else if lowercased.contains("calm") || lowercased.contains("relax") || lowercased.contains("peaceful") || lowercased.contains("meditation") {
+            emotion = .calm
+        } else if lowercased.contains("excited") || lowercased.contains("happy") || lowercased.contains("celebrate") || lowercased.contains("positive") {
+            emotion = .positive
+        } else if lowercased.contains("stressed") || lowercased.contains("worried") || lowercased.contains("pressure") || lowercased.contains("overwhelm") {
+            emotion = .stressed
+        } else {
+            emotion = .neutral
         }
         
         // Extract reminder time
-        let reminderAt = extractReminderTime(from: input)
+        let reminderTime = extractReminderTime(from: input)
+        
+        // Extract tags
+        let tags = extractTags(from: input)
         
         return ProcessedTask(
-            title: title,
-            description: extractDescription(from: input),
+            title: cleanTitle,
+            description: input, // Keep the original input as description
             priority: priority,
             emotion: emotion,
-            reminderAt: reminderAt,
-            naturalLanguageInput: input
+            reminderAt: reminderTime,
+            deadlineAt: nil,
+            tags: tags
         )
     }
     
-    private func extractTitle(from input: String) -> String {
-        // Take the first sentence or key phrase
-        let sentences = input.components(separatedBy: [".", "!", "?"])
-        let firstSentence = sentences.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? input
-        
-        // Clean up common prefixes
-        let cleaned = firstSentence
-            .replacingOccurrences(of: "I need to ", with: "")
-            .replacingOccurrences(of: "I want to ", with: "")
-            .replacingOccurrences(of: "I should ", with: "")
-            .replacingOccurrences(of: "I have to ", with: "")
-            .replacingOccurrences(of: "Remind me to ", with: "")
-            .replacingOccurrences(of: "Don't forget to ", with: "")
-        
-        return cleaned.isEmpty ? input : cleaned
-    }
-    
-    private func extractDescription(from input: String) -> String? {
-        let sentences = input.components(separatedBy: [".", "!", "?"])
-        if sentences.count > 1 {
-            return sentences.dropFirst().joined(separator: ". ").trimmingCharacters(in: .whitespacesAndNewlines)
-        }
-        return nil
-    }
-    
-    private func extractTime(from input: String) -> String? {
+    private func extractReminderTime(from input: String) -> Date? {
+        let now = Date()
         let lowercased = input.lowercased()
         
-        // Common time patterns
-        let timePatterns = [
-            "in (\\d+) minutes": "in $1 minutes",
-            "in (\\d+) hours": "in $1 hours",
-            "in (\\d+) days": "in $1 days",
-            "at (\\d{1,2}):(\\d{2})": "at $1:$2",
-            "at (\\d{1,2}) (am|pm)": "at $1 $2",
-            "tomorrow at (\\d{1,2}):(\\d{2})": "tomorrow at $1:$2",
-            "today at (\\d{1,2}):(\\d{2})": "today at $1:$2"
-        ]
+        #if DEBUG
+        print("🔍 Extracting reminder time from: '\(input)'")
+        print("🔍 Lowercased input: '\(lowercased)'")
+        #endif
         
-        for pattern in timePatterns {
-            if let regex = try? NSRegularExpression(pattern: pattern.key) {
-                let range = NSRange(lowercased.startIndex..<lowercased.endIndex, in: lowercased)
-                if regex.firstMatch(in: lowercased, range: range) != nil {
-                    return pattern.value
+        // "in X minutes"
+        if let minutesMatch = lowercased.range(of: "in (\\d+) minutes?", options: .regularExpression) {
+            let minutesString = String(lowercased[minutesMatch])
+            let components = minutesString.components(separatedBy: CharacterSet.decimalDigits.inverted).filter { !$0.isEmpty }
+            if let minutes = Int(components.first ?? "") {
+                let result = now.addingTimeInterval(TimeInterval(minutes * 60))
+                #if DEBUG
+                print("✅ Extracted time: \(result)")
+                #endif
+                return result
+            }
+        }
+        
+        // "in X hours"
+        if let hoursMatch = lowercased.range(of: "in (\\d+) hours?", options: .regularExpression) {
+            let hoursString = String(lowercased[hoursMatch])
+            let components = hoursString.components(separatedBy: CharacterSet.decimalDigits.inverted).filter { !$0.isEmpty }
+            if let hours = Int(components.first ?? "") {
+                let result = now.addingTimeInterval(TimeInterval(hours * 3600))
+                #if DEBUG
+                print("✅ Extracted time: \(result)")
+                #endif
+                return result
+            }
+        }
+        
+        // Alternative simpler pattern for "at X AM/PM"
+        #if DEBUG
+        print("🔍 Checking alternative pattern for '\(lowercased)'")
+        #endif
+        
+        if lowercased.contains(" at ") {
+            let words = lowercased.components(separatedBy: " ")
+            for (index, word) in words.enumerated() {
+                if word == "at" && index + 1 < words.count {
+                    let nextWord = words[index + 1]
+                    #if DEBUG
+                    print("🔍 Found 'at' followed by: '\(nextWord)'")
+                    #endif
+                    
+                    // Check if next word contains time and AM/PM
+                    if nextWord.contains("pm") || nextWord.contains("am") {
+                        let timePart = nextWord.replacingOccurrences(of: "pm", with: "").replacingOccurrences(of: "am", with: "")
+                        if let hour = Int(timePart) {
+                            #if DEBUG
+                            print("🔍 Extracted hour: \(hour)")
+                            #endif
+                            var adjustedHour = hour
+                            let isPM = nextWord.contains("pm")
+                            
+                            // Handle AM/PM
+                            if isPM && hour != 12 {
+                                adjustedHour += 12
+                            } else if !isPM && hour == 12 {
+                                adjustedHour = 0
+                            }
+                            
+                            var dateComponents = calendar.dateComponents([.year, .month, .day], from: now)
+                            dateComponents.hour = adjustedHour
+                            dateComponents.minute = 0
+                            
+                            // Check if the time has already passed today
+                            let scheduledTime = calendar.date(from: dateComponents) ?? now
+                            if scheduledTime <= now {
+                                // If time has passed, schedule for tomorrow
+                                dateComponents = calendar.dateComponents([.year, .month, .day], from: calendar.date(byAdding: .day, value: 1, to: now) ?? now)
+                                dateComponents.hour = adjustedHour
+                                dateComponents.minute = 0
+                            }
+                            
+                            let result = calendar.date(from: dateComponents)
+                            #if DEBUG
+                            print("✅ Extracted time (alternative method): \(result?.description ?? "nil")")
+                            #endif
+                            return result
+                        }
+                    }
                 }
             }
         }
         
+        #if DEBUG
+        print("❌ No time pattern matched for: '\(input)'")
+        #endif
         return nil
     }
     
-    private func extractReminderTime(from input: String) -> Date? {
+    private func extractTags(from input: String) -> [String] {
+        var tags: [String] = []
         let lowercased = input.lowercased()
-        let now = Date()
-        let calendar = Calendar.current
         
-        // "in X minutes"
-        if let minutesMatch = lowercased.range(of: "in (\\d+) minutes", options: .regularExpression) {
-            let minutes = Int(lowercased[minutesMatch].components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
-            return calendar.date(byAdding: .minute, value: minutes, to: now)
-        }
+        // Look for hashtag-style tags (#tag)
+        let hashtagPattern = "#(\\w+)"
+        let hashtagRegex = try? NSRegularExpression(pattern: hashtagPattern, options: [])
+        let hashtagMatches = hashtagRegex?.matches(in: input, options: [], range: NSRange(location: 0, length: input.count)) ?? []
         
-        // "in X hours"
-        if let hoursMatch = lowercased.range(of: "in (\\d+) hours", options: .regularExpression) {
-            let hours = Int(lowercased[hoursMatch].components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) ?? 0
-            return calendar.date(byAdding: .hour, value: hours, to: now)
-        }
-        
-        // "tomorrow"
-        if lowercased.contains("tomorrow") {
-            return calendar.date(byAdding: .day, value: 1, to: now)
-        }
-        
-        // "today at X:XX"
-        if let timeMatch = lowercased.range(of: "today at (\\d{1,2}):(\\d{2})", options: .regularExpression) {
-            let timeString = String(lowercased[timeMatch])
-            let components = timeString.components(separatedBy: CharacterSet.decimalDigits.inverted).filter { !$0.isEmpty }
-            if components.count >= 2 {
-                let hour = Int(components[0]) ?? 0
-                let minute = Int(components[1]) ?? 0
-                var dateComponents = calendar.dateComponents([.year, .month, .day], from: now)
-                dateComponents.hour = hour
-                dateComponents.minute = minute
-                return calendar.date(from: dateComponents)
+        for match in hashtagMatches {
+            if let range = Range(match.range(at: 1), in: input) {
+                let tag = String(input[range])
+                tags.append(tag)
             }
         }
         
-        return nil
+        // Extract contextual tags based on keywords
+        let contextualTags: [String: [String]] = [
+            "work": ["work", "office", "meeting", "presentation", "project", "deadline", "client", "colleague"],
+            "personal": ["personal", "family", "friend", "home", "private", "self"],
+            "health": ["health", "doctor", "medicine", "exercise", "workout", "gym", "fitness", "diet"],
+            "shopping": ["buy", "shop", "grocery", "store", "purchase", "order"],
+            "learning": ["learn", "study", "course", "book", "education", "training", "practice"],
+            "creative": ["creative", "design", "art", "music", "write", "brainstorm", "idea"],
+            "urgent": ["urgent", "asap", "emergency", "immediately", "now"],
+            "routine": ["daily", "weekly", "routine", "habit", "regular"],
+            "travel": ["travel", "trip", "vacation", "flight", "hotel", "book"],
+            "finance": ["money", "bank", "pay", "bill", "budget", "finance", "invest"]
+        ]
+        
+        for (tag, keywords) in contextualTags {
+            if keywords.contains(where: { lowercased.contains($0) }) {
+                if !tags.contains(tag) {
+                    tags.append(tag)
+                }
+            }
+        }
+        
+        // Look for @mentions as potential location or person tags
+        let mentionPattern = "@(\\w+)"
+        let mentionRegex = try? NSRegularExpression(pattern: mentionPattern, options: [])
+        let mentionMatches = mentionRegex?.matches(in: input, options: [], range: NSRange(location: 0, length: input.count)) ?? []
+        
+        for match in mentionMatches {
+            if let range = Range(match.range(at: 1), in: input) {
+                let mention = String(input[range])
+                tags.append("@\(mention)")
+            }
+        }
+        
+        return tags
     }
 }
 
@@ -198,7 +281,8 @@ struct ProcessedTask {
     let priority: TaskPriority
     let emotion: EmotionType
     let reminderAt: Date?
-    let naturalLanguageInput: String
+    let deadlineAt: Date?
+    let tags: [String]
 }
 
 // MARK: - Smart Insights

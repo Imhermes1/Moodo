@@ -64,10 +64,10 @@ struct TopNavigationView: View {
                         .foregroundColor(.white)
                     
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("MoodLens")
+                        Text("MooDo By LumoraLabs")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
-                        Text("To-Do")
+                        Text("Feel. Plan. Flow.")
                             .font(.system(size: 10, weight: .regular))
                             .foregroundColor(.white.opacity(0.7))
                     }

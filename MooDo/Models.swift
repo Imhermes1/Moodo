@@ -77,67 +77,47 @@ enum TaskPriority: String, CaseIterable, Codable {
 }
 
 enum EmotionType: String, CaseIterable, Codable {
+    case neutral = "neutral"
+    case urgent = "urgent"
     case positive = "positive"
     case calm = "calm"
-    case urgent = "urgent"
     case creative = "creative"
     case focused = "focused"
     case stressed = "stressed"
-    case overwhelmed = "overwhelmed"
-    case energetic = "energetic"
-    case content = "content"
-    case anxious = "anxious"
-    case tired = "tired"
-    case neutral = "neutral"
     
     var displayName: String {
         switch self {
+        case .neutral: return "Neutral"
+        case .urgent: return "Urgent"
         case .positive: return "Positive"
         case .calm: return "Calm"
-        case .urgent: return "Urgent"
         case .creative: return "Creative"
         case .focused: return "Focused"
         case .stressed: return "Stressed"
-        case .overwhelmed: return "Overwhelmed"
-        case .energetic: return "Energetic"
-        case .content: return "Content"
-        case .anxious: return "Anxious"
-        case .tired: return "Tired"
-        case .neutral: return "Neutral"
         }
     }
     
     var icon: String {
         switch self {
+        case .neutral: return "circle"
+        case .urgent: return "exclamationmark.circle"
         case .positive: return "trophy"
         case .calm: return "leaf"
-        case .urgent: return "exclamationmark.circle"
         case .creative: return "lightbulb"
         case .focused: return "brain.head.profile"
         case .stressed: return "exclamationmark.triangle"
-        case .overwhelmed: return "multiply.circle"
-        case .energetic: return "bolt"
-        case .content: return "heart"
-        case .anxious: return "questionmark.circle"
-        case .tired: return "moon"
-        case .neutral: return "circle"
         }
     }
     
     var color: Color {
         switch self {
+        case .neutral: return Color(red: 0.6, green: 0.6, blue: 0.6) // neutral-gray
+        case .urgent: return Color(red: 0.91, green: 0.3, blue: 0.24) // mood-red
         case .positive: return Color(red: 0.22, green: 0.69, blue: 0.42) // mood-green
         case .calm: return Color(red: 0.22, green: 0.56, blue: 0.94) // mood-blue
-        case .urgent: return Color(red: 0.91, green: 0.3, blue: 0.24) // mood-red
         case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // mood-purple
         case .focused: return Color(red: 0.4, green: 0.49, blue: 0.92) // bluey-purple
         case .stressed: return Color(red: 0.91, green: 0.3, blue: 0.24) // stress-red
-        case .overwhelmed: return Color(red: 0.8, green: 0.2, blue: 0.2) // dark-red
-        case .energetic: return Color(red: 1.0, green: 0.6, blue: 0.0) // energy-orange
-        case .content: return Color(red: 0.0, green: 0.8, blue: 0.4) // content-green
-        case .anxious: return Color(red: 0.9, green: 0.7, blue: 0.1) // anxiety-yellow
-        case .tired: return Color(red: 0.5, green: 0.5, blue: 0.5) // tired-gray
-        case .neutral: return Color(red: 0.6, green: 0.6, blue: 0.6) // neutral-gray
         }
     }
 }
@@ -190,6 +170,16 @@ enum MoodType: String, CaseIterable, Codable {
         case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // mood-purple
         }
     }
+    
+    var numericValue: Double {
+        switch self {
+        case .positive: return 9.0
+        case .calm: return 7.0
+        case .focused: return 8.0
+        case .stressed: return 3.0
+        case .creative: return 8.5
+        }
+    }
 }
 
 struct VoiceCheckin: Identifiable, Codable {
@@ -221,20 +211,32 @@ class TaskManager: ObservableObject {
     let taskScheduler = TaskScheduler()
     let eventKitManager = EventKitManager()
     
+    // Performance optimization: Debounce save operations
+    private var saveDebounceTimer: Timer?
+    private var pendingTasks: [Task] = []
+    private var isPerformingBatchOperation = false
+    
     var currentMood: MoodType {
         return taskScheduler.currentMood
     }
     
     init() {
-        loadSampleData()
+        loadFromUserDefaults()
         loadFromCloud()
         
         // Setup notification actions
         EventKitManager.setupNotificationActions()
     }
     
+    // MARK: - Optimized Task Operations
+    
     func addTask(_ task: Task) {
         var newTask = task
+        
+        // Batch operation flag for performance
+        if !isPerformingBatchOperation {
+            print("📝 Adding task: \(task.title)")
+        }
         
         // Create EventKit reminder if task has a reminder date
         if task.reminderAt != nil {
@@ -243,24 +245,46 @@ class TaskManager: ObservableObject {
                 await MainActor.run {
                     newTask.eventKitIdentifier = eventKitID
                     self.tasks.append(newTask)
-                    
-                    // Apply intelligent scheduling
-                    let optimizedTasks = self.taskScheduler.optimizeTaskSchedule(tasks: self.tasks)
-                    self.tasks = optimizedTasks
-                    
-                    self.saveTasks()
-                    self.saveToCloud()
+                    self.debouncedSave()
                 }
             }
         } else {
             tasks.append(newTask)
-            
-            // Apply intelligent scheduling
-            let optimizedTasks = taskScheduler.optimizeTaskSchedule(tasks: tasks)
-            tasks = optimizedTasks
-            
-            saveTasks()
-            saveToCloud()
+            debouncedSave()
+        }
+    }
+    
+    func addTasks(_ newTasks: [Task]) {
+        isPerformingBatchOperation = true
+        defer { isPerformingBatchOperation = false }
+        
+        print("📝 Batch adding \(newTasks.count) tasks")
+        
+        // Process tasks with reminders asynchronously
+        let tasksWithReminders = newTasks.filter { $0.reminderAt != nil }
+        let tasksWithoutReminders = newTasks.filter { $0.reminderAt == nil }
+        
+        // Add tasks without reminders immediately
+        tasks.append(contentsOf: tasksWithoutReminders)
+        
+        // Process reminder tasks in background
+        if !tasksWithReminders.isEmpty {
+            _Concurrency.Task {
+                var processedTasks: [Task] = []
+                for task in tasksWithReminders {
+                    var newTask = task
+                    let eventKitID = await eventKitManager.createReminder(for: task)
+                    newTask.eventKitIdentifier = eventKitID
+                    processedTasks.append(newTask)
+                }
+                
+                await MainActor.run {
+                    self.tasks.append(contentsOf: processedTasks)
+                    self.debouncedSave()
+                }
+            }
+        } else {
+            debouncedSave()
         }
     }
     
@@ -273,8 +297,7 @@ class TaskManager: ObservableObject {
                 await eventKitManager.updateReminder(for: task)
             }
             
-            saveTasks()
-            saveToCloud()
+            debouncedSave()
         }
     }
     
@@ -285,30 +308,88 @@ class TaskManager: ObservableObject {
         }
         
         tasks.removeAll { $0.id == task.id }
-        saveTasks()
-        deleteFromCloud(task.id)
+        debouncedSave()
+        
+        // Optimized cloud deletion
+        _Concurrency.Task {
+            await CloudKitManager.shared.deleteTask(task.id)
+        }
     }
     
     func toggleTaskCompletion(_ task: Task) {
         var updatedTask = task
         updatedTask.isCompleted.toggle()
         updateTask(updatedTask)
+        
+        // Auto-archive completed tasks with a delay for user feedback
+        if updatedTask.isCompleted {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                self.archiveCompletedTask(updatedTask)
+            }
+        }
+    }
+    
+    // MARK: - Completed Tasks Management
+    
+    private func archiveCompletedTask(_ task: Task) {
+        // Remove from main tasks list
+        tasks.removeAll { $0.id == task.id }
+        
+        // Add to completed tasks list
+        var completedTasks = getCompletedTasks()
+        completedTasks.append(task)
+        saveCompletedTasks(completedTasks)
+        
+        // Save the updated main tasks list
+        debouncedSave()
+    }
+    
+    func getCompletedTasks() -> [Task] {
+        if let data = UserDefaults.standard.data(forKey: "CompletedTasks"),
+           let decoded = try? JSONDecoder().decode([Task].self, from: data) {
+            return decoded
+        }
+        return []
+    }
+    
+    private func saveCompletedTasks(_ completedTasks: [Task]) {
+        if let encoded = try? JSONEncoder().encode(completedTasks) {
+            UserDefaults.standard.set(encoded, forKey: "CompletedTasks")
+        }
+    }
+    
+    func deleteCompletedTask(_ task: Task) {
+        var completedTasks = getCompletedTasks()
+        completedTasks.removeAll { $0.id == task.id }
+        saveCompletedTasks(completedTasks)
     }
     
     func addTaskList(_ list: TaskList) {
         taskLists.append(list)
-        // Save task lists to UserDefaults
-        if let encoded = try? JSONEncoder().encode(taskLists) {
-            UserDefaults.standard.set(encoded, forKey: "SavedTaskLists")
-        }
+        saveTaskLists()
     }
     
-    // MARK: - Computed Properties
+    // MARK: - Optimized Computed Properties with Caching
+    
+    private var _cachedTodayTasks: [Task]?
+    private var _todayTasksCacheTime: Date?
     
     var todayTasks: [Task] {
-        // Use adaptive optimization for today's tasks
+        // Cache today's tasks for 30 seconds to avoid repeated computation
+        let now = Date()
+        if let cacheTime = _todayTasksCacheTime,
+           let cached = _cachedTodayTasks,
+           now.timeIntervalSince(cacheTime) < 30 {
+            return cached
+        }
+        
         let optimalCount = taskScheduler.getOptimalTaskCount(for: taskScheduler.currentMood)
-        return taskScheduler.optimizeTaskSchedule(tasks: tasks, maxTasks: optimalCount)
+        let result = taskScheduler.optimizeTaskSchedule(tasks: tasks, maxTasks: optimalCount)
+        
+        _cachedTodayTasks = result
+        _todayTasksCacheTime = now
+        
+        return result
     }
     
     var upcomingTasks: [Task] {
@@ -335,45 +416,69 @@ class TaskManager: ObservableObject {
     }
     
     func updateCurrentMood(_ mood: MoodType) {
-        print("🔄 TaskManager: updateCurrentMood called with: \(mood)")
         taskScheduler.updateCurrentMood(mood)
         
-        // Auto-optimize tasks based on new mood
-        print("🔄 TaskManager: Calling autoOptimizeTasks")
+        // Clear cache when mood changes
+        _cachedTodayTasks = nil
+        _todayTasksCacheTime = nil
+        
+        // Optimize tasks without immediate save
         autoOptimizeTasks()
     }
     
     func autoOptimizeTasks() {
-        print("🔄 TaskManager: autoOptimizeTasks called")
-        // Get optimal task count based on current mood
         let optimalCount = taskScheduler.getOptimalTaskCount(for: taskScheduler.currentMood)
-        print("🔄 TaskManager: Optimal task count for mood \(taskScheduler.currentMood): \(optimalCount)")
-        
-        // Optimize tasks with mood-based filtering and count limit
         let optimizedTasks = taskScheduler.optimizeTaskSchedule(tasks: tasks, maxTasks: optimalCount)
-        print("🔄 TaskManager: Optimized \(tasks.count) tasks to \(optimizedTasks.count) tasks")
         
-        // Update tasks with optimized order
         tasks = optimizedTasks
-        
-        saveTasks()
-        saveToCloud()
-        print("🔄 TaskManager: Tasks updated and saved")
+        debouncedSave()
     }
     
-    private func saveTasks() {
+    // MARK: - Optimized Persistence
+    
+    private func debouncedSave() {
+        saveDebounceTimer?.invalidate()
+        saveDebounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
+            _Concurrency.Task { @MainActor in
+                self.saveTasksAndSync()
+            }
+        }
+    }
+    
+    private func saveTasksAndSync() {
+        saveTasksToUserDefaults()
+        
+        // Background cloud sync
+        _Concurrency.Task {
+            await CloudKitManager.shared.saveTasks(tasks)
+        }
+    }
+    
+    private func saveTasksToUserDefaults() {
         if let encoded = try? JSONEncoder().encode(tasks) {
             UserDefaults.standard.set(encoded, forKey: "SavedTasks")
         }
     }
     
-    // MARK: - CloudKit Integration
-    
-    private func saveToCloud() {
-        _Concurrency.Task {
-            await CloudKitManager.shared.saveTasks(tasks)
+    private func saveTaskLists() {
+        if let encoded = try? JSONEncoder().encode(taskLists) {
+            UserDefaults.standard.set(encoded, forKey: "SavedTaskLists")
         }
     }
+    
+    private func loadFromUserDefaults() {
+        if let data = UserDefaults.standard.data(forKey: "SavedTasks"),
+           let decoded = try? JSONDecoder().decode([Task].self, from: data) {
+            tasks = decoded
+        }
+        
+        if let data = UserDefaults.standard.data(forKey: "SavedTaskLists"),
+           let decoded = try? JSONDecoder().decode([TaskList].self, from: data) {
+            taskLists = decoded
+        }
+    }
+    
+    // MARK: - CloudKit Integration
     
     private func loadFromCloud() {
         _Concurrency.Task {
@@ -382,15 +487,11 @@ class TaskManager: ObservableObject {
                 // Merge cloud tasks with local tasks, avoiding duplicates
                 let localTaskIds = Set(tasks.map { $0.id })
                 let newCloudTasks = cloudTasks.filter { !localTaskIds.contains($0.id) }
-                tasks.append(contentsOf: newCloudTasks)
-                saveTasks() // Save merged data locally
+                
+                if !newCloudTasks.isEmpty {
+                    addTasks(newCloudTasks)
+                }
             }
-        }
-    }
-    
-    private func deleteFromCloud(_ taskId: UUID) {
-        _Concurrency.Task {
-            await CloudKitManager.shared.deleteTask(taskId)
         }
     }
     
@@ -398,15 +499,34 @@ class TaskManager: ObservableObject {
         loadFromCloud()
     }
     
-    private func loadSampleData() {
-        // Sample data removed for production
-        tasks = []
+    // MARK: - Testing Functions (Debug only)
+    
+    #if DEBUG
+    func testNotification() {
+        _Concurrency.Task {
+            await eventKitManager.testMooDoNotification()
+        }
+    }
+    #endif
+    
+    // MARK: - Memory Management
+    
+    func clearCaches() {
+        // Clear cached computed properties
+        _cachedTodayTasks = nil
+        _todayTasksCacheTime = nil
+        
+        // Cancel pending operations
+        saveDebounceTimer?.invalidate()
+        saveDebounceTimer = nil
+        
+        print("🧹 TaskManager caches cleared")
     }
 }
 
 class MoodManager: ObservableObject {
     @Published var moodEntries: [MoodEntry] = []
-    @Published var currentMood: EmotionType = .content
+    @Published var currentMood: EmotionType = .positive
     
     var latestMoodEntry: MoodEntry? {
         moodEntries.sorted(by: { $0.timestamp > $1.timestamp }).first
@@ -914,10 +1034,10 @@ class TaskScheduler: ObservableObject {
             if task.priority == .high && task.emotion != .calm {
                 score -= 0.3  // Penalty for high-priority non-calm tasks
             }
-        case .energetic, .focused:
+        case .focused:
             // Prefer challenging tasks
             if task.priority == .high { score += 0.4 }
-        case .calm, .content:
+        case .calm, .positive:
             // Balanced approach
             if task.priority == .medium { score += 0.3 }
         default:
@@ -929,15 +1049,13 @@ class TaskScheduler: ObservableObject {
     
     private func areEmotionsCompatible(_ emotion1: EmotionType, _ emotion2: EmotionType) -> Bool {
         let compatibilityMap: [EmotionType: [EmotionType]] = [
-            .focused: [.content, .calm, .energetic],
-            .energetic: [.focused, .content, .creative],
-            .calm: [.content, .focused],
-            .content: [.calm, .focused, .energetic],
-            .stressed: [.calm, .content],
-            .overwhelmed: [.calm],
-            .anxious: [.calm, .content],
-            .tired: [.calm],
-            .creative: [.energetic, .content, .focused]
+            .focused: [.positive, .calm],
+            .calm: [.positive, .focused],
+            .positive: [.calm, .focused, .creative],
+            .stressed: [.calm, .positive],
+            .creative: [.positive, .focused],
+            .urgent: [.focused],
+            .neutral: [.calm, .focused]
         ]
         
         return compatibilityMap[emotion2]?.contains(emotion1) ?? false

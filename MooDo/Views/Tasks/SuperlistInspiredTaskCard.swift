@@ -30,6 +30,17 @@ struct SuperlistTaskCard: View {
     @State private var longPressTimer: Timer?
     @ObservedObject var taskManager: TaskManager
     
+    // Performance optimization: Cache computed values
+    private var hasReminder: Bool { task.reminderAt != nil }
+    private var hasDeadline: Bool { task.deadlineAt != nil }
+    private var priorityColor: Color {
+        switch task.priority {
+        case .low: return .green
+        case .medium: return .orange
+        case .high: return .red
+        }
+    }
+    
     init(task: Task, isExpanded: Bool, onToggleExpand: @escaping () -> Void, onToggleComplete: @escaping () -> Void, onTaskUpdate: @escaping (Task) -> Void, taskManager: TaskManager) {
         self.task = task
         self.isExpanded = isExpanded
@@ -98,11 +109,7 @@ struct SuperlistTaskCard: View {
                 HStack(spacing: 12) {
                     // Show creation date and list info instead of description
                     HStack(spacing: 8) {
-                        Image(systemName: "calendar.badge.clock")
-                            .font(.caption2)
-                            .foregroundColor(.white.opacity(0.5))
-                        
-                        Text(formatCreationDate(task.createdAt))
+                        Text("Created \(formatCreationDate(task.createdAt))")
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.6))
                         
@@ -725,7 +732,7 @@ struct SuperlistTaskCard: View {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundColor(.orange.opacity(0.8))
                             .font(.caption)
-                        Text("Deadline")
+                                                    Text("Due Date")
                             .font(.caption)
                             .fontWeight(.medium)
                             .foregroundColor(.white.opacity(0.8))

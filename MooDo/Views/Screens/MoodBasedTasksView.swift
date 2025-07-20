@@ -13,8 +13,9 @@ struct MoodBasedTasksView: View {
     @ObservedObject var taskManager: TaskManager
     @ObservedObject var moodManager: MoodManager
     let onAddTask: () -> Void
+    let onTaskTap: ((Task) -> Void)?
     let screenSize: CGSize
-    @State private var currentMoodTasks: [Task] = []
+    @State private var smartRecommendations: [Task] = []
     @State private var isRefreshing = false
     
     var body: some View {
@@ -29,11 +30,11 @@ struct MoodBasedTasksView: View {
                             .foregroundColor(.white)
                         
                         HStack(spacing: 6) {
-                            Image(systemName: currentMood.icon)
-                                .foregroundColor(currentMood.color)
+                            Image(systemName: "brain.head.profile")
+                                .foregroundColor(.purple)
                                 .font(.caption)
                             
-                            Text("Optimized for your \(currentMood.displayName.lowercased()) energy")
+                            Text("Top \(smartRecommendations.count) recommendations based on deadlines and your mood")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.7))
                         }
@@ -84,33 +85,76 @@ struct MoodBasedTasksView: View {
                 moodInsightsSection
             }
             
-            // Smart task list
-            if currentMoodTasks.isEmpty {
+            // Smart task recommendations
+            if smartRecommendations.isEmpty {
                 emptyStateView
             } else {
                 LazyVStack(spacing: 12) {
-                    ForEach(currentMoodTasks) { task in
+                    ForEach(smartRecommendations) { task in
                         SmartTaskCard(
                             task: task,
                             onToggleComplete: {
                                 taskManager.toggleTaskCompletion(task)
                                 refreshSmartTasks()
+                            },
+                            onTap: {
+                                onTaskTap?(task)
                             }
                         )
                     }
                 }
             }
         }
-        .padding(16)
+        .padding(20)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial)
-                .opacity(0.15) // Reduced opacity
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(.clear, lineWidth: 0) // Removed visible border
-                )
+            ZStack {
+                // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                
+                // Inner highlight layer for 3D effect
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.25),
+                                .white.opacity(0.08),
+                                .clear,
+                                .black.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Outer stroke with glass shimmer
+                RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.6),
+                                .white.opacity(0.2),
+                                .white.opacity(0.05),
+                                .white.opacity(0.3)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                // Inner stroke for depth
+                RoundedRectangle(cornerRadius: 19)
+                    .strokeBorder(
+                        .white.opacity(0.1),
+                        lineWidth: 0.5
+                    )
+            }
         )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+        .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
         .clipShape(RoundedRectangle(cornerRadius: 20))
         .onAppear {
             refreshSmartTasks()
@@ -139,14 +183,14 @@ struct MoodBasedTasksView: View {
                 .foregroundColor(.purple)
                 .font(.caption)
             
-            Text("Showing \(currentMoodTasks.count) tasks optimized for your mood")
+            Text("Smart recommendations from your \(taskManager.tasks.count) tasks")
                 .font(.caption)
                 .foregroundColor(.white.opacity(0.8))
             
             Spacer()
             
-            if !currentMoodTasks.isEmpty {
-                Text("\(currentMoodTasks.filter { !$0.isCompleted }.count) remaining")
+            if !smartRecommendations.isEmpty {
+                Text("\(smartRecommendations.filter { !$0.isCompleted }.count) remaining")
                     .font(.caption)
                     .foregroundColor(.orange)
                     .padding(.horizontal, 8)
@@ -164,55 +208,61 @@ struct MoodBasedTasksView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
-                .opacity(0.3)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                )
+            GlassPanelBackground()
         )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
     
     private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "brain.head.profile")
-                .font(.system(size: 40))
-                .foregroundColor(.purple.opacity(0.7))
-            
-            Text("No smart tasks right now")
-                .font(.headline)
-                .fontWeight(.medium)
-                .foregroundColor(.white.opacity(0.7))
-            
-            Text("Add some tasks and I'll optimize them based on your \(currentMood.displayName.lowercased()) energy!")
-                .font(.body)
-                .foregroundColor(.white.opacity(0.6))
-                .multilineTextAlignment(.center)
-            
-            Button(action: onAddTask) {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus")
-                        .font(.body)
-                        .fontWeight(.medium)
-                    Text("Add your first task")
-                        .font(.body)
-                        .fontWeight(.medium)
+        VStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "brain.head.profile")
+                    .font(.title3)
+                    .foregroundColor(.purple.opacity(0.7))
+                
+                Text(taskManager.tasks.isEmpty ? "No tasks yet" : "No recommendations right now")
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white.opacity(0.7))
+                
+                Spacer()
+                
+                Button(action: onAddTask) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                        Text("Add Task")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(.green.opacity(0.3))
+                            .overlay(
+                                Capsule()
+                                    .stroke(.green.opacity(0.5), lineWidth: 1)
+                            )
+                    )
                 }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(.green.opacity(0.2))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .stroke(.clear, lineWidth: 0)
-                        )
-                )
+            }
+            
+            if taskManager.tasks.isEmpty {
+                Text("Add some tasks and I'll recommend the best ones based on deadlines and your mood!")
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.6))
+                    .multilineTextAlignment(.leading)
             }
         }
-        .padding(.vertical, 40)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            GlassPanelBackground()
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
     // MARK: - Methods
@@ -222,35 +272,21 @@ struct MoodBasedTasksView: View {
             isRefreshing = true
         }
         
-        print("🧠 MoodBasedTasksView: Refreshing tasks for mood: \(currentMood)")
+        print("🧠 Smart Tasks: Generating recommendations for mood: \(currentMood)")
         print("📋 Total available tasks: \(taskManager.tasks.count)")
         
-        // Get mood-optimized tasks
-        let optimizedTasks = taskManager.taskScheduler.getMoodOptimizedTasks(
-            from: taskManager.tasks,
-            for: currentMood,
-            maxTasks: getOptimalTaskCount()
-        )
+        // Get all incomplete tasks from the main task list
+        let incompleteTasks = taskManager.tasks.filter { !$0.isCompleted }
         
-        print("✨ Optimized tasks count: \(optimizedTasks.count)")
-        print("📝 Optimized task titles: \(optimizedTasks.map { $0.title })")
+        // Generate smart recommendations (2-5 tasks, minimum 2 if data available)
+        let recommendations = generateSmartRecommendations(from: incompleteTasks)
         
-        // Apply automatic emotion detection to tasks without emotions
-        let tasksWithEmotions = optimizedTasks.map { task in
-            var updatedTask = task
-            if task.emotion == .neutral {
-                updatedTask.emotion = detectEmotionForTask(task)
-                taskManager.updateTask(updatedTask)
-                print("🎯 Auto-assigned emotion \(updatedTask.emotion) to task: \(task.title)")
-            }
-            return updatedTask
-        }
+        print("✨ Generated \(recommendations.count) recommendations")
+        print("📝 Recommended tasks: \(recommendations.map { $0.title })")
         
         withAnimation(.easeInOut(duration: 0.5)) {
-            currentMoodTasks = tasksWithEmotions
+            smartRecommendations = recommendations
         }
-        
-        print("🎉 Final smart tasks count: \(tasksWithEmotions.count)")
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             withAnimation(.easeInOut(duration: 0.3)) {
@@ -259,14 +295,106 @@ struct MoodBasedTasksView: View {
         }
     }
     
-    private func getOptimalTaskCount() -> Int {
-        switch currentMood {
-        case .energetic, .focused: return 5
-        case .calm, .content: return 3
-        case .stressed, .overwhelmed: return 2
-        case .anxious, .tired: return 1
-        default: return 3
+    private func generateSmartRecommendations(from tasks: [Task]) -> [Task] {
+        guard !tasks.isEmpty else { return [] }
+        
+        // Step 1: Calculate mood compatibility scores for all tasks
+        let scoredTasks = tasks.map { task in
+            (task: task, score: calculateMoodCompatibilityScore(task: task, mood: currentMood))
         }
+        
+        // Step 2: Sort by mood compatibility, priority, and urgency
+        let sortedTasks = scoredTasks.sorted { first, second in
+            // High priority tasks get priority boost
+            let priorityBoost1 = first.task.priority == .high ? 0.3 : 0.0
+            let priorityBoost2 = second.task.priority == .high ? 0.3 : 0.0
+            
+            // Today's tasks get urgency boost
+            let urgencyBoost1 = isTaskDueToday(first.task) ? 0.2 : 0.0
+            let urgencyBoost2 = isTaskDueToday(second.task) ? 0.2 : 0.0
+            
+            let finalScore1 = first.score + priorityBoost1 + urgencyBoost1
+            let finalScore2 = second.score + priorityBoost2 + urgencyBoost2
+            
+            return finalScore1 > finalScore2
+        }
+        
+        // Step 3: Return 2-5 recommendations based on available data
+        let recommendationCount = min(max(tasks.count >= 2 ? 2 : tasks.count, 0), 5)
+        let recommendations = Array(sortedTasks.prefix(recommendationCount).map { $0.task })
+        
+        return recommendations
+    }
+    
+    private func calculateMoodCompatibilityScore(task: Task, mood: EmotionType) -> Double {
+        var score: Double = 0.5 // Base score
+        
+        // Emotion compatibility (40% weight)
+        switch mood {
+        case .positive:
+            if [.positive, .creative].contains(task.emotion) { score += 0.4 }
+            else if task.emotion == .focused { score += 0.3 }
+        case .calm:
+            if [.calm, .positive].contains(task.emotion) { score += 0.4 }
+            else if task.emotion == .focused { score += 0.2 }
+        case .focused:
+            if task.emotion == .focused { score += 0.4 }
+            else if [.positive, .creative].contains(task.emotion) { score += 0.3 }
+        case .stressed:
+            if [.calm, .positive].contains(task.emotion) { score += 0.4 }
+            else if task.emotion == .stressed { score -= 0.3 } // Avoid stressful tasks when stressed
+        case .creative:
+            if task.emotion == .creative { score += 0.4 }
+            else if [.positive, .focused].contains(task.emotion) { score += 0.3 }
+        case .neutral:
+            if [.calm, .focused].contains(task.emotion) { score += 0.4 }
+            else if task.emotion == .positive { score += 0.2 }
+        case .urgent:
+            if task.emotion == .focused { score += 0.4 }
+            else if [.positive, .creative].contains(task.emotion) { score += 0.3 }
+        }
+        
+        // Priority consideration (30% weight)
+        switch task.priority {
+        case .high: score += 0.2
+        case .medium: score += 0.1
+        case .low: score += 0.0
+        }
+        
+        // Time sensitivity (20% weight)
+        if isTaskDueToday(task) {
+            score += 0.2
+        } else if isTaskDueSoon(task) {
+            score += 0.1
+        }
+        
+        return max(0.0, min(1.0, score)) // Clamp between 0 and 1
+    }
+    
+    private func isTaskDueToday(_ task: Task) -> Bool {
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        
+        if let reminderAt = task.reminderAt {
+            return reminderAt >= today && reminderAt < tomorrow
+        }
+        if let deadlineAt = task.deadlineAt {
+            return deadlineAt >= today && deadlineAt < tomorrow
+        }
+        return false
+    }
+    
+    private func isTaskDueSoon(_ task: Task) -> Bool {
+        let now = Date()
+        let threeDaysFromNow = Calendar.current.date(byAdding: .day, value: 3, to: now)!
+        
+        if let reminderAt = task.reminderAt {
+            return reminderAt >= now && reminderAt <= threeDaysFromNow
+        }
+        if let deadlineAt = task.deadlineAt {
+            return deadlineAt >= now && deadlineAt <= threeDaysFromNow
+        }
+        return false
     }
     
     private func detectEmotionForTask(_ task: Task) -> EmotionType {
@@ -278,7 +406,7 @@ struct MoodBasedTasksView: View {
         switch task.priority {
         case .high:
             // For stressed users, high-priority tasks should be calming, not stressful
-            if currentMood == .stressed || currentMood == .overwhelmed {
+            if currentMood == .stressed {
                 if content.contains("relax") || content.contains("breathe") || content.contains("meditation") {
                     return .calm
                 }
@@ -299,12 +427,12 @@ struct MoodBasedTasksView: View {
                 return .focused
             }
             if content.contains("exercise") || content.contains("workout") || content.contains("run") {
-                return .energetic
+                return .positive
             }
             if content.contains("creative") || content.contains("brainstorm") || content.contains("design") {
                 return .creative
             }
-            return .content
+            return .positive
         case .low:
             if content.contains("relax") || content.contains("read") || content.contains("meditation") {
                 return .calm
@@ -315,7 +443,7 @@ struct MoodBasedTasksView: View {
             if content.contains("social") || content.contains("friend") || content.contains("family") {
                 return .positive
             }
-            return .content
+            return .positive
         }
     }
 }
@@ -325,6 +453,7 @@ struct MoodBasedTasksView: View {
 struct SmartTaskCard: View {
     let task: Task
     let onToggleComplete: () -> Void
+    let onTap: () -> Void
     @State private var glowEffect: Bool = false
     
     var body: some View {
@@ -350,75 +479,80 @@ struct SmartTaskCard: View {
                 }
             }
             
-            // Task content
-            VStack(alignment: .leading, spacing: 4) {
-                Text(task.title)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                    .strikethrough(task.isCompleted)
-                    .opacity(task.isCompleted ? 0.6 : 1.0)
-                    .lineLimit(2)
-                
-                HStack(spacing: 8) {
-                    // Emotion badge
-                    HStack(spacing: 4) {
-                        Image(systemName: task.emotion.icon)
-                            .font(.caption2)
-                        Text(task.emotion.displayName)
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                    }
-                    .foregroundColor(task.emotion.color)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill(task.emotion.color.opacity(0.15))
-                            .overlay(
-                                Capsule()
-                                    .stroke(task.emotion.color.opacity(0.3), lineWidth: 1)
-                            )
-                    )
+            // Tappable task content
+            Button(action: onTap) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(task.title)
+                        .font(.body)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                        .strikethrough(task.isCompleted)
+                        .opacity(task.isCompleted ? 0.6 : 1.0)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    // Priority badge
-                    Text(task.priority.displayName.prefix(1))
-                        .font(.caption2)
-                        .fontWeight(.bold)
-                        .foregroundColor(task.priority.color)
-                        .frame(width: 16, height: 16)
+                    HStack(spacing: 8) {
+                        // Emotion badge
+                        HStack(spacing: 4) {
+                            Image(systemName: task.emotion.icon)
+                                .font(.caption2)
+                            Text(task.emotion.displayName)
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                        }
+                        .foregroundColor(task.emotion.color)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
                         .background(
-                            Circle()
-                                .fill(task.priority.color.opacity(0.15))
+                            Capsule()
+                                .fill(task.emotion.color.opacity(0.15))
                                 .overlay(
-                                    Circle()
-                                        .stroke(task.priority.color.opacity(0.3), lineWidth: 1)
+                                    Capsule()
+                                        .stroke(task.emotion.color.opacity(0.3), lineWidth: 1)
                                 )
                         )
-                    
-                    Spacer()
-                    
-                    // AI optimized badge
-                    HStack(spacing: 4) {
-                        Image(systemName: "brain.head.profile")
-                            .font(.caption2)
-                        Text("AI")
+                        
+                        // Priority badge
+                        Text(task.priority.displayName.prefix(1))
                             .font(.caption2)
                             .fontWeight(.bold)
-                    }
-                    .foregroundColor(.purple)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 3)
-                    .background(
-                        Capsule()
-                            .fill(.purple.opacity(0.15))
-                            .overlay(
-                                Capsule()
-                                    .stroke(.purple.opacity(0.3), lineWidth: 1)
+                            .foregroundColor(task.priority.color)
+                            .frame(width: 16, height: 16)
+                            .background(
+                                Circle()
+                                    .fill(task.priority.color.opacity(0.15))
+                                    .overlay(
+                                        Circle()
+                                            .stroke(task.priority.color.opacity(0.3), lineWidth: 1)
+                                    )
                             )
-                    )
+                        
+                        Spacer()
+                        
+                        // AI optimized badge
+                        HStack(spacing: 4) {
+                            Image(systemName: "brain.head.profile")
+                                .font(.caption2)
+                                .foregroundColor(.purple)
+                            Text("Smart")
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundColor(.purple)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule()
+                                .fill(.purple.opacity(0.15))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(.purple.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                    }
                 }
             }
+            .buttonStyle(PlainButtonStyle())
         }
         .padding(16)
         .background(

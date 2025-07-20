@@ -13,6 +13,7 @@ struct AddTaskModalView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var taskInput = ""
     @State private var taskDescription = ""
+    @State private var taskTags = ""
     @State private var showingVoiceInput = false
     @State private var isProcessing = false
     @State private var showingAdvancedOptions = false
@@ -87,7 +88,7 @@ struct AddTaskModalView: View {
                                     .foregroundColor(.white)
                             }
                             
-                            TextField("e.g., 'Call mom tomorrow at 3pm' or 'Brainstorm new project ideas by Friday'", text: $taskInput, axis: .vertical)
+                            TextField("e.g., 'Call mum tomorrow at 3pm' or 'Brainstorm new project ideas by Friday'", text: $taskInput, axis: .vertical)
                                 .font(.body)
                                 .foregroundColor(.white)
                                 .padding(16)
@@ -96,29 +97,6 @@ struct AddTaskModalView: View {
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 16))
                                 .lineLimit(3...6)
-                            
-                            // Description field
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "doc.text")
-                                        .foregroundColor(.white.opacity(0.8))
-                                        .font(.caption)
-                                    Text("Description (optional)")
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.white.opacity(0.8))
-                                }
-                                
-                                TextField("Add more details about your task...", text: $taskDescription, axis: .vertical)
-                                    .font(.body)
-                                    .foregroundColor(.white)
-                                    .padding(16)
-                                    .background(
-                                        GlassPanelBackground()
-                                    )
-                                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                                    .lineLimit(2...4)
-                            }
                         }
                         
                         // Advanced Options
@@ -153,7 +131,52 @@ struct AddTaskModalView: View {
                             
                             if showingAdvancedOptions {
                                 VStack(spacing: 16) {
-                                    // Priority and Emotion
+                                    // Description field
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "doc.text")
+                                                .foregroundColor(.white.opacity(0.8))
+                                                .font(.caption)
+                                            Text("Description (optional)")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.white.opacity(0.8))
+                                        }
+                                        
+                                        TextField("Add more details about your task...", text: $taskDescription, axis: .vertical)
+                                            .font(.body)
+                                            .foregroundColor(.white)
+                                            .padding(12)
+                                            .background(
+                                                GlassPanelBackground()
+                                            )
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                            .lineLimit(2...4)
+                                    }
+                                    
+                                    // Tags field
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "tag")
+                                                .foregroundColor(.white.opacity(0.8))
+                                                .font(.caption)
+                                            Text("Tags (optional)")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.white.opacity(0.8))
+                                        }
+                                        
+                                        TextField("Add tags separated by commas or use #hashtags", text: $taskTags)
+                                            .font(.body)
+                                            .foregroundColor(.white)
+                                            .padding(12)
+                                            .background(
+                                                GlassPanelBackground()
+                                            )
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    }
+                                    
+                                    // Priority and Mood
                                     HStack(spacing: 12) {
                                         // Priority selector
                                         VStack(alignment: .leading, spacing: 8) {
@@ -181,31 +204,26 @@ struct AddTaskModalView: View {
                                             }
                                             .pickerStyle(MenuPickerStyle())
                                             .foregroundColor(.white)
-                                            .padding(12)
+                                            .padding(10)
                                             .background(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .fill(.ultraThinMaterial)
-                                                    .opacity(0.6)
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 8)
-                                                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                                                    )
+                                                GlassPanelBackground()
                                             )
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
                                         }
                                         
-                                        // Emotion selector
+                                        // Mood selector
                                         VStack(alignment: .leading, spacing: 8) {
                                             HStack(spacing: 6) {
                                                 Image(systemName: "heart")
                                                     .foregroundColor(.white.opacity(0.8))
                                                     .font(.caption)
-                                                Text("Emotion")
+                                                Text("Mood")
                                                     .font(.caption)
                                                     .fontWeight(.medium)
                                                     .foregroundColor(.white.opacity(0.8))
                                             }
                                             
-                                            Picker("Emotion", selection: $selectedEmotion) {
+                                            Picker("Mood", selection: $selectedEmotion) {
                                                 ForEach(EmotionType.allCases, id: \.self) { emotion in
                                                     HStack {
                                                         Image(systemName: emotion.icon)
@@ -218,104 +236,100 @@ struct AddTaskModalView: View {
                                             }
                                             .pickerStyle(MenuPickerStyle())
                                             .foregroundColor(.white)
-                                            .padding(12)
+                                            .padding(10)
                                             .background(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .fill(.ultraThinMaterial)
-                                                    .opacity(0.6)
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 8)
-                                                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                                                    )
+                                                GlassPanelBackground()
                                             )
+                                            .clipShape(RoundedRectangle(cornerRadius: 12))
                                         }
                                     }
                                     
                                     // Reminder and Deadline
                                     VStack(spacing: 12) {
                                         // Reminder toggle
-                                        HStack {
+                                        HStack(spacing: 10) {
                                             Toggle("", isOn: $hasReminder)
                                                 .toggleStyle(SwitchToggleStyle(tint: .blue))
                                                 .scaleEffect(0.8)
+                                                .frame(width: 45, height: 28)
                                             
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "clock")
-                                                    .foregroundColor(.white.opacity(0.8))
-                                                    .font(.caption)
-                                                Text("Set Reminder")
-                                                    .font(.caption)
-                                                    .fontWeight(.medium)
-                                                    .foregroundColor(.white.opacity(0.8))
+                                            if !hasReminder {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "clock")
+                                                        .foregroundColor(.white.opacity(0.8))
+                                                        .font(.caption2)
+                                                    Text("Reminder")
+                                                        .font(.caption2)
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(.white.opacity(0.8))
+                                                }
+                                                .frame(maxWidth: .infinity)
+                                                .multilineTextAlignment(.center)
+                                            } else {
+                                                Spacer()
+                                                    .frame(maxWidth: .infinity)
                                             }
-                                            
-                                            Spacer()
                                             
                                             if hasReminder {
                                                 DatePicker("", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
                                                     .datePickerStyle(CompactDatePickerStyle())
                                                     .labelsHidden()
                                                     .colorScheme(.dark)
+                                                    .scaleEffect(0.9)
                                             }
                                         }
-                                        .padding(12)
+                                        .frame(height: 36)
+                                        .padding(10)
                                         .background(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(.ultraThinMaterial)
-                                                .opacity(0.6)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 8)
-                                                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                                                )
+                                            GlassPanelBackground()
                                         )
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
                                         
                                         // Deadline toggle
-                                        HStack {
+                                        HStack(spacing: 10) {
                                             Toggle("", isOn: $hasDeadline)
                                                 .toggleStyle(SwitchToggleStyle(tint: .orange))
                                                 .scaleEffect(0.8)
+                                                .frame(width: 45, height: 28)
                                             
-                                            HStack(spacing: 6) {
-                                                Image(systemName: "exclamationmark.triangle")
-                                                    .foregroundColor(.white.opacity(0.8))
-                                                    .font(.caption)
-                                                Text("Set Deadline")
-                                                    .font(.caption)
-                                                    .fontWeight(.medium)
-                                                    .foregroundColor(.white.opacity(0.8))
+                                            if !hasDeadline {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "exclamationmark.triangle")
+                                                        .foregroundColor(.white.opacity(0.8))
+                                                        .font(.caption2)
+                                                    Text("Deadline")
+                                                        .font(.caption2)
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(.white.opacity(0.8))
+                                                }
+                                                .frame(maxWidth: .infinity)
+                                                .multilineTextAlignment(.center)
+                                            } else {
+                                                Spacer()
+                                                    .frame(maxWidth: .infinity)
                                             }
-                                            
-                                            Spacer()
                                             
                                             if hasDeadline {
                                                 DatePicker("", selection: $deadlineDate, displayedComponents: [.date, .hourAndMinute])
                                                     .datePickerStyle(CompactDatePickerStyle())
                                                     .labelsHidden()
                                                     .colorScheme(.dark)
+                                                    .scaleEffect(0.9)
                                             }
                                         }
-                                        .padding(12)
+                                        .frame(height: 36)
+                                        .padding(10)
                                         .background(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(.ultraThinMaterial)
-                                                .opacity(0.6)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 8)
-                                                        .stroke(.white.opacity(0.2), lineWidth: 1)
-                                                )
+                                            GlassPanelBackground()
                                         )
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
                                     }
                                 }
                                 .padding(16)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(.ultraThinMaterial)
-                                        .opacity(0.4)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(.white.opacity(0.2), lineWidth: 1)
-                                        )
+                                    GlassPanelBackground()
                                 )
+                                .clipShape(RoundedRectangle(cornerRadius: 20))
                                 .transition(.asymmetric(
                                     insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
                                     removal: .opacity.combined(with: .scale(scale: 0.95, anchor: .top))
@@ -464,6 +478,17 @@ struct AddTaskModalView: View {
         // Use description field if provided, otherwise use processed description
         let finalDescription = taskDescription.isEmpty ? processedTask.description : taskDescription
         
+        // Combine manual tags with NLP extracted tags
+        var finalTags = processedTask.tags
+        if !taskTags.isEmpty {
+            let manualTags = taskTags.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            for tag in manualTags {
+                if !finalTags.contains(tag) {
+                    finalTags.append(tag)
+                }
+            }
+        }
+        
         // Use advanced options if they're set, otherwise use processed values
         let finalPriority = showingAdvancedOptions ? selectedPriority : processedTask.priority
         let finalEmotion = showingAdvancedOptions ? selectedEmotion : (processedTask.emotion != .neutral ? processedTask.emotion : detectEmotionForTask(title: processedTask.title, description: finalDescription, priority: finalPriority))
@@ -501,7 +526,8 @@ struct AddTaskModalView: View {
             emotion: finalEmotion,
             reminderAt: finalReminderAt,
             deadlineAt: finalDeadlineAt,
-            naturalLanguageInput: input
+            naturalLanguageInput: input,
+            tags: finalTags
         )
         
         print("📝 Creating task: \(task.title)")
@@ -517,7 +543,10 @@ struct AddTaskModalView: View {
         let descriptionLower = description?.lowercased() ?? ""
         let content = titleLower + " " + descriptionLower
         
-        // Keyword-based emotion detection
+        // Step 1: Analyze task complexity
+        let complexityScore = analyzeTaskComplexity(title: titleLower, description: descriptionLower)
+        
+        // Step 2: Keyword-based emotion detection (highest priority)
         if content.contains("urgent") || content.contains("deadline") || content.contains("emergency") {
             return .stressed
         }
@@ -527,11 +556,11 @@ struct AddTaskModalView: View {
         }
         
         if content.contains("exercise") || content.contains("workout") || content.contains("run") || content.contains("gym") {
-            return .energetic
+            return .positive
         }
         
         if content.contains("meeting") || content.contains("presentation") || content.contains("work") || content.contains("project") {
-            return .focused
+            return complexityScore > 0.7 ? .focused : .positive
         }
         
         if content.contains("relax") || content.contains("meditate") || content.contains("read") || content.contains("rest") {
@@ -539,17 +568,87 @@ struct AddTaskModalView: View {
         }
         
         if content.contains("family") || content.contains("friend") || content.contains("social") || content.contains("celebrate") {
-            return .content
+            return .positive
         }
         
-        // Priority-based fallback
-        switch priority {
-        case .high:
-            return .focused
-        case .medium:
-            return .content
-        case .low:
-            return .calm
+        // Step 3: Complexity-based emotion assignment
+        if complexityScore >= 0.8 {
+            return .focused  // Very complex tasks need focus
+        } else if complexityScore >= 0.6 {
+            return priority == .high ? .focused : .positive  // Moderately complex
+        } else if complexityScore >= 0.3 {
+            return .positive  // Simple to moderate tasks
+        } else {
+            return .calm     // Very simple tasks
         }
+    }
+    
+    private func analyzeTaskComplexity(title: String, description: String) -> Double {
+        var complexityScore: Double = 0.0
+        let content = title + " " + description
+        
+        // Complexity indicators
+        let complexKeywords = [
+            // High complexity words (0.3 each)
+                            "analyse", "develop", "implement", "design", "research", "plan", "strategy", "review", "optimise", "configure",
+            "troubleshoot", "debug", "architecture", "database", "algorithm", "integration", "deployment", "migration",
+            
+            // Medium complexity words (0.2 each)
+                                "organise", "prepare", "coordinate", "schedule", "document", "report", "presentation", "meeting", "discussion",
+            "training", "learning", "study", "practice", "setup", "install", "update", "backup",
+            
+            // Process complexity words (0.1 each)
+            "multiple", "several", "various", "different", "complex", "detailed", "comprehensive", "thorough", "extensive"
+        ]
+        
+        let simpleKeywords = [
+            // Simple task indicators (-0.2 each, reduces complexity)
+            "call", "email", "text", "send", "buy", "pick up", "drop off", "water", "feed", "clean", "wash",
+            "take out", "put away", "turn on", "turn off", "check", "quick", "simple", "easy", "basic"
+        ]
+        
+        // Count complex keywords
+        for keyword in complexKeywords {
+            if content.contains(keyword) {
+                if ["analyse", "develop", "implement", "design", "research"].contains(keyword) {
+                    complexityScore += 0.3
+                } else if ["organise", "prepare", "coordinate"].contains(keyword) {
+                    complexityScore += 0.2
+                } else {
+                    complexityScore += 0.1
+                }
+            }
+        }
+        
+        // Subtract for simple keywords
+        for keyword in simpleKeywords {
+            if content.contains(keyword) {
+                complexityScore -= 0.2
+            }
+        }
+        
+        // Length-based complexity (longer descriptions = more complex)
+        let wordCount = content.split(separator: " ").count
+        if wordCount > 10 {
+            complexityScore += 0.2
+        } else if wordCount > 5 {
+            complexityScore += 0.1
+        }
+        
+        // Multi-step indicator (words like "and", "then", "after")
+        let multiStepWords = ["and", "then", "after", "before", "first", "second", "next", "finally"]
+        let stepCount = multiStepWords.filter { content.contains($0) }.count
+        complexityScore += Double(stepCount) * 0.1
+        
+        // Time duration indicators
+        if content.contains("hour") || content.contains("hours") {
+            complexityScore += 0.2
+        }
+        if content.contains("day") || content.contains("days") || content.contains("week") {
+            complexityScore += 0.3
+        }
+        
+        // Clamp between 0 and 1
+        return max(0.0, min(1.0, complexityScore))
     }
 } 

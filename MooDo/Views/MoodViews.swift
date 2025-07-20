@@ -33,7 +33,7 @@ struct MoodLensMoodCheckinView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
                 
-                Text("Log your mood to get personalized task recommendations")
+                Text("Log your mood to get personalised task recommendations")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -212,8 +212,11 @@ struct MoodLensMoodCheckinView: View {
         print("📊 Mood saved to history - Total entries: \(moodManager.moodEntries.count)")
         
         // Show haptic feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
+        DispatchQueue.main.async {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
         
         // Reset selection with animation
         withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {

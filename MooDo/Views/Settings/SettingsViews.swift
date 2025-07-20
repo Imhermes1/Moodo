@@ -510,4 +510,217 @@ struct DataExportView: View {
     }
 }
 
+struct SettingsViews: View {
+    @ObservedObject var taskManager: TaskManager
+    @State private var showingCompletedTasks = false
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Settings")
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            VStack(spacing: 12) {
+                // Completed Tasks
+                Button(action: { showingCompletedTasks = true }) {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text("Completed Tasks")
+                            .foregroundColor(.white)
+                        Spacer()
+                        Text("\(taskManager.getCompletedTasks().count)")
+                            .foregroundColor(.white.opacity(0.6))
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.white.opacity(0.4))
+                    }
+                    .padding()
+                    .background(
+                        GlassPanelBackground()
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                
+                // Other settings can go here
+            }
+            
+            Spacer()
+        }
+        .padding()
+        .sheet(isPresented: $showingCompletedTasks) {
+            CompletedTasksView(taskManager: taskManager)
+        }
+    }
+}
+
+struct CompletedTasksView: View {
+    @ObservedObject var taskManager: TaskManager
+    @Environment(\.dismiss) private var dismiss
+    @State private var completedTasks: [Task] = []
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 0) {
+                // Header
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("Completed Tasks")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Button("Done") {
+                            dismiss()
+                        }
+                        .foregroundColor(.blue)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    
+                    HStack {
+                        Text("\(completedTasks.count) completed tasks")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+                }
+                .background(
+                    GlassPanelBackground()
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 8)
+                
+                // Completed Tasks List
+                if completedTasks.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "checkmark.circle")
+                            .font(.system(size: 48))
+                            .foregroundColor(.white.opacity(0.4))
+                        
+                        Text("No completed tasks")
+                            .font(.title3)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white.opacity(0.8))
+                        
+                        Text("Completed tasks will appear here")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.6))
+                    }
+                    .padding(.vertical, 40)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        GlassPanelBackground()
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .padding(.horizontal, 8)
+                    .padding(.top, 12)
+                } else {
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach(completedTasks) { task in
+                                CompletedTaskCard(
+                                    task: task,
+                                    onDelete: {
+                                        taskManager.deleteCompletedTask(task)
+                                        loadCompletedTasks()
+                                    }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.top, 12)
+                    }
+                }
+                
+                Spacer()
+            }
+            .background(UniversalBackground())
+        }
+        .onAppear {
+            loadCompletedTasks()
+        }
+    }
+    
+    private func loadCompletedTasks() {
+        completedTasks = taskManager.getCompletedTasks().sorted { $0.createdAt > $1.createdAt }
+    }
+}
+
+struct CompletedTaskCard: View {
+    let task: Task
+    let onDelete: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            // Completed checkmark
+            Image(systemName: "checkmark.circle.fill")
+                .font(.title3)
+                .foregroundColor(.green)
+            
+            // Task content
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.title)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white.opacity(0.8))
+                    .strikethrough()
+                
+                HStack(spacing: 8) {
+                    // Emotion badge
+                    HStack(spacing: 4) {
+                        Image(systemName: task.emotion.icon)
+                            .font(.caption2)
+                        Text(task.emotion.displayName)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(task.emotion.color.opacity(0.7))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(task.emotion.color.opacity(0.1))
+                            .overlay(
+                                Capsule()
+                                    .stroke(task.emotion.color.opacity(0.2), lineWidth: 1)
+                            )
+                    )
+                    
+                    Spacer()
+                    
+                    // Completion date
+                    Text("Completed \(task.createdAt, style: .relative) ago")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.5))
+                }
+            }
+            
+            // Delete button
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(.red.opacity(0.15))
+                            .overlay(
+                                Circle()
+                                    .stroke(.red.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+            }
+        }
+        .padding(16)
+        .background(
+            GlassPanelBackground()
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
  

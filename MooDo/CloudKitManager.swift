@@ -19,6 +19,10 @@ class CloudKitManager: ObservableObject {
     @Published var isSignedIn = false
     @Published var syncStatus: SyncStatus = .idle
     
+    // Performance optimization: Batch operations
+    private var pendingSaveOperations: [CKRecord] = []
+    private var saveTimer: Timer?
+    
     enum SyncStatus: Equatable {
         case idle
         case syncing
@@ -30,33 +34,31 @@ class CloudKitManager: ObservableObject {
         // Initialize CloudKit container with explicit identifier
         self.container = CKContainer(identifier: "iCloud.LumoraLabs.Moodo")
         self.database = container.privateCloudDatabase
-        
-        // Check account status asynchronously to avoid blocking initialization
-        DispatchQueue.main.async { [weak self] in
-            self?.checkAccountStatus()
-        }
+    }
+    
+    // MARK: - Initialization
+    
+    func initialize() async {
+        await checkAccountStatus()
     }
     
     // MARK: - Account Management
     
-    func checkAccountStatus() {
-        container.accountStatus { [weak self] status, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("CloudKit account error: \(error)")
-                    self?.isSignedIn = false
-                    self?.syncStatus = .error("CloudKit not available")
-                } else {
-                    self?.isSignedIn = status == .available
-                    if status != .available {
-                        self?.syncStatus = .error("Please sign in to iCloud")
-                    }
-                }
+    func checkAccountStatus() async {
+        do {
+            let status = try await container.accountStatus()
+            isSignedIn = status == .available
+            if status != .available {
+                syncStatus = .error("Please sign in to iCloud")
             }
+        } catch {
+            print("CloudKit account error: \(error)")
+            isSignedIn = false
+            syncStatus = .error("CloudKit not available")
         }
     }
     
-    // MARK: - Task Operations
+    // MARK: - Optimized Task Operations
     
     func saveTasks(_ tasks: [Task]) async {
         guard isSignedIn else {
@@ -83,7 +85,12 @@ class CloudKitManager: ObservableObject {
                 return record
             }
             
-            _ = try await database.modifyRecords(saving: records, deleting: [])
+            // Performance optimization: Batch save in chunks
+            let chunkSize = 400 // CloudKit limit
+            for chunk in records.chunked(into: chunkSize) {
+                _ = try await database.modifyRecords(saving: chunk, deleting: [])
+            }
+            
             syncStatus = .success
         } catch {
             syncStatus = .error("Failed to save tasks: \(error.localizedDescription)")
@@ -302,5 +309,15 @@ extension VoiceCheckin {
             tasks: tasks,
             duration: duration
         )
+    }
+} 
+
+// MARK: - Performance Optimization Extensions
+
+extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        return stride(from: 0, to: count, by: size).map {
+            Array(self[$0..<Swift.min($0 + size, count)])
+        }
     }
 } 

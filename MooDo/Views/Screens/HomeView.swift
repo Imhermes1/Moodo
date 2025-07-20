@@ -33,6 +33,10 @@ struct HomeView: View {
                         onAddTask: {
                             showingAddTaskModal = true
                         },
+                        onTaskTap: { task in
+                            // Handle task tap - could open task details or mark as complete
+                            print("Task tapped: \(task.title)")
+                        },
                         screenSize: screenSize
                     )
                     
@@ -47,7 +51,7 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, max(screenSize.width * 0.04, 12))
                 .padding(.top, max(screenSize.height * 0.08, 60))
-                .padding(.bottom, 20)
+                .padding(.bottom, max(screenSize.height * 0.12, 100))
             }
         }
     }

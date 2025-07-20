@@ -20,21 +20,22 @@ struct TasksView: View {
             LensflareView()
                 .offset(x: screenSize.width * 0.3, y: screenSize.height * 0.2)
             
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(spacing: 0) {
-                    // All Tasks List - Full Screen
-                    AllTasksListView(
-                        tasks: taskManager.tasks,
-                        onAddTask: {
-                            showingAddTaskModal = true
-                        },
-                        taskManager: taskManager
-                    )
-                    .frame(minHeight: screenSize.height * 0.8) // Ensure it takes up most of the screen
+            ZStack {
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        // All Tasks List - Full Screen
+                        AllTasksListView(
+                            tasks: taskManager.tasks,
+                            onAddTask: {
+                                showingAddTaskModal = true
+                            },
+                            taskManager: taskManager
+                        )
+                    }
+                    .padding(.horizontal, max(screenSize.width * 0.02, 8)) // Reduced horizontal padding
+                    .padding(.top, max(screenSize.height * 0.08, 60)) // Increased top padding to lower the card significantly
+                    .padding(.bottom, max(screenSize.height * 0.12, 100))
                 }
-                .padding(.horizontal, max(screenSize.width * 0.02, 8)) // Reduced horizontal padding
-                .padding(.top, max(screenSize.height * 0.08, 60)) // Reduced top padding since navigation is now at top
-                .padding(.bottom, 10)
             }
         }
         .ignoresSafeArea(.container, edges: .top) // Ignore safe area for proper positioning

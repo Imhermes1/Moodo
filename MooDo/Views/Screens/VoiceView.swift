@@ -29,8 +29,8 @@ struct VoiceView: View {
                     VoiceCheckinHistoryView()
                 }
                 .padding(.horizontal, max(screenSize.width * 0.04, 12))
-                .padding(.top, max(screenSize.height * 0.12, 80))
-                .padding(.bottom, 20)
+                .padding(.top, max(screenSize.height * 0.08, 60))
+                .padding(.bottom, max(screenSize.height * 0.12, 100))
             }
         }
     }

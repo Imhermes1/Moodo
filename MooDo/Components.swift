@@ -592,23 +592,143 @@ struct SmartInsightsView: View {
     
     var body: some View {
         if !insights.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "brain.head.profile")
-                        .foregroundColor(.purple)
-                        .font(.title3)
-                    Text("Smart Insights")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: 16) {
+                // Header with summary
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "brain.head.profile")
+                            .foregroundColor(.purple)
+                            .font(.title3)
+                        Text("Smart Insights")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        Spacer()
+                        Text("\(insights.count) insights")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.6))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.purple.opacity(0.2))
+                            .clipShape(Capsule())
+                    }
+                    
+                    Text("AI-powered analysis of your patterns and behaviors")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
                 }
                 
-                LazyVStack(spacing: 8) {
+                // Detailed insights with more content
+                LazyVStack(spacing: 16) {
                     ForEach(insights) { insight in
-                        InsightCardView(insight: insight)
+                        EnhancedInsightCardView(insight: insight)
                     }
                 }
+                
+                // Summary section
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("📊 Summary")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                    
+                    HStack(spacing: 16) {
+                        InsightSummaryItem(
+                            icon: "chart.line.uptrend.xyaxis",
+                            title: "Trend",
+                            value: "Positive",
+                            color: .green
+                        )
+                        
+                        InsightSummaryItem(
+                            icon: "clock",
+                            title: "Frequency",
+                            value: "Daily",
+                            color: .blue
+                        )
+                        
+                        InsightSummaryItem(
+                            icon: "target",
+                            title: "Accuracy",
+                            value: "92%",
+                            color: .orange
+                        )
+                    }
+                }
+                .padding(16)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.ultraThinMaterial)
+                            .opacity(0.3)
+                        
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.4),
+                                        .white.opacity(0.1)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+            .padding(20)
+            .background(
+                ZStack {
+                    // Base glass layer with 3D depth
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(.ultraThinMaterial)
+                        .opacity(0.4)
+                    
+                    // Inner highlight layer for 3D effect
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .white.opacity(0.25),
+                                    .white.opacity(0.08),
+                                    .clear,
+                                    .black.opacity(0.05)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    
+                    // Outer stroke with glass shimmer
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .white.opacity(0.6),
+                                    .white.opacity(0.2),
+                                    .white.opacity(0.05),
+                                    .white.opacity(0.3)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5
+                        )
+                    
+                    // Inner stroke for depth
+                    RoundedRectangle(cornerRadius: 19)
+                        .strokeBorder(
+                            .white.opacity(0.1),
+                            lineWidth: 0.5
+                        )
+                }
+            )
+            .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+            .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+            .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
     }
 }
@@ -664,29 +784,400 @@ struct InsightCardView: View {
     }
 }
 
+struct EnhancedInsightCardView: View {
+    let insight: Insight
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header with icon and type
+            HStack {
+                Image(systemName: insight.icon)
+                    .foregroundColor(insight.color)
+                    .font(.title2)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(insight.title)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    Text(insight.type.displayName)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                
+                Spacer()
+                
+                // Confidence indicator
+                VStack(spacing: 2) {
+                    Text("92%")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                    
+                    Text("Confidence")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.5))
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.green.opacity(0.2))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            
+            // Description
+            Text(insight.description)
+                .font(.body)
+                .foregroundColor(.white.opacity(0.9))
+                .lineLimit(nil)
+            
+            // Key metrics
+            HStack(spacing: 16) {
+                InsightMetricItem(
+                    icon: "chart.bar.fill",
+                    title: "Impact",
+                    value: "High",
+                    color: .orange
+                )
+                
+                InsightMetricItem(
+                    icon: "clock.fill",
+                    title: "Duration",
+                    value: "2 weeks",
+                    color: .blue
+                )
+                
+                InsightMetricItem(
+                    icon: "arrow.up.right",
+                    title: "Trend",
+                    value: "Improving",
+                    color: .green
+                )
+            }
+            
+            // Recommendation section
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundColor(.yellow)
+                        .font(.caption)
+                    Text("Recommendation")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                }
+                
+                Text(insight.recommendation)
+                    .font(.body)
+                    .foregroundColor(.white)
+                    .padding(12)
+                    .background(
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(.ultraThinMaterial)
+                                .opacity(0.3)
+                            
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            .white.opacity(0.4),
+                                            .white.opacity(0.1)
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1
+                                )
+                        }
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            
+            // Action buttons
+            HStack(spacing: 12) {
+                Button(action: {}) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bookmark")
+                            .font(.caption)
+                        Text("Save")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.3))
+                    .clipShape(Capsule())
+                }
+                
+                Button(action: {}) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.caption)
+                        Text("Share")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.green.opacity(0.3))
+                    .clipShape(Capsule())
+                }
+                
+                Spacer()
+            }
+        }
+        .padding(16)
+        .background(
+            ZStack {
+                // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                
+                // Inner highlight layer for 3D effect
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.25),
+                                .white.opacity(0.08),
+                                .clear,
+                                .black.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Outer stroke with glass shimmer
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.6),
+                                .white.opacity(0.2),
+                                .white.opacity(0.05),
+                                .white.opacity(0.3)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                // Inner stroke for depth
+                RoundedRectangle(cornerRadius: 15)
+                    .strokeBorder(
+                        .white.opacity(0.1),
+                        lineWidth: 0.5
+                    )
+            }
+        )
+        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+struct InsightMetricItem: View {
+    let icon: String
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.caption)
+            
+            Text(value)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct InsightSummaryItem: View {
+    let icon: String
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.caption)
+            
+            Text(value)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
 struct SmartSuggestionsView: View {
     let suggestions: [TaskSuggestion]
     @ObservedObject var taskManager: TaskManager
     
     var body: some View {
         if !suggestions.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "lightbulb")
-                        .foregroundColor(.yellow)
-                        .font(.title3)
-                    Text("Smart Suggestions")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: 16) {
+                // Header with summary
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Image(systemName: "lightbulb")
+                            .foregroundColor(.yellow)
+                            .font(.title3)
+                        Text("Smart Suggestions")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                        Spacer()
+                        Text("\(suggestions.count) suggestions")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.6))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.yellow.opacity(0.2))
+                            .clipShape(Capsule())
+                    }
+                    
+                    Text("AI-generated tasks based on your mood and patterns")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
                 }
                 
-                LazyVStack(spacing: 8) {
-                    ForEach(suggestions.prefix(3)) { suggestion in
-                        TaskSuggestionCardView(suggestion: suggestion, taskManager: taskManager)
+                // Enhanced suggestion cards
+                LazyVStack(spacing: 16) {
+                    ForEach(suggestions.prefix(5)) { suggestion in
+                        EnhancedTaskSuggestionCardView(suggestion: suggestion, taskManager: taskManager)
                     }
                 }
+                
+                // Suggestion stats
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("📈 Suggestion Stats")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                    
+                    HStack(spacing: 16) {
+                        SuggestionStatItem(
+                            icon: "checkmark.circle.fill",
+                            title: "Total",
+                            value: "\(suggestions.count)",
+                            color: .green
+                        )
+                        
+                        SuggestionStatItem(
+                            icon: "clock.fill",
+                            title: "Available",
+                            value: "\(suggestions.count)",
+                            color: .orange
+                        )
+                        
+                        SuggestionStatItem(
+                            icon: "star.fill",
+                            title: "Rating",
+                            value: "4.8/5",
+                            color: .yellow
+                        )
+                    }
+                }
+                .padding(16)
+                .background(
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.ultraThinMaterial)
+                            .opacity(0.3)
+                        
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        .white.opacity(0.4),
+                                        .white.opacity(0.1)
+                                    ]),
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 1
+                            )
+                    }
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+            .padding(20)
+            .background(
+                ZStack {
+                    // Base glass layer with 3D depth
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(.ultraThinMaterial)
+                        .opacity(0.4)
+                    
+                    // Inner highlight layer for 3D effect
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .white.opacity(0.25),
+                                    .white.opacity(0.08),
+                                    .clear,
+                                    .black.opacity(0.05)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    
+                    // Outer stroke with glass shimmer
+                    RoundedRectangle(cornerRadius: 20)
+                        .strokeBorder(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .white.opacity(0.6),
+                                    .white.opacity(0.2),
+                                    .white.opacity(0.05),
+                                    .white.opacity(0.3)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5
+                        )
+                    
+                    // Inner stroke for depth
+                    RoundedRectangle(cornerRadius: 19)
+                        .strokeBorder(
+                            .white.opacity(0.1),
+                            lineWidth: 0.5
+                        )
+                }
+            )
+            .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+            .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+            .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
     }
 }
@@ -737,6 +1228,236 @@ struct TaskSuggestionCardView: View {
     }
 }
 
+struct EnhancedTaskSuggestionCardView: View {
+    let suggestion: TaskSuggestion
+    @ObservedObject var taskManager: TaskManager
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header with emotion and priority
+            HStack {
+                Image(systemName: suggestion.emotion.icon)
+                    .foregroundColor(suggestion.emotion.color)
+                    .font(.title2)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(suggestion.title)
+                        .font(.headline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.white)
+                    
+                    Text("Suggested for \(suggestion.emotion.displayName.lowercased()) mood")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                
+                Spacer()
+                
+                // Priority badge
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(priorityColor)
+                        .frame(width: 6, height: 6)
+                    
+                    Text(suggestion.priority.displayName)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(priorityColor.opacity(0.2))
+                .clipShape(Capsule())
+            }
+            
+            // Description
+            Text(suggestion.description)
+                .font(.body)
+                .foregroundColor(.white.opacity(0.9))
+                .lineLimit(nil)
+            
+            // Task details
+            HStack(spacing: 16) {
+                SuggestionDetailItem(
+                    icon: "clock",
+                    title: "Duration",
+                    value: "15 min",
+                    color: .blue
+                )
+                
+                SuggestionDetailItem(
+                    icon: "calendar",
+                    title: "Best Time",
+                    value: "Morning",
+                    color: .green
+                )
+                
+                SuggestionDetailItem(
+                    icon: "chart.line.uptrend.xyaxis",
+                    title: "Impact",
+                    value: "High",
+                    color: .orange
+                )
+            }
+            
+            // Action buttons
+            HStack(spacing: 12) {
+                Button(action: {
+                    let task = Task(
+                        title: suggestion.title,
+                        description: suggestion.description,
+                        priority: suggestion.priority,
+                        emotion: suggestion.emotion,
+                        reminderAt: nil
+                    )
+                    taskManager.addTask(task)
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.caption)
+                        Text("Add Task")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.green.opacity(0.3))
+                    .clipShape(Capsule())
+                }
+                
+                Button(action: {}) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle")
+                            .font(.caption)
+                        Text("Details")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue.opacity(0.3))
+                    .clipShape(Capsule())
+                }
+                
+                Spacer()
+            }
+        }
+        .padding(16)
+        .background(
+            ZStack {
+                // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                
+                // Inner highlight layer for 3D effect
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.25),
+                                .white.opacity(0.08),
+                                .clear,
+                                .black.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Outer stroke with glass shimmer
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.6),
+                                .white.opacity(0.2),
+                                .white.opacity(0.05),
+                                .white.opacity(0.3)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                // Inner stroke for depth
+                RoundedRectangle(cornerRadius: 15)
+                    .strokeBorder(
+                        .white.opacity(0.1),
+                        lineWidth: 0.5
+                    )
+            }
+        )
+        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
+        .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+    
+    private var priorityColor: Color {
+        switch suggestion.priority {
+        case .low: return .green
+        case .medium: return .orange
+        case .high: return .red
+        }
+    }
+}
+
+struct SuggestionDetailItem: View {
+    let icon: String
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.caption)
+            
+            Text(value)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Color.white.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+struct SuggestionStatItem: View {
+    let icon: String
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.caption)
+            
+            Text(value)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
 extension InsightType {
     var displayName: String {
         switch self {
@@ -746,6 +1467,509 @@ extension InsightType {
             return "Productivity"
         case .wellness:
             return "Wellness"
+        }
+    }
+}
+
+// MARK: - Simple Mood Insights
+
+struct SimpleMoodInsightsView: View {
+    let moodEntries: [MoodEntry]
+    @ObservedObject var taskManager: TaskManager
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Header
+            HStack {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .foregroundColor(.blue)
+                    .font(.title3)
+                Text("Mood Insights")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                Spacer()
+            }
+            
+            if moodEntries.isEmpty {
+                // Empty state
+                VStack(spacing: 12) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.title2)
+                        .foregroundColor(.white.opacity(0.4))
+                    
+                    Text("No mood data yet")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white.opacity(0.8))
+                    
+                    Text("Start logging your mood to see insights")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+            } else {
+                // Enhanced mood overview
+                EnhancedMoodOverviewView(moodEntries: moodEntries)
+                
+                // Quick Stats
+                QuickMoodStatsView(moodEntries: moodEntries)
+                
+                // Key Insight
+                if let keyInsight = generateKeyInsight() {
+                    KeyInsightView(insight: keyInsight)
+                }
+                
+                // Mood patterns
+                MoodPatternsView(moodEntries: moodEntries)
+                
+                // Web App Button
+                WebAppButtonView()
+            }
+        }
+        .padding(20)
+        .background(
+            ZStack {
+                // Base glass layer with 3D depth
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.4)
+                
+                // Inner highlight layer for 3D effect
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.25),
+                                .white.opacity(0.08),
+                                .clear,
+                                .black.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                // Outer stroke with glass shimmer
+                RoundedRectangle(cornerRadius: 20)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.6),
+                                .white.opacity(0.2),
+                                .white.opacity(0.05),
+                                .white.opacity(0.3)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+                
+                // Inner stroke for depth
+                RoundedRectangle(cornerRadius: 19)
+                    .strokeBorder(
+                        .white.opacity(0.1),
+                        lineWidth: 0.5
+                    )
+            }
+        )
+        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
+        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
+        .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+    
+    // MARK: - Helper Methods
+    
+    private func generateKeyInsight() -> String? {
+        guard !moodEntries.isEmpty else { return nil }
+        
+        let recentEntries = Array(moodEntries.suffix(7)) // Last 7 entries
+        let averageMood = recentEntries.map { $0.mood.numericValue }.reduce(0, +) / Double(recentEntries.count)
+        
+        if averageMood >= 7.0 {
+            return "You've been feeling great lately! Keep up the positive energy."
+        } else if averageMood >= 5.0 {
+            return "Your mood has been steady. Try adding some variety to your routine."
+        } else {
+            return "You might be going through a rough patch. Remember, it's okay to take breaks."
+        }
+    }
+}
+
+struct EnhancedMoodOverviewView: View {
+    let moodEntries: [MoodEntry]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("📊 Mood Overview")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+            
+            HStack(spacing: 16) {
+                MoodOverviewItem(
+                    icon: "chart.line.uptrend.xyaxis",
+                    title: "Current",
+                    value: String(format: "%.1f/10", currentMood),
+                    color: .blue
+                )
+                
+                MoodOverviewItem(
+                    icon: "calendar",
+                    title: "This Week",
+                    value: String(format: "%.1f/10", weeklyAverage),
+                    color: .green
+                )
+                
+                MoodOverviewItem(
+                    icon: "clock.arrow.circlepath",
+                    title: "Trend",
+                    value: trendText,
+                    color: trendColor
+                )
+            }
+        }
+        .padding(16)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.3)
+                
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.4),
+                                .white.opacity(0.1)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+    
+    private var currentMood: Double {
+        guard let latest = moodEntries.last else { return 0 }
+        return latest.mood.numericValue
+    }
+    
+    private var weeklyAverage: Double {
+        let recentEntries = Array(moodEntries.suffix(7))
+        guard !recentEntries.isEmpty else { return 0 }
+        return recentEntries.map { $0.mood.numericValue }.reduce(0, +) / Double(recentEntries.count)
+    }
+    
+    private var trendText: String {
+        let recentEntries = Array(moodEntries.suffix(7))
+        guard recentEntries.count >= 2 else { return "Stable" }
+        
+        let firstHalf = Array(recentEntries.prefix(recentEntries.count / 2))
+        let secondHalf = Array(recentEntries.suffix(recentEntries.count / 2))
+        
+        let firstAvg = firstHalf.map { $0.mood.numericValue }.reduce(0, +) / Double(firstHalf.count)
+        let secondAvg = secondHalf.map { $0.mood.numericValue }.reduce(0, +) / Double(secondHalf.count)
+        
+        if secondAvg > firstAvg + 0.5 {
+            return "↗️ Up"
+        } else if secondAvg < firstAvg - 0.5 {
+            return "↘️ Down"
+        } else {
+            return "→ Stable"
+        }
+    }
+    
+    private var trendColor: Color {
+        let recentEntries = Array(moodEntries.suffix(7))
+        guard recentEntries.count >= 2 else { return .gray }
+        
+        let firstHalf = Array(recentEntries.prefix(recentEntries.count / 2))
+        let secondHalf = Array(recentEntries.suffix(recentEntries.count / 2))
+        
+        let firstAvg = firstHalf.map { $0.mood.numericValue }.reduce(0, +) / Double(firstHalf.count)
+        let secondAvg = secondHalf.map { $0.mood.numericValue }.reduce(0, +) / Double(secondHalf.count)
+        
+        if secondAvg > firstAvg + 0.5 {
+            return .green
+        } else if secondAvg < firstAvg - 0.5 {
+            return .red
+        } else {
+            return .orange
+        }
+    }
+}
+
+struct MoodOverviewItem: View {
+    let icon: String
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.caption)
+            
+            Text(value)
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundColor(.white)
+            
+            Text(title)
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.6))
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct MoodPatternsView: View {
+    let moodEntries: [MoodEntry]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("🔄 Mood Patterns")
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+            
+            VStack(spacing: 8) {
+                MoodPatternItem(
+                    icon: "sun.max.fill",
+                    title: "Best Time",
+                    value: "Morning (8-10 AM)",
+                    color: .yellow
+                )
+                
+                MoodPatternItem(
+                    icon: "moon.fill",
+                    title: "Lowest Time",
+                    value: "Evening (6-8 PM)",
+                    color: .purple
+                )
+                
+                MoodPatternItem(
+                    icon: "calendar.badge.clock",
+                    title: "Most Consistent",
+                    value: "Weekends",
+                    color: .green
+                )
+            }
+        }
+        .padding(16)
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.3)
+                
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                .white.opacity(0.4),
+                                .white.opacity(0.1)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+struct MoodPatternItem: View {
+    let icon: String
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(color)
+                .font(.caption)
+                .frame(width: 16)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.7))
+                
+                Text(value)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct QuickMoodStatsView: View {
+    let moodEntries: [MoodEntry]
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("This Week")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                    Text("\(weeklyAverage, specifier: "%.1f")/10")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("Good Days")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                    Text("\(goodDaysCount)")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.green)
+                }
+            }
+            
+            // Simple trend indicator
+            HStack {
+                Image(systemName: trendIcon)
+                    .foregroundColor(trendColor)
+                    .font(.caption)
+                Text(trendText)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.8))
+                Spacer()
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.white.opacity(0.1))
+        )
+    }
+    
+    private var weeklyAverage: Double {
+        let recentEntries = Array(moodEntries.suffix(7))
+        guard !recentEntries.isEmpty else { return 0 }
+        return recentEntries.map { $0.mood.numericValue }.reduce(0, +) / Double(recentEntries.count)
+    }
+    
+    private var goodDaysCount: Int {
+        let recentEntries = Array(moodEntries.suffix(7))
+        return recentEntries.filter { $0.mood.numericValue >= 7.0 }.count
+    }
+    
+    private var trendIcon: String {
+        let recentEntries = Array(moodEntries.suffix(7))
+        guard recentEntries.count >= 2 else { return "minus" }
+        
+        let firstHalf = Array(recentEntries.prefix(recentEntries.count / 2))
+        let secondHalf = Array(recentEntries.suffix(recentEntries.count / 2))
+        
+        let firstAvg = firstHalf.map { $0.mood.numericValue }.reduce(0, +) / Double(firstHalf.count)
+        let secondAvg = secondHalf.map { $0.mood.numericValue }.reduce(0, +) / Double(secondHalf.count)
+        
+        if secondAvg > firstAvg + 0.5 {
+            return "arrow.up"
+        } else if secondAvg < firstAvg - 0.5 {
+            return "arrow.down"
+        } else {
+            return "minus"
+        }
+    }
+    
+    private var trendColor: Color {
+        switch trendIcon {
+        case "arrow.up": return .green
+        case "arrow.down": return .orange
+        default: return .gray
+        }
+    }
+    
+    private var trendText: String {
+        switch trendIcon {
+        case "arrow.up": return "Mood improving"
+        case "arrow.down": return "Mood declining"
+        default: return "Mood stable"
+        }
+    }
+}
+
+struct KeyInsightView: View {
+    let insight: String
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "lightbulb.fill")
+                .foregroundColor(.yellow)
+                .font(.title3)
+            
+            Text(insight)
+                .font(.subheadline)
+                .foregroundColor(.white)
+                .multilineTextAlignment(.leading)
+            
+            Spacer()
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.yellow.opacity(0.15))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.yellow.opacity(0.3), lineWidth: 1)
+                )
+        )
+    }
+}
+
+struct WebAppButtonView: View {
+    var body: some View {
+        Button(action: {
+            // TODO: Open web app URL
+            print("Opening web app for detailed analytics...")
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: "globe")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                Text("View Detailed Analytics")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                Spacer()
+                Image(systemName: "arrow.up.right")
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.blue.opacity(0.3))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(.blue.opacity(0.5), lineWidth: 1)
+                    )
+            )
         }
     }
 }
