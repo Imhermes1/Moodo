@@ -12,14 +12,14 @@ import _Concurrency
 // MARK: - Data Models
 
 struct Task: Identifiable, Codable, Equatable {
-    let id: UUID
+    var id: UUID
     var title: String
     var description: String?
     var isCompleted: Bool
     var isFlagged: Bool
     var isRecurring: Bool
     var priority: TaskPriority
-    var emotion: EmotionType
+    var emotion: TaskEmotion
     var reminderAt: Date?
     var deadlineAt: Date? // Separate deadline date from reminder
     var naturalLanguageInput: String?
@@ -29,7 +29,7 @@ struct Task: Identifiable, Codable, Equatable {
     var subtasks: [Task]?
     var eventKitIdentifier: String? // For linking to EventKit reminder
     
-    init(id: UUID = UUID(), title: String, description: String? = nil, isCompleted: Bool = false, isFlagged: Bool = false, isRecurring: Bool = false, priority: TaskPriority = .medium, emotion: EmotionType = .focused, reminderAt: Date? = nil, deadlineAt: Date? = nil, naturalLanguageInput: String? = nil, list: TaskList? = nil, tags: [String] = [], subtasks: [Task]? = nil, eventKitIdentifier: String? = nil) {
+    init(id: UUID = UUID(), title: String, description: String? = nil, isCompleted: Bool = false, isFlagged: Bool = false, isRecurring: Bool = false, priority: TaskPriority = .medium, emotion: TaskEmotion = .focused, reminderAt: Date? = nil, deadlineAt: Date? = nil, naturalLanguageInput: String? = nil, list: TaskList? = nil, tags: [String] = [], subtasks: [Task]? = nil, eventKitIdentifier: String? = nil) {
         self.id = id
         self.title = title
         self.description = description
@@ -76,51 +76,50 @@ enum TaskPriority: String, CaseIterable, Codable {
     }
 }
 
-enum EmotionType: String, CaseIterable, Codable {
-    case neutral = "neutral"
-    case urgent = "urgent"
-    case positive = "positive"
-    case calm = "calm"
-    case creative = "creative"
-    case focused = "focused"
-    case stressed = "stressed"
+// MARK: - Unified Task Emotion System
+enum TaskEmotion: String, CaseIterable, Codable {
+    case energizing = "energizing"   // Requires high energy (taxes, projects)
+    case focused = "focused"         // Requires concentration (writing, analysis)
+    case calming = "calming"         // Relaxing tasks (walk, call friend)
+    case creative = "creative"       // Creative work (design, brainstorming)
+    case routine = "routine"         // Simple tasks (cut grass, organize)
+    case stressful = "stressful"     // Demanding tasks (deadlines, presentations)
     
     var displayName: String {
         switch self {
-        case .neutral: return "Neutral"
-        case .urgent: return "Urgent"
-        case .positive: return "Positive"
-        case .calm: return "Calm"
-        case .creative: return "Creative"
+        case .energizing: return "Energizing"
         case .focused: return "Focused"
-        case .stressed: return "Stressed"
+        case .calming: return "Calming"
+        case .creative: return "Creative"
+        case .routine: return "Routine"
+        case .stressful: return "Stressful"
         }
     }
     
     var icon: String {
         switch self {
-        case .neutral: return "circle"
-        case .urgent: return "exclamationmark.circle"
-        case .positive: return "trophy"
-        case .calm: return "leaf"
-        case .creative: return "lightbulb"
+        case .energizing: return "bolt"
         case .focused: return "brain.head.profile"
-        case .stressed: return "exclamationmark.triangle"
+        case .calming: return "leaf"
+        case .creative: return "lightbulb"
+        case .routine: return "repeat"
+        case .stressful: return "exclamationmark.triangle"
         }
     }
     
     var color: Color {
         switch self {
-        case .neutral: return Color(red: 0.6, green: 0.6, blue: 0.6) // neutral-gray
-        case .urgent: return Color(red: 0.91, green: 0.3, blue: 0.24) // mood-red
-        case .positive: return Color(red: 0.22, green: 0.69, blue: 0.42) // mood-green
-        case .calm: return Color(red: 0.22, green: 0.56, blue: 0.94) // mood-blue
-        case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // mood-purple
-        case .focused: return Color(red: 0.4, green: 0.49, blue: 0.92) // bluey-purple
-        case .stressed: return Color(red: 0.91, green: 0.3, blue: 0.24) // stress-red
+        case .energizing: return Color(red: 0.95, green: 0.61, blue: 0.07) // energizing-orange
+        case .focused: return Color(red: 0.4, green: 0.49, blue: 0.92) // focused-blue
+        case .calming: return Color(red: 0.22, green: 0.56, blue: 0.94) // calming-blue
+        case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // creative-purple
+        case .routine: return Color(red: 0.22, green: 0.69, blue: 0.42) // routine-green
+        case .stressful: return Color(red: 0.91, green: 0.3, blue: 0.24) // stressful-red
         }
     }
 }
+
+
 
 struct MoodEntry: Identifiable, Codable {
     let id: UUID
@@ -134,50 +133,74 @@ struct MoodEntry: Identifiable, Codable {
     }
 }
 
+// MARK: - Unified User Mood System
 enum MoodType: String, CaseIterable, Codable {
-    case positive = "positive"
-    case calm = "calm"
-    case focused = "focused"
-    case stressed = "stressed"
-    case creative = "creative"
+    case energized = "energized"     // High energy, can tackle complex tasks
+    case focused = "focused"         // Clear mind, good for detailed work
+    case calm = "calm"              // Peaceful, good for routine tasks
+    case creative = "creative"       // Inspired, good for brainstorming
+    case stressed = "stressed"       // Overwhelmed, needs easy tasks
+    case tired = "tired"            // Low energy, minimal tasks only
     
     var displayName: String {
         switch self {
-        case .positive: return "Positive"
-        case .calm: return "Calm"
+        case .energized: return "Energized"
         case .focused: return "Focused"
-        case .stressed: return "Stressed"
+        case .calm: return "Calm"
         case .creative: return "Creative"
+        case .stressed: return "Stressed"
+        case .tired: return "Tired"
         }
     }
     
     var icon: String {
         switch self {
-        case .positive: return "face.smiling"
-        case .calm: return "leaf"
+        case .energized: return "bolt.fill"
         case .focused: return "brain.head.profile"
-        case .stressed: return "face.dashed"
+        case .calm: return "leaf"
         case .creative: return "lightbulb"
+        case .stressed: return "face.dashed"
+        case .tired: return "bed.double"
         }
     }
     
     var color: Color {
         switch self {
-        case .positive: return Color(red: 0.22, green: 0.69, blue: 0.42) // mood-green
-        case .calm: return Color(red: 0.22, green: 0.56, blue: 0.94) // mood-blue
-        case .focused: return Color(red: 0.4, green: 0.49, blue: 0.92) // bluey-purple
-        case .stressed: return Color(red: 0.91, green: 0.3, blue: 0.24) // mood-red
-        case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // mood-purple
+        case .energized: return Color(red: 0.95, green: 0.61, blue: 0.07) // energized-orange
+        case .focused: return Color(red: 0.4, green: 0.49, blue: 0.92) // focused-blue
+        case .calm: return Color(red: 0.22, green: 0.56, blue: 0.94) // calm-blue
+        case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // creative-purple
+        case .stressed: return Color(red: 0.91, green: 0.3, blue: 0.24) // stressed-red
+        case .tired: return Color(red: 0.6, green: 0.6, blue: 0.6) // tired-gray
         }
     }
     
     var numericValue: Double {
         switch self {
-        case .positive: return 9.0
-        case .calm: return 7.0
+        case .energized: return 9.0
         case .focused: return 8.0
-        case .stressed: return 3.0
+        case .calm: return 7.0
         case .creative: return 8.5
+        case .stressed: return 3.0
+        case .tired: return 2.0
+        }
+    }
+    
+    // Smart task matching - returns compatible task emotions for this mood
+    var compatibleTaskEmotions: [TaskEmotion] {
+        switch self {
+        case .energized:
+            return [.energizing, .focused, .creative]
+        case .focused:
+            return [.focused, .routine, .creative]
+        case .calm:
+            return [.calming, .routine]
+        case .creative:
+            return [.creative, .calming]
+        case .stressed:
+            return [.calming, .routine]
+        case .tired:
+            return [.calming]
         }
     }
 }
@@ -232,26 +255,44 @@ class TaskManager: ObservableObject {
     
     func addTask(_ task: Task) {
         var newTask = task
+        newTask.id = UUID() // Ensure unique ID
         
         // Batch operation flag for performance
         if !isPerformingBatchOperation {
             print("📝 Adding task: \(task.title)")
         }
         
-        // Create EventKit reminder if task has a reminder date
-        if task.reminderAt != nil {
-            _Concurrency.Task {
-                let eventKitID = await eventKitManager.createReminder(for: task)
-                await MainActor.run {
-                    newTask.eventKitIdentifier = eventKitID
-                    self.tasks.append(newTask)
-                    self.debouncedSave()
-                }
+        // Immediate UI update (optimistic)
+        tasks.append(newTask)
+        
+        // Enhanced haptic feedback
+        HapticManager.shared.taskAdded()
+        
+        // Handle background operations asynchronously
+        _Concurrency.Task {
+            var updatedTask = newTask
+            
+            // Create EventKit reminder if needed
+            if task.reminderAt != nil {
+                let eventKitID = await eventKitManager.createReminder(for: newTask)
+                updatedTask.eventKitIdentifier = eventKitID
             }
-        } else {
-            tasks.append(newTask)
-            debouncedSave()
+            
+            // Update the task with any background changes
+            await MainActor.run {
+                if let index = self.tasks.firstIndex(where: { $0.id == newTask.id }) {
+                    self.tasks[index] = updatedTask
+                }
+                
+                // Save in background
+                self.debouncedSave()
+            }
         }
+    }
+    
+    func addTaskOptimistically(_ task: Task) {
+        // This method provides instant UI response for critical actions
+        addTask(task)
     }
     
     func addTasks(_ newTasks: [Task]) {
@@ -319,6 +360,14 @@ class TaskManager: ObservableObject {
     func toggleTaskCompletion(_ task: Task) {
         var updatedTask = task
         updatedTask.isCompleted.toggle()
+        
+        // Enhanced haptic feedback based on completion state
+        if updatedTask.isCompleted {
+            HapticManager.shared.taskCompleted()
+        } else {
+            HapticManager.shared.buttonPressed()
+        }
+        
         updateTask(updatedTask)
         
         // Auto-archive completed tasks with a delay for user feedback
@@ -526,7 +575,7 @@ class TaskManager: ObservableObject {
 
 class MoodManager: ObservableObject {
     @Published var moodEntries: [MoodEntry] = []
-    @Published var currentMood: EmotionType = .positive
+    @Published var currentMood: MoodType = .calm
     
     var latestMoodEntry: MoodEntry? {
         moodEntries.sorted(by: { $0.timestamp > $1.timestamp }).first
@@ -545,24 +594,13 @@ class MoodManager: ObservableObject {
         saveToCloud()
     }
     
-    func updateCurrentMood(_ mood: EmotionType) {
+    func updateCurrentMood(_ mood: MoodType) {
         currentMood = mood
     }
     
     private func updateCurrentMoodFromEntries() {
         if let latestEntry = latestMoodEntry {
-            // Convert MoodType to EmotionType
-            currentMood = convertMoodTypeToEmotionType(latestEntry.mood)
-        }
-    }
-    
-    private func convertMoodTypeToEmotionType(_ moodType: MoodType) -> EmotionType {
-        switch moodType {
-        case .positive: return .positive
-        case .calm: return .calm
-        case .focused: return .focused
-        case .stressed: return .stressed
-        case .creative: return .creative
+            currentMood = latestEntry.mood
         }
     }
     
@@ -634,12 +672,12 @@ class MoodManager: ObservableObject {
         let now = Date()
         
         moodEntries = [
-            MoodEntry(mood: .positive, timestamp: calendar.date(byAdding: .hour, value: -2, to: now) ?? now),
+            MoodEntry(mood: .energized, timestamp: calendar.date(byAdding: .hour, value: -2, to: now) ?? now),
             MoodEntry(mood: .focused, timestamp: calendar.date(byAdding: .hour, value: -5, to: now) ?? now),
             MoodEntry(mood: .calm, timestamp: calendar.date(byAdding: .day, value: -1, to: now) ?? now),
             MoodEntry(mood: .creative, timestamp: calendar.date(byAdding: .day, value: -1, to: now) ?? now),
             MoodEntry(mood: .stressed, timestamp: calendar.date(byAdding: .day, value: -2, to: now) ?? now),
-            MoodEntry(mood: .positive, timestamp: calendar.date(byAdding: .day, value: -3, to: now) ?? now),
+            MoodEntry(mood: .tired, timestamp: calendar.date(byAdding: .day, value: -3, to: now) ?? now),
             MoodEntry(mood: .calm, timestamp: calendar.date(byAdding: .day, value: -4, to: now) ?? now),
         ]
         
@@ -715,7 +753,7 @@ class VoiceCheckinManager: ObservableObject {
 
 @MainActor
 class TaskScheduler: ObservableObject {
-    @Published var currentMood: MoodType = .positive
+    @Published var currentMood: MoodType = .calm
     
     func updateCurrentMood(_ mood: MoodType) {
         currentMood = mood
@@ -743,11 +781,11 @@ class TaskScheduler: ObservableObject {
             // Special therapeutic filtering for stressed users
             if currentMood == .stressed {
                 // When stressed, avoid stressful tasks entirely
-                if task.emotion == .stressed {
+                if task.emotion == .stressful {
                     return false  // Filter out stressful tasks
                 }
                 // Only include tasks that are calming or have good mood compatibility
-                return score >= 0.5 || task.emotion == .calm || task.emotion == .positive
+                return score >= 0.5 || task.emotion == .calming || task.emotion == .energizing
             }
             
             // Normal filtering for other moods
@@ -804,9 +842,9 @@ class TaskScheduler: ObservableObject {
     
     private func getMoodTaskPreferences(for mood: MoodType) -> MoodTaskPreferences {
         switch mood {
-        case .positive:
+        case .energized:
             return MoodTaskPreferences(
-                preferredEmotions: [.positive, .creative, .focused],
+                preferredEmotions: [.energizing, .creative, .focused],
                 preferredPriorities: [.high, .medium],
                 timePreference: .flexible,
                 creativityBoost: 1.3,
@@ -814,7 +852,7 @@ class TaskScheduler: ObservableObject {
             )
         case .calm:
             return MoodTaskPreferences(
-                preferredEmotions: [.calm, .positive],
+                preferredEmotions: [.calming, .routine],
                 preferredPriorities: [.low, .medium],
                 timePreference: .morning,
                 creativityBoost: 0.8,
@@ -822,7 +860,7 @@ class TaskScheduler: ObservableObject {
             )
         case .focused:
             return MoodTaskPreferences(
-                preferredEmotions: [.focused, .positive],
+                preferredEmotions: [.focused, .routine],
                 preferredPriorities: [.high, .medium],
                 timePreference: .concentrated,
                 creativityBoost: 0.9,
@@ -830,7 +868,7 @@ class TaskScheduler: ObservableObject {
             )
         case .stressed:
             return MoodTaskPreferences(
-                preferredEmotions: [.calm, .positive],
+                preferredEmotions: [.calming, .routine],
                 preferredPriorities: [.low],
                 timePreference: .gentle,
                 creativityBoost: 0.5,
@@ -838,11 +876,19 @@ class TaskScheduler: ObservableObject {
             )
         case .creative:
             return MoodTaskPreferences(
-                preferredEmotions: [.creative, .positive, .focused],
+                preferredEmotions: [.creative, .calming, .focused],
                 preferredPriorities: [.medium, .high],
                 timePreference: .flexible,
                 creativityBoost: 1.5,
                 focusCapacity: 1.1
+            )
+        case .tired:
+            return MoodTaskPreferences(
+                preferredEmotions: [.calming],
+                preferredPriorities: [.low],
+                timePreference: .gentle,
+                creativityBoost: 0.3,
+                focusCapacity: 0.5
             )
         }
     }
@@ -919,7 +965,7 @@ class TaskScheduler: ObservableObject {
         let baseCount: Int
         
         switch mood {
-        case .positive:
+        case .energized:
             baseCount = 8 // High energy, can handle more tasks
         case .calm:
             baseCount = 5 // Peaceful state, fewer tasks
@@ -929,6 +975,8 @@ class TaskScheduler: ObservableObject {
             baseCount = 3 // Lower capacity, fewer tasks
         case .creative:
             baseCount = 7 // Creative flow, can handle variety
+        case .tired:
+            baseCount = 2 // Very low energy, only minimal tasks
         }
         
         // Adjust based on time of day
@@ -954,7 +1002,7 @@ class TaskScheduler: ObservableObject {
     }
     
     // Get mood-optimized tasks for the main screen
-    func getMoodOptimizedTasks(from tasks: [Task], for mood: EmotionType, maxTasks: Int) -> [Task] {
+    func getMoodOptimizedTasks(from tasks: [Task], for mood: MoodType, maxTasks: Int) -> [Task] {
         let incompleteTasks = tasks.filter { !$0.isCompleted }
         let today = Calendar.current.startOfDay(for: Date())
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
@@ -969,13 +1017,14 @@ class TaskScheduler: ObservableObject {
         return Array(sortedTasks.prefix(maxTasks).map { $0.task })
     }
     
-    private func calculateMoodScore(task: Task, mood: EmotionType, today: Date, tomorrow: Date) -> Double {
+    private func calculateMoodScore(task: Task, mood: MoodType, today: Date, tomorrow: Date) -> Double {
         var score: Double = 0.0
         
-        // Base score for emotion compatibility
-        if task.emotion == mood {
+        // Base score for mood-task compatibility using new unified system
+        let compatibleEmotions = mood.compatibleTaskEmotions
+        if compatibleEmotions.contains(task.emotion) {
             score += 1.0
-        } else if areEmotionsCompatible(task.emotion, mood) {
+        } else if mood.compatibleTaskEmotions.contains(task.emotion) {
             score += 0.7
         } else {
             score += 0.3
@@ -1018,26 +1067,26 @@ class TaskScheduler: ObservableObject {
         switch mood {
         case .stressed:
             // Heavily favor calming, therapeutic tasks
-            if task.emotion == .calm { 
-                score += 0.8  // Big boost for calm tasks
+            if task.emotion == .calming { 
+                score += 0.8  // Big boost for calming tasks
             }
-            if task.emotion == .positive { 
-                score += 0.6  // Good boost for positive tasks
+            if task.emotion == .energizing { 
+                score += 0.6  // Good boost for energizing tasks
             }
             if task.priority == .low { 
                 score += 0.5  // Additional boost for low-priority tasks
             }
             // Penalize stressful tasks
-            if task.emotion == .stressed {
+            if task.emotion == .stressful {
                 score -= 0.5  // Penalty for stressful tasks
             }
-            if task.priority == .high && task.emotion != .calm {
+            if task.priority == .high && task.emotion != .calming {
                 score -= 0.3  // Penalty for high-priority non-calm tasks
             }
         case .focused:
             // Prefer challenging tasks
             if task.priority == .high { score += 0.4 }
-        case .calm, .positive:
+        case .calm, .energized:
             // Balanced approach
             if task.priority == .medium { score += 0.3 }
         default:
@@ -1047,15 +1096,14 @@ class TaskScheduler: ObservableObject {
         return max(0.0, score)  // Ensure score doesn't go negative
     }
     
-    private func areEmotionsCompatible(_ emotion1: EmotionType, _ emotion2: EmotionType) -> Bool {
-        let compatibilityMap: [EmotionType: [EmotionType]] = [
-            .focused: [.positive, .calm],
-            .calm: [.positive, .focused],
-            .positive: [.calm, .focused, .creative],
-            .stressed: [.calm, .positive],
-            .creative: [.positive, .focused],
-            .urgent: [.focused],
-            .neutral: [.calm, .focused]
+    private func areEmotionsCompatible(_ emotion1: TaskEmotion, _ emotion2: TaskEmotion) -> Bool {
+        let compatibilityMap: [TaskEmotion: [TaskEmotion]] = [
+            .focused: [.energizing, .routine],
+            .calming: [.routine],
+            .energizing: [.focused, .creative],
+            .stressful: [.calming],
+            .creative: [.energizing, .focused],
+            .routine: [.calming, .focused]
         ]
         
         return compatibilityMap[emotion2]?.contains(emotion1) ?? false
@@ -1065,7 +1113,7 @@ class TaskScheduler: ObservableObject {
 // MARK: - Mood-Based Task Preferences
 
 struct MoodTaskPreferences {
-    let preferredEmotions: [EmotionType]
+    let preferredEmotions: [TaskEmotion]
     let preferredPriorities: [TaskPriority]
     let timePreference: TimePreference
     let creativityBoost: Double

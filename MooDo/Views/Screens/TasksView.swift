@@ -33,8 +33,8 @@ struct TasksView: View {
                         )
                     }
                     .padding(.horizontal, max(screenSize.width * 0.02, 8)) // Reduced horizontal padding
-                    .padding(.top, max(screenSize.height * 0.08, 60)) // Increased top padding to lower the card significantly
-                    .padding(.bottom, max(screenSize.height * 0.12, 100))
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
                 }
             }
         }

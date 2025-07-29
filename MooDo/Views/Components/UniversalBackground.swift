@@ -13,35 +13,39 @@ struct UniversalBackground: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Base pink & purple gradient background (static for better performance)
+                // Base deep, futuristic vertical gradient background (static for better performance)
                 LinearGradient(
                     gradient: Gradient(stops: [
-                        .init(color: Color(red: 0.98, green: 0.45, blue: 0.65), location: 0.0), // Soft pink
-                        .init(color: Color(red: 0.85, green: 0.35, blue: 0.75), location: 0.3), // Pink-purple
-                        .init(color: Color(red: 0.70, green: 0.25, blue: 0.85), location: 0.7), // Purple
-                        .init(color: Color(red: 0.55, green: 0.15, blue: 0.95), location: 1.0)  // Deep purple
+                        .init(color: Color(red: 0.10, green: 0.13, blue: 0.24), location: 0.0), // Midnight blue
+                        .init(color: Color(red: 0.19, green: 0.28, blue: 0.50), location: 0.4), // Deep navy
+                        .init(color: Color(red: 0.10, green: 0.43, blue: 0.70), location: 0.7), // Cyber blue
+                        .init(color: Color(red: 0.25, green: 0.11, blue: 0.49), location: 1.0)  // Vivid purple
                     ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-                .ignoresSafeArea(.all)
                 
-                // Static overlay for depth (removed animation)
+                // Electric shimmer overlay with blue/cyan/purple hues
                 LinearGradient(
                     gradient: Gradient(stops: [
-                        .init(color: Color(red: 0.90, green: 0.30, blue: 0.80).opacity(0.2), location: 0.0),
-                        .init(color: Color.clear, location: 0.5),
-                        .init(color: Color(red: 0.60, green: 0.20, blue: 0.90).opacity(0.2), location: 1.0)
+                        .init(color: Color.cyan.opacity(0.18), location: 0.0),
+                        .init(color: Color.purple.opacity(0.13), location: 0.4),
+                        .init(color: Color.blue.opacity(0.18), location: 1.0)
                     ]),
-                    startPoint: .topTrailing,
-                    endPoint: .bottomLeading
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-                .ignoresSafeArea(.all)
+                
+                // Glassy shine overlay
+                Rectangle()
+                    .fill(Color.white.opacity(0.012))
+                    .blendMode(.plusLighter)
             }
+            .ignoresSafeArea()
         }
     }
 }
 
 #Preview {
     UniversalBackground()
-} 
+}

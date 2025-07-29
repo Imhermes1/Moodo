@@ -40,14 +40,8 @@ struct HomeView: View {
                         screenSize: screenSize
                     )
                     
-                    // Body Scan feature
-                    BodyScanView()
-                    
                     // Today's Progress (animated counters like web app)
                     TodaysProgressView(tasks: taskManager.tasks, moodEntries: moodManager.moodEntries)
-                    
-                    // Mindful Moment
-                    MindfulMomentView()
                 }
                 .padding(.horizontal, max(screenSize.width * 0.04, 12))
                 .padding(.top, max(screenSize.height * 0.08, 60))

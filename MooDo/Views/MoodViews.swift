@@ -11,17 +11,19 @@ import SwiftUI
 
 struct MoodLensMoodCheckinView: View {
     @State private var selectedMood: MoodType?
+    @State private var moodGlow: Bool = false
     @StateObject private var moodManager = MoodManager()
     @ObservedObject var taskManager: TaskManager
     @State private var bounceOffset: CGFloat = 0
     @State private var swayRotation: Double = 0
     
     let moodOptions: [(type: MoodType, icon: String, label: String)] = [
-        (MoodType.positive, "face.smiling", "Positive"),
-        (MoodType.calm, "leaf", "Calm"),
+        (MoodType.energized, "bolt.fill", "Energized"),
         (MoodType.focused, "brain.head.profile", "Focused"),
+        (MoodType.calm, "leaf", "Calm"),
+        (MoodType.creative, "lightbulb", "Creative"),
         (MoodType.stressed, "face.dashed", "Stressed"),
-        (MoodType.creative, "lightbulb", "Creative")
+        (MoodType.tired, "bed.double", "Tired")
     ]
     
     var body: some View {
@@ -33,60 +35,81 @@ struct MoodLensMoodCheckinView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
                 
-                Text("Log your mood to get personalised task recommendations")
+                Text("Track your emotional state throughout the day")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
             
-            // Mood selection buttons (smaller and more compact)
-            HStack(spacing: 12) {
-                ForEach(moodOptions, id: \.type) { moodOption in
-                    MoodIndicatorButton(
-                        mood: moodOption.type,
-                        icon: moodOption.icon,
-                        label: moodOption.label,
-                        isSelected: selectedMood == moodOption.type,
-                        action: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                selectedMood = moodOption.type
-                            }
-                        },
-                        size: 48
-                    )
+            // Mood selection buttons (smaller and more compact) wrapped in horizontal ScrollView
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 14) {
+                    ForEach(moodOptions, id: \.type) { moodOption in
+                        MoodIndicatorButton(
+                            mood: moodOption.type,
+                            icon: moodOption.icon,
+                            label: moodOption.label,
+                            isSelected: selectedMood == moodOption.type,
+                            action: {
+                                // Add haptic feedback and smoother animation
+                                HapticManager.shared.buttonPressed()
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    selectedMood = moodOption.type
+                                }
+                            },
+                            size: 48
+                        )
+                    }
                 }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 4)
             }
+            .frame(maxWidth: 370)
+            .padding(.vertical, 8)
             
             // Log mood button (matching web app style)
             Button(action: logMood) {
-                HStack(spacing: 6) {
-                    if let selectedMood = selectedMood {
-                        // Show mood icon and "Feeling (Mood)" when mood is selected
-                        Image(systemName: selectedMood.icon)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(selectedMood.color)
-                        Text("Feeling \(selectedMood.displayName)")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                    } else {
-                        // Show plus icon and "Log Mood" when no mood is selected
-                        Image(systemName: "plus")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        Text("Log Mood")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                ZStack {
+                    if let mood = selectedMood {
+                        Circle()
+                            .fill(mood.color)
+                            .frame(width: moodGlow ? 136 : 98, height: moodGlow ? 136 : 98)
+                            .blur(radius: 32)
+                            .opacity(moodGlow ? 0.48 : 0.28)
+                            .animation(.easeOut(duration: 0.38), value: moodGlow)
+                            .position(x: 90, y: 24) // Centered for 180x48 frame
+                            .zIndex(-1)
+                            .allowsHitTesting(false)
                     }
+                    
+                    HStack(spacing: 6) {
+                        if let selectedMood = selectedMood {
+                            // Show mood icon and "Feeling (Mood)" when mood is selected
+                            Image(systemName: selectedMood.icon)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(selectedMood.color)
+                            Text("Feeling \(selectedMood.displayName)")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        } else {
+                            // Show plus icon and "Log Mood" when no mood is selected
+                            Image(systemName: "plus")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text("Log Mood")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                    }
+                    .foregroundColor(.primary)
                 }
-                .foregroundColor(.primary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                .frame(width: 180, height: 48)
                 .background(
                     ZStack {
-                                        // Base glass layer for button
-                RoundedRectangle(cornerRadius: 25)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.4)
+                        // Base glass layer for button
+                        RoundedRectangle(cornerRadius: 25)
+                            .fill(.ultraThinMaterial)
+                            .opacity(0.4)
                         
                         // Inner highlight for 3D effect
                         RoundedRectangle(cornerRadius: 25)
@@ -179,18 +202,9 @@ struct MoodLensMoodCheckinView: View {
         .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
         .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .offset(y: bounceOffset)
-        .rotationEffect(.degrees(swayRotation))
         .onAppear {
-            // Very slow, gentle bouncing animation (10% faster)
-            withAnimation(.easeInOut(duration: 2.9).repeatForever(autoreverses: true)) {
-                bounceOffset = -3
-            }
-            
-            // Very slow, gentle swaying animation (10% faster)
-            withAnimation(.easeInOut(duration: 4.3).repeatForever(autoreverses: true)) {
-                swayRotation = 1.5
-            }
+            // Removed idle animations for better performance
+            // Animations only on user interaction
         }
     }
     
@@ -202,43 +216,42 @@ struct MoodLensMoodCheckinView: View {
         let entry = MoodEntry(mood: mood)
         moodManager.addMoodEntry(entry)
         
-        // Convert MoodType to EmotionType and update both managers
-        let emotionType = convertMoodTypeToEmotionType(mood)
-        moodManager.updateCurrentMood(emotionType)
+        // Update both managers with the unified mood system
+        moodManager.updateCurrentMood(mood)
         taskManager.updateCurrentMood(mood)
         
-        print("🔄 Updated MoodManager current mood to: \(emotionType)")
+        print("🔄 Updated MoodManager current mood to: \(mood)")
         print("🔄 Updated TaskManager current mood to: \(mood)")
         print("📊 Mood saved to history - Total entries: \(moodManager.moodEntries.count)")
         
-        // Show haptic feedback
-        DispatchQueue.main.async {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.prepare()
-            impactFeedback.impactOccurred()
+        // Enhanced haptic feedback with achievement animation
+        HapticManager.shared.moodSelected()
+        
+        moodGlow = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+            moodGlow = false
+        }
+        
+        // Achievement-like animation
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+            // Brief scaling animation to show success
+            selectedMood = mood
         }
         
         // Reset selection with animation
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-            selectedMood = nil
-        }
-        
-        // Show success message (you could add a toast notification here)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            // Optional: Add a success animation or notification
-            print("✅ Mood logged successfully: \(mood.displayName)")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                selectedMood = nil
+            }
+            
+            // Show success message (you could add a toast notification here)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                print("✅ Mood logged successfully: \(mood.displayName)")
+            }
         }
     }
     
-    private func convertMoodTypeToEmotionType(_ moodType: MoodType) -> EmotionType {
-        switch moodType {
-        case .positive: return .positive
-        case .calm: return .calm
-        case .focused: return .focused
-        case .stressed: return .stressed
-        case .creative: return .creative
-        }
-    }
+
 }
 
 // MARK: - Mood Indicator Button

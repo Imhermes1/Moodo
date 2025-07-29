@@ -17,6 +17,11 @@ struct MoodBasedTasksView: View {
     let screenSize: CGSize
     @State private var smartRecommendations: [Task] = []
     @State private var isRefreshing = false
+    @StateObject private var smartTaskSuggestions = SmartTaskSuggestions()
+    
+    // New recommendation states
+    @State private var recommendedTask: Task?
+    @State private var showRecommendation = false
     
     var body: some View {
         VStack(spacing: 20) {
@@ -62,8 +67,14 @@ struct MoodBasedTasksView: View {
                                 .animation(.linear(duration: 1).repeatCount(isRefreshing ? .max : 1, autoreverses: false), value: isRefreshing)
                         }
                         
-                        // Add task button
-                        Button(action: onAddTask) {
+                        // Add task button with recommendation trigger
+                        Button(action: {
+                            onAddTask()
+                            // Generate recommendation after user adds a task
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                generateRecommendationAfterAdd()
+                            }
+                        }) {
                             Image(systemName: "plus")
                                 .foregroundColor(.white)
                                 .font(.title3)
@@ -79,6 +90,20 @@ struct MoodBasedTasksView: View {
                                 )
                         }
                     }
+                }
+                
+                // Recommendation banner (new)
+                if let recommended = recommendedTask, showRecommendation {
+                    RecommendationBanner(
+                        task: recommended,
+                        onAccept: {
+                            acceptRecommendation(recommended)
+                        },
+                        onDismiss: {
+                            dismissRecommendation()
+                        }
+                    )
+                    .transition(.slide)
                 }
                 
                 // Mood insights
@@ -171,8 +196,8 @@ struct MoodBasedTasksView: View {
     
     // MARK: - Computed Properties
     
-    private var currentMood: EmotionType {
-        moodManager.currentMood
+    private var currentMood: MoodType {
+        moodManager.latestMoodEntry?.mood ?? .energized
     }
     
     // MARK: - Subviews
@@ -281,6 +306,13 @@ struct MoodBasedTasksView: View {
         // Generate smart recommendations (2-5 tasks, minimum 2 if data available)
         let recommendations = generateSmartRecommendations(from: incompleteTasks)
         
+        // Also refresh the smart task suggestions
+        smartTaskSuggestions.generateSuggestions(
+            mood: currentMood,
+            timeOfDay: Date(),
+            completedTasks: taskManager.tasks.filter { $0.isCompleted }
+        )
+        
         print("✨ Generated \(recommendations.count) recommendations")
         print("📝 Recommended tasks: \(recommendations.map { $0.title })")
         
@@ -326,32 +358,15 @@ struct MoodBasedTasksView: View {
         return recommendations
     }
     
-    private func calculateMoodCompatibilityScore(task: Task, mood: EmotionType) -> Double {
+    private func calculateMoodCompatibilityScore(task: Task, mood: MoodType) -> Double {
         var score: Double = 0.5 // Base score
         
-        // Emotion compatibility (40% weight)
-        switch mood {
-        case .positive:
-            if [.positive, .creative].contains(task.emotion) { score += 0.4 }
-            else if task.emotion == .focused { score += 0.3 }
-        case .calm:
-            if [.calm, .positive].contains(task.emotion) { score += 0.4 }
-            else if task.emotion == .focused { score += 0.2 }
-        case .focused:
-            if task.emotion == .focused { score += 0.4 }
-            else if [.positive, .creative].contains(task.emotion) { score += 0.3 }
-        case .stressed:
-            if [.calm, .positive].contains(task.emotion) { score += 0.4 }
-            else if task.emotion == .stressed { score -= 0.3 } // Avoid stressful tasks when stressed
-        case .creative:
-            if task.emotion == .creative { score += 0.4 }
-            else if [.positive, .focused].contains(task.emotion) { score += 0.3 }
-        case .neutral:
-            if [.calm, .focused].contains(task.emotion) { score += 0.4 }
-            else if task.emotion == .positive { score += 0.2 }
-        case .urgent:
-            if task.emotion == .focused { score += 0.4 }
-            else if [.positive, .creative].contains(task.emotion) { score += 0.3 }
+        // Check if task emotion is compatible with current mood (60% weight)
+        let compatibleEmotions = mood.compatibleTaskEmotions
+        if compatibleEmotions.contains(task.emotion) {
+            score += 0.6
+        } else if task.emotion == .stressful && mood == .stressed {
+            score -= 0.4 // Avoid stressful tasks when stressed
         }
         
         // Priority consideration (30% weight)
@@ -397,53 +412,134 @@ struct MoodBasedTasksView: View {
         return false
     }
     
-    private func detectEmotionForTask(_ task: Task) -> EmotionType {
+    private func detectEmotionForTask(_ task: Task) -> TaskEmotion {
         let title = task.title.lowercased()
         let description = task.description?.lowercased() ?? ""
         let content = title + " " + description
         
-        // Priority-based emotion mapping with mood consideration
+        // Content-based emotion detection
+        if content.contains("relax") || content.contains("walk") || content.contains("breathe") || content.contains("meditation") || content.contains("call") || content.contains("text") {
+            return .calming
+        }
+        
+        if content.contains("creative") || content.contains("brainstorm") || content.contains("design") || content.contains("art") || content.contains("idea") {
+            return .creative
+        }
+        
+        if content.contains("focus") || content.contains("write") || content.contains("analyze") || content.contains("plan") || content.contains("study") {
+            return .focused
+        }
+        
+        if content.contains("energy") || content.contains("workout") || content.contains("exercise") || content.contains("project") || content.contains("taxes") {
+            return .energizing
+        }
+        
+        if content.contains("deadline") || content.contains("urgent") || content.contains("important") || content.contains("presentation") || content.contains("stress") {
+            return .stressful
+        }
+        
+        if content.contains("organize") || content.contains("clean") || content.contains("routine") || content.contains("simple") || content.contains("grass") {
+            return .routine
+        }
+        
+        // Priority-based fallback
         switch task.priority {
         case .high:
-            // For stressed users, high-priority tasks should be calming, not stressful
-            if currentMood == .stressed {
-                if content.contains("relax") || content.contains("breathe") || content.contains("meditation") {
-                    return .calm
-                }
-                if content.contains("walk") || content.contains("nature") || content.contains("fresh air") {
-                    return .calm
-                }
-                // Default to focused for high-priority tasks when stressed
-                return .focused
-            } else {
-                // Normal logic for non-stressed users
-                if content.contains("deadline") || content.contains("urgent") || content.contains("important") {
-                    return .focused  // Changed from .stressed to .focused
-                }
-                return .focused
-            }
+            return currentMood == .stressed ? .calming : .focused
         case .medium:
-            if content.contains("meeting") || content.contains("call") || content.contains("presentation") {
-                return .focused
-            }
-            if content.contains("exercise") || content.contains("workout") || content.contains("run") {
-                return .positive
-            }
-            if content.contains("creative") || content.contains("brainstorm") || content.contains("design") {
-                return .creative
-            }
-            return .positive
+            return .routine
         case .low:
-            if content.contains("relax") || content.contains("read") || content.contains("meditation") {
-                return .calm
+            return .calming
+        }
+    }
+    
+    // MARK: - New Recommendation Methods
+    
+    private func generateRecommendationAfterAdd() {
+        // Generate recommendation based on mood and existing tasks
+        let recommendation = generateMoodBasedRecommendation()
+        
+        if let rec = recommendation {
+            withAnimation(.easeInOut(duration: 0.4)) {
+                recommendedTask = rec
+                showRecommendation = true
             }
-            if content.contains("creative") || content.contains("brainstorm") || content.contains("design") {
-                return .creative
+            
+            // Auto-dismiss after 10 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                dismissRecommendation()
             }
-            if content.contains("social") || content.contains("friend") || content.contains("family") {
-                return .positive
-            }
-            return .positive
+        }
+    }
+    
+    private func generateMoodBasedRecommendation() -> Task? {
+        let currentMood = moodManager.latestMoodEntry?.mood ?? .energized
+        let existingTasks = taskManager.tasks
+        
+        // Don't suggest if user already has many tasks
+        guard existingTasks.count < 10 else { return nil }
+        
+        // AI recommendation logic based on mood and task patterns
+        switch currentMood {
+        case .energized:
+            return Task(
+                title: "Tackle a challenging project",
+                description: "Your energy is high - perfect for complex work",
+                priority: .high,
+                emotion: .energizing
+            )
+        case .calm:
+            return Task(
+                title: "Organize your workspace",
+                description: "Use this peaceful state for tidying up",
+                priority: .medium,
+                emotion: .routine
+            )
+        case .focused:
+            return Task(
+                title: "Deep work session",
+                description: "Ideal time for concentrated tasks",
+                priority: .high,
+                emotion: .focused
+            )
+        case .stressed:
+            return Task(
+                title: "Take a mindful break",
+                description: "Step back and recharge",
+                priority: .medium,
+                emotion: .calming
+            )
+        case .creative:
+            return Task(
+                title: "Brainstorm new ideas",
+                description: "Channel your creativity",
+                priority: .medium,
+                emotion: .creative
+            )
+        case .tired:
+            return Task(
+                title: "Simple administrative task",
+                description: "Low-energy but productive",
+                priority: .low,
+                emotion: .routine
+            )
+        }
+    }
+    
+    private func acceptRecommendation(_ task: Task) {
+        // Add the recommended task with achievement animation
+        taskManager.addTaskOptimistically(task)
+        HapticManager.shared.taskAdded()
+        dismissRecommendation()
+    }
+    
+    private func dismissRecommendation() {
+        withAnimation(.easeOut(duration: 0.3)) {
+            showRecommendation = false
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            recommendedTask = nil
         }
     }
 }
@@ -583,5 +679,81 @@ struct SmartTaskCard: View {
                 glowEffect.toggle()
             }
         }
+    }
+}
+
+// MARK: - Recommendation Banner Component
+
+struct RecommendationBanner: View {
+    let task: Task
+    let onAccept: () -> Void
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Image(systemName: "lightbulb.fill")
+                        .foregroundColor(.yellow)
+                        .font(.caption)
+                    
+                    Text("Suggested for you")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(.yellow)
+                }
+                
+                Text(task.title)
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                
+                if let description = task.description {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.7))
+                }
+            }
+            
+            Spacer()
+            
+            HStack(spacing: 8) {
+                Button("Add", action: {
+                    HapticManager.shared.buttonPressed()
+                    onAccept()
+                })
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(.green.opacity(0.3))
+                            .overlay(
+                                Capsule()
+                                    .stroke(.green.opacity(0.5), lineWidth: 1)
+                            )
+                    )
+                
+                Button(action: {
+                    HapticManager.shared.buttonPressed()
+                    onDismiss()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.caption2)
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.ultraThinMaterial.opacity(0.3))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.yellow.opacity(0.3), lineWidth: 1)
+                )
+        )
     }
 } 

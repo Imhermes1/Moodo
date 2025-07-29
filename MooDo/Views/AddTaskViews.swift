@@ -18,7 +18,7 @@ struct AddTaskModalView: View {
     @State private var isProcessing = false
     @State private var showingAdvancedOptions = false
     @State private var selectedPriority: TaskPriority = .medium
-    @State private var selectedEmotion: EmotionType = .focused
+    @State private var selectedEmotion: TaskEmotion = .focused
     @State private var reminderDate = Date().addingTimeInterval(3600) // Default to 1 hour from now
     @State private var deadlineDate = Date().addingTimeInterval(86400) // Default to tomorrow
     @State private var hasReminder = false
@@ -27,54 +27,73 @@ struct AddTaskModalView: View {
     @StateObject private var nlpProcessor = NaturalLanguageProcessor()
     @StateObject private var voiceRecognition = VoiceRecognitionManager()
     
+    // Animation states for achievement effect
+    @State private var showSuccessAnimation = false
+    @State private var bounceScale: CGFloat = 1.0
+    
     var body: some View {
         ZStack {
             // Universal background
             UniversalBackground()
             
             VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 16) {
-                    HStack {
-                        Button(action: { dismiss() }) {
-                            Image(systemName: "xmark")
-                                .font(.title3)
-                                .foregroundColor(.white)
-                                .frame(width: 32, height: 32)
-                                .background(
-                                    GlassPanelBackground()
-                                )
-                                .clipShape(Circle())
-                        }
-                        
-                        Spacer()
-                        
-                        Text("Add Task")
-                            .font(.title2)
-                            .fontWeight(.bold)
+                // Fixed Header - Always visible
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.title3)
                             .foregroundColor(.white)
-                        
-                        Spacer()
-                        
-                        Button(action: createTask) {
-                            Image(systemName: "checkmark")
-                                .font(.title3)
-                                .foregroundColor(.white)
-                                .frame(width: 32, height: 32)
-                                .background(
-                                    taskInput.isEmpty ? Color.gray.opacity(0.3) : Color.green.opacity(0.3)
-                                )
-                                .background(
-                                    GlassPanelBackground()
-                                )
-                                .clipShape(Circle())
-                        }
-                        .disabled(taskInput.isEmpty || isProcessing)
+                            .frame(width: 32, height: 32)
+                            .background(
+                                GlassPanelBackground()
+                            )
+                            .clipShape(Circle())
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 20)
                     
-                    // Main input area
+                    Spacer()
+                    
+                    Text("Add Task")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Button(action: createTask) {
+                        Image(systemName: "checkmark")
+                            .font(.title3)
+                            .foregroundColor(.white)
+                            .frame(width: 32, height: 32)
+                            .background(
+                                taskInput.isEmpty ? Color.gray.opacity(0.3) : Color.green.opacity(0.3)
+                            )
+                            .background(
+                                GlassPanelBackground()
+                            )
+                            .clipShape(Circle())
+                            .scaleEffect(bounceScale)
+                            .overlay(
+                                // Success animation overlay
+                                Group {
+                                    if showSuccessAnimation {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.title)
+                                            .foregroundColor(.green)
+                                            .scaleEffect(showSuccessAnimation ? 1.5 : 0.1)
+                                            .opacity(showSuccessAnimation ? 1.0 : 0.0)
+                                            .animation(.spring(response: 0.3, dampingFraction: 0.5), value: showSuccessAnimation)
+                                    }
+                                }
+                            )
+                    }
+                    .disabled(taskInput.isEmpty || isProcessing)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
+                
+                // Scrollable content area
+                ScrollView {
                     VStack(spacing: 20) {
                         // Natural language input
                         VStack(alignment: .leading, spacing: 12) {
@@ -211,20 +230,20 @@ struct AddTaskModalView: View {
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                         }
                                         
-                                        // Mood selector
+                                        // Task Characteristic selector
                                         VStack(alignment: .leading, spacing: 8) {
                                             HStack(spacing: 6) {
-                                                Image(systemName: "heart")
+                                                Image(systemName: "brain.head.profile")
                                                     .foregroundColor(.white.opacity(0.8))
                                                     .font(.caption)
-                                                Text("Mood")
+                                                Text("Task Type")
                                                     .font(.caption)
                                                     .fontWeight(.medium)
                                                     .foregroundColor(.white.opacity(0.8))
                                             }
                                             
-                                            Picker("Mood", selection: $selectedEmotion) {
-                                                ForEach(EmotionType.allCases, id: \.self) { emotion in
+                                            Picker("Task Type", selection: $selectedEmotion) {
+                                                ForEach(TaskEmotion.allCases, id: \.self) { emotion in
                                                     HStack {
                                                         Image(systemName: emotion.icon)
                                                             .foregroundColor(emotion.color)
@@ -242,6 +261,7 @@ struct AddTaskModalView: View {
                                             )
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                         }
+
                                     }
                                     
                                     // Reminder and Deadline
@@ -446,6 +466,7 @@ struct AddTaskModalView: View {
                     }
                     .padding(.horizontal, 20)
                 }
+                .padding(.bottom, 20)
             }
         }
         .onChange(of: voiceRecognition.transcript) { _, newValue in
@@ -473,6 +494,9 @@ struct AddTaskModalView: View {
         let input = taskInput.isEmpty ? voiceRecognition.transcript : taskInput
         guard !input.isEmpty else { return }
         
+        // Show processing state
+        isProcessing = true
+        
         let processedTask = nlpProcessor.processNaturalLanguage(input)
         
         // Use description field if provided, otherwise use processed description
@@ -491,7 +515,7 @@ struct AddTaskModalView: View {
         
         // Use advanced options if they're set, otherwise use processed values
         let finalPriority = showingAdvancedOptions ? selectedPriority : processedTask.priority
-        let finalEmotion = showingAdvancedOptions ? selectedEmotion : (processedTask.emotion != .neutral ? processedTask.emotion : detectEmotionForTask(title: processedTask.title, description: finalDescription, priority: finalPriority))
+        let finalEmotion = showingAdvancedOptions ? selectedEmotion : (processedTask.emotion != .routine ? processedTask.emotion : detectEmotionForTask(title: processedTask.title, description: finalDescription, priority: finalPriority))
         
         // Handle future dates properly - use provided dates or processed dates
         var finalReminderAt: Date? = nil
@@ -534,11 +558,33 @@ struct AddTaskModalView: View {
         print("⏰ Reminder: \(finalReminderAt?.description ?? "None")")
         print("📅 Deadline: \(finalDeadlineAt?.description ?? "None")")
         
-        taskManager.addTask(task)
-        dismiss()
+        // Use optimistic UI update for instant response
+        taskManager.addTaskOptimistically(task)
+        
+        // Achievement animation sequence
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+            showSuccessAnimation = true
+            bounceScale = 1.2
+        }
+        
+        // Enhanced haptic feedback
+        HapticManager.shared.achievementUnlocked()
+        
+        // Complete animation and dismiss
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(.easeOut(duration: 0.2)) {
+                bounceScale = 1.0
+                showSuccessAnimation = false
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isProcessing = false
+                dismiss()
+            }
+        }
     }
     
-    private func detectEmotionForTask(title: String, description: String?, priority: TaskPriority) -> EmotionType {
+    private func detectEmotionForTask(title: String, description: String?, priority: TaskPriority) -> TaskEmotion {
         let titleLower = title.lowercased()
         let descriptionLower = description?.lowercased() ?? ""
         let content = titleLower + " " + descriptionLower
@@ -548,38 +594,42 @@ struct AddTaskModalView: View {
         
         // Step 2: Keyword-based emotion detection (highest priority)
         if content.contains("urgent") || content.contains("deadline") || content.contains("emergency") {
-            return .stressed
+            return .stressful
         }
         
         if content.contains("creative") || content.contains("design") || content.contains("brainstorm") || content.contains("idea") {
             return .creative
         }
         
-        if content.contains("exercise") || content.contains("workout") || content.contains("run") || content.contains("gym") {
-            return .positive
+        if content.contains("exercise") || content.contains("workout") || content.contains("run") || content.contains("gym") || content.contains("energy") {
+            return .energizing
         }
         
         if content.contains("meeting") || content.contains("presentation") || content.contains("work") || content.contains("project") {
-            return complexityScore > 0.7 ? .focused : .positive
+            return complexityScore > 0.7 ? .focused : .routine
         }
         
-        if content.contains("relax") || content.contains("meditate") || content.contains("read") || content.contains("rest") {
-            return .calm
+        if content.contains("relax") || content.contains("meditate") || content.contains("read") || content.contains("rest") || content.contains("walk") || content.contains("call") {
+            return .calming
         }
         
         if content.contains("family") || content.contains("friend") || content.contains("social") || content.contains("celebrate") {
-            return .positive
+            return .calming
+        }
+        
+        if content.contains("organize") || content.contains("clean") || content.contains("routine") || content.contains("simple") {
+            return .routine
         }
         
         // Step 3: Complexity-based emotion assignment
         if complexityScore >= 0.8 {
             return .focused  // Very complex tasks need focus
         } else if complexityScore >= 0.6 {
-            return priority == .high ? .focused : .positive  // Moderately complex
+            return priority == .high ? .focused : .routine  // Moderately complex
         } else if complexityScore >= 0.3 {
-            return .positive  // Simple to moderate tasks
+            return .routine  // Simple to moderate tasks
         } else {
-            return .calm     // Very simple tasks
+            return .calming     // Very simple tasks
         }
     }
     

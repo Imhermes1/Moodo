@@ -16,31 +16,33 @@ struct InsightsView: View {
     @ObservedObject var voiceManager: VoiceCheckinManager
     let screenSize: CGSize
     @StateObject private var smartInsights = SmartInsights()
-    @StateObject private var smartSuggestions = SmartTaskSuggestions()
+
     @State private var hasInitialized = false
-    @State private var selectedInsightType: InsightType = .smartInsights
+    @State private var selectedInsightType: InsightType = .taskInsights
     @State private var showingDropdown = false
     
     enum InsightType: String, CaseIterable {
-        case smartInsights = "Smart Insights"
-        case smartSuggestions = "Smart Suggestions"
+        case taskInsights = "Task Insights"
         case moodInsights = "Mood Insights"
         
         var icon: String {
             switch self {
-            case .smartInsights: return "brain.head.profile"
-            case .smartSuggestions: return "lightbulb"
+            case .taskInsights: return "chart.bar"
             case .moodInsights: return "chart.line.uptrend.xyaxis"
             }
         }
         
         var color: Color {
             switch self {
-            case .smartInsights: return .purple
-            case .smartSuggestions: return .yellow
+            case .taskInsights: return .yellow
             case .moodInsights: return .blue
             }
         }
+    }
+    
+    // Filtered productivity insights for task insights view
+    private var productivityInsights: [Insight] {
+        smartInsights.insights.filter { $0.type == .productivity }
     }
     
     var body: some View {
@@ -229,16 +231,14 @@ struct InsightsView: View {
                     VStack(spacing: screenSize.height * 0.025) {
                         // Selected Insight Content
                         switch selectedInsightType {
-                        case .smartInsights:
-                            SmartInsightsView(insights: smartInsights.insights)
-                        case .smartSuggestions:
-                            SmartSuggestionsView(suggestions: smartSuggestions.suggestions, taskManager: taskManager)
+                        case .taskInsights:
+                            SmartInsightsView(insights: productivityInsights)
                         case .moodInsights:
                             SimpleMoodInsightsView(moodEntries: moodManager.moodEntries, taskManager: taskManager)
                         }
                     }
                     .padding(.horizontal, max(screenSize.width * 0.04, 12))
-                .padding(.bottom, max(screenSize.height * 0.12, 100))
+                    .padding(.bottom, max(screenSize.height * 0.12, 100))
                 }
             }
         }
@@ -246,9 +246,6 @@ struct InsightsView: View {
             // Only initialize once to prevent infinite loops
             if !hasInitialized {
                 smartInsights.generateInsights(from: moodManager.moodEntries, tasks: taskManager.tasks)
-                if let latestMood = moodManager.moodEntries.last {
-                    smartSuggestions.generateSuggestions(mood: latestMood.mood, timeOfDay: Date(), completedTasks: taskManager.tasks.filter { $0.isCompleted })
-                }
                 hasInitialized = true
             }
         }
@@ -266,4 +263,4 @@ struct InsightsView: View {
         screenSize: CGSize(width: 390, height: 844)
     )
     .background(UniversalBackground())
-} 
+}

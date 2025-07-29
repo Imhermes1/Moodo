@@ -67,7 +67,7 @@ class NaturalLanguageProcessor: ObservableObject {
     func analyzeTextForTask(_ input: String) -> ProcessedTask {
         // Performance optimization: Early return for empty input
         guard !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return ProcessedTask(title: input, description: nil, priority: .medium, emotion: .neutral, reminderAt: nil, deadlineAt: nil, tags: [])
+            return ProcessedTask(title: input, description: nil, priority: .medium, emotion: .routine, reminderAt: nil, deadlineAt: nil, tags: [])
         }
         
         let lowercased = input.lowercased()
@@ -91,21 +91,21 @@ class NaturalLanguageProcessor: ObservableObject {
         }
         
         // Determine emotion based on context
-        let emotion: EmotionType
+        let emotion: TaskEmotion
         if lowercased.contains("urgent") || lowercased.contains("asap") || lowercased.contains("deadline") || lowercased.contains("emergency") {
-            emotion = .urgent
+            emotion = .stressful
         } else if lowercased.contains("creative") || lowercased.contains("brainstorm") || lowercased.contains("idea") || lowercased.contains("design") {
             emotion = .creative
         } else if lowercased.contains("focus") || lowercased.contains("work") || lowercased.contains("study") || lowercased.contains("concentrate") {
             emotion = .focused
         } else if lowercased.contains("calm") || lowercased.contains("relax") || lowercased.contains("peaceful") || lowercased.contains("meditation") {
-            emotion = .calm
-        } else if lowercased.contains("excited") || lowercased.contains("happy") || lowercased.contains("celebrate") || lowercased.contains("positive") {
-            emotion = .positive
-        } else if lowercased.contains("stressed") || lowercased.contains("worried") || lowercased.contains("pressure") || lowercased.contains("overwhelm") {
-            emotion = .stressed
+            emotion = .calming
+        } else if lowercased.contains("energy") || lowercased.contains("workout") || lowercased.contains("exercise") || lowercased.contains("project") {
+            emotion = .energizing
+        } else if lowercased.contains("routine") || lowercased.contains("organize") || lowercased.contains("clean") || lowercased.contains("simple") {
+            emotion = .routine
         } else {
-            emotion = .neutral
+            emotion = .routine
         }
         
         // Extract reminder time
@@ -279,7 +279,7 @@ struct ProcessedTask {
     let title: String
     let description: String?
     let priority: TaskPriority
-    let emotion: EmotionType
+    let emotion: TaskEmotion
     let reminderAt: Date?
     let deadlineAt: Date?
     let tags: [String]
@@ -424,7 +424,7 @@ class SmartInsights: ObservableObject {
     
     private func getMoodRecommendation(for mood: MoodType) -> String {
         switch mood {
-        case .positive:
+        case .energized:
             return "Great energy! Perfect time to tackle challenging tasks."
         case .calm:
             return "Peaceful state. Ideal for focused, detailed work."
@@ -434,12 +434,14 @@ class SmartInsights: ObservableObject {
             return "Feeling overwhelmed? Try breaking tasks into smaller steps."
         case .creative:
             return "Creative flow! Great time for brainstorming and ideation."
+        case .tired:
+            return "Feeling tired? Take a short break or focus on simple, restorative tasks."
         }
     }
 }
 
 struct Insight: Identifiable {
-    let id = UUID()
+    var id = UUID()
     let type: InsightType
     let title: String
     let description: String
@@ -540,67 +542,79 @@ class VoiceRecognitionManager: NSObject, ObservableObject {
     }
 }
 
-// MARK: - Smart Task Suggestions
+ 
+// MARK: - Smart Task Suggestions System
+
+struct TaskSuggestion {
+    let title: String
+    let description: String
+    let emotion: TaskEmotion
+    let priority: TaskPriority
+}
 
 class SmartTaskSuggestions: ObservableObject {
     @Published var suggestions: [TaskSuggestion] = []
     
+    // Performance optimization: Cache suggestions to avoid regenerating
+    private var cachedSuggestions: [TaskSuggestion] = []
+    private var lastMood: MoodType?
+    private var lastGenerationTime: Date?
+    private let cacheValidityDuration: TimeInterval = 300 // 5 minutes
+    
     func generateSuggestions(mood: MoodType, timeOfDay: Date, completedTasks: [Task]) {
         var newSuggestions: [TaskSuggestion] = []
         
-        // Time-based suggestions
+        // Get mood-compatible task emotions
+        let compatibleEmotions = mood.compatibleTaskEmotions
+        
+        // Generate suggestions based on mood and time of day
         let hour = Calendar.current.component(.hour, from: timeOfDay)
         
         if hour < 12 {
             // Morning suggestions
-            newSuggestions.append(contentsOf: getMorningSuggestions(for: mood))
+            newSuggestions.append(contentsOf: getMorningSuggestions(for: mood, compatibleEmotions: compatibleEmotions))
         } else if hour < 17 {
             // Afternoon suggestions
-            newSuggestions.append(contentsOf: getAfternoonSuggestions(for: mood))
+            newSuggestions.append(contentsOf: getAfternoonSuggestions(for: mood, compatibleEmotions: compatibleEmotions))
         } else {
             // Evening suggestions
-            newSuggestions.append(contentsOf: getEveningSuggestions(for: mood))
+            newSuggestions.append(contentsOf: getEveningSuggestions(for: mood, compatibleEmotions: compatibleEmotions))
         }
         
-        // Mood-based suggestions
-        newSuggestions.append(contentsOf: getMoodBasedSuggestions(for: mood))
+        // Add mood-specific suggestions
+        newSuggestions.append(contentsOf: getMoodSpecificSuggestions(for: mood))
         
-        // Wellness suggestions
-        newSuggestions.append(contentsOf: getWellnessSuggestions())
+        // Analyze completed tasks to provide personalized suggestions
+        if !completedTasks.isEmpty {
+            newSuggestions.append(contentsOf: getPersonalizedSuggestions(from: completedTasks, mood: mood))
+        }
         
         suggestions = newSuggestions
     }
     
-    private func getMorningSuggestions(for mood: MoodType) -> [TaskSuggestion] {
+    private func getMorningSuggestions(for mood: MoodType, compatibleEmotions: [TaskEmotion]) -> [TaskSuggestion] {
         var suggestions: [TaskSuggestion] = []
         
         switch mood {
-        case .positive:
+        case .energized:
+            suggestions.append(TaskSuggestion(
+                title: "Tackle important project",
+                description: "Use your high energy for complex work",
+                emotion: .energizing,
+                priority: .high
+            ))
+        case .focused:
             suggestions.append(TaskSuggestion(
                 title: "Plan your day",
-                description: "Set intentions for a productive day ahead",
+                description: "Set clear priorities and goals",
                 emotion: .focused,
                 priority: .medium
             ))
         case .calm:
             suggestions.append(TaskSuggestion(
                 title: "Morning meditation",
-                description: "Start your day with 10 minutes of mindfulness",
-                emotion: .calm,
-                priority: .medium
-            ))
-        case .focused:
-            suggestions.append(TaskSuggestion(
-                title: "Tackle important tasks",
-                description: "Use your morning focus for high-priority work",
-                emotion: .focused,
-                priority: .high
-            ))
-        case .stressed:
-            suggestions.append(TaskSuggestion(
-                title: "Gentle morning routine",
-                description: "Ease into your day with light activities",
-                emotion: .calm,
+                description: "Start your day with mindfulness",
+                emotion: .calming,
                 priority: .low
             ))
         case .creative:
@@ -610,92 +624,120 @@ class SmartTaskSuggestions: ObservableObject {
                 emotion: .creative,
                 priority: .medium
             ))
+        case .stressed:
+            suggestions.append(TaskSuggestion(
+                title: "Take a gentle walk",
+                description: "Start with something calming",
+                emotion: .calming,
+                priority: .low
+            ))
+        case .tired:
+            suggestions.append(TaskSuggestion(
+                title: "Light organizing",
+                description: "Simple tasks to ease into the day",
+                emotion: .routine,
+                priority: .low
+            ))
         }
         
         return suggestions
     }
     
-    private func getAfternoonSuggestions(for mood: MoodType) -> [TaskSuggestion] {
+    private func getAfternoonSuggestions(for mood: MoodType, compatibleEmotions: [TaskEmotion]) -> [TaskSuggestion] {
         var suggestions: [TaskSuggestion] = []
         
         switch mood {
-        case .positive:
+        case .energized:
             suggestions.append(TaskSuggestion(
-                title: "Collaborate with others",
-                description: "Use your positive energy for team projects",
-                emotion: .positive,
-                priority: .medium
-            ))
-        case .calm:
-            suggestions.append(TaskSuggestion(
-                title: "Deep work session",
-                description: "Perfect time for focused, detailed tasks",
-                emotion: .focused,
+                title: "Handle important calls",
+                description: "Use your energy for communication",
+                emotion: .energizing,
                 priority: .high
             ))
         case .focused:
             suggestions.append(TaskSuggestion(
-                title: "Complex problem solving",
-                description: "Tackle challenging projects while focused",
+                title: "Deep work session",
+                description: "Perfect time for concentrated tasks",
                 emotion: .focused,
                 priority: .high
             ))
-        case .stressed:
+        case .calm:
             suggestions.append(TaskSuggestion(
-                title: "Take a short break",
-                description: "Step away and recharge for 15 minutes",
-                emotion: .calm,
+                title: "Review and organize notes",
+                description: "A calm mind is great for organizing",
+                emotion: .calming,
                 priority: .medium
             ))
         case .creative:
             suggestions.append(TaskSuggestion(
-                title: "Creative project work",
-                description: "Dive into your creative projects",
+                title: "Work on a creative project",
+                description: "Channel your afternoon creativity",
                 emotion: .creative,
                 priority: .medium
+            ))
+        case .stressed:
+            suggestions.append(TaskSuggestion(
+                title: "Practice a quick mindfulness exercise",
+                description: "Take a short break to reset",
+                emotion: .calming,
+                priority: .high
+            ))
+        case .tired:
+            suggestions.append(TaskSuggestion(
+                title: "Handle simple emails or routine tasks",
+                description: "Low-energy tasks are perfect for now",
+                emotion: .routine,
+                priority: .low
             ))
         }
         
         return suggestions
     }
     
-    private func getEveningSuggestions(for mood: MoodType) -> [TaskSuggestion] {
+    private func getEveningSuggestions(for mood: MoodType, compatibleEmotions: [TaskEmotion]) -> [TaskSuggestion] {
         var suggestions: [TaskSuggestion] = []
         
         switch mood {
-        case .positive:
+        case .energized:
             suggestions.append(TaskSuggestion(
-                title: "Reflect on achievements",
-                description: "Celebrate your daily wins",
-                emotion: .positive,
-                priority: .low
-            ))
-        case .calm:
-            suggestions.append(TaskSuggestion(
-                title: "Evening planning",
-                description: "Plan tomorrow's priorities",
-                emotion: .focused,
+                title: "Exercise or workout",
+                description: "Use your energy positively",
+                emotion: .energizing,
                 priority: .medium
             ))
         case .focused:
             suggestions.append(TaskSuggestion(
-                title: "Review and organize",
-                description: "Clean up and prepare for tomorrow",
+                title: "Plan tomorrow",
+                description: "Set up for success",
                 emotion: .focused,
                 priority: .medium
             ))
-        case .stressed:
+        case .calm:
             suggestions.append(TaskSuggestion(
-                title: "Relaxation routine",
-                description: "Unwind with calming activities",
-                emotion: .calm,
-                priority: .high
+                title: "Relaxing activities",
+                description: "Wind down peacefully",
+                emotion: .calming,
+                priority: .low
             ))
         case .creative:
             suggestions.append(TaskSuggestion(
                 title: "Creative journaling",
-                description: "Capture today's creative insights",
+                description: "Capture today's insights",
                 emotion: .creative,
+                priority: .low
+            ))
+        case .stressed:
+            suggestions.append(TaskSuggestion(
+                title: "Stress relief routine",
+                description: "Focus on self-care",
+                emotion: .calming,
+                priority: .high
+            ))
+        case .tired:
+            suggestions.append(TaskSuggestion(
+                title: "Prepare for rest",
+                description: "Simple evening routine",
+                emotion: .routine,
                 priority: .low
             ))
         }
@@ -703,84 +745,116 @@ class SmartTaskSuggestions: ObservableObject {
         return suggestions
     }
     
-    private func getMoodBasedSuggestions(for mood: MoodType) -> [TaskSuggestion] {
+    private func getMoodSpecificSuggestions(for mood: MoodType) -> [TaskSuggestion] {
         switch mood {
-        case .positive:
+        case .energized:
             return [
-                TaskSuggestion(
-                    title: "Help someone else",
-                    description: "Share your positive energy",
-                    emotion: .positive,
-                    priority: .medium
-                )
-            ]
-        case .calm:
-            return [
-                TaskSuggestion(
-                    title: "Mindful activity",
-                    description: "Practice presence in daily tasks",
-                    emotion: .calm,
-                    priority: .medium
-                )
+                TaskSuggestion(title: "Tackle taxes or finances", description: "Use high energy for complex tasks", emotion: .energizing, priority: .high),
+                TaskSuggestion(title: "Important phone calls", description: "Handle challenging conversations", emotion: .energizing, priority: .medium)
             ]
         case .focused:
             return [
-                TaskSuggestion(
-                    title: "Deep work block",
-                    description: "Schedule uninterrupted work time",
-                    emotion: .focused,
-                    priority: .high
-                )
+                TaskSuggestion(title: "Write or analyze", description: "Perfect for detailed work", emotion: .focused, priority: .high),
+                TaskSuggestion(title: "Plan projects", description: "Strategic thinking time", emotion: .focused, priority: .medium)
             ]
-        case .stressed:
+        case .calm:
             return [
-                TaskSuggestion(
-                    title: "Stress relief activity",
-                    description: "Engage in calming activities",
-                    emotion: .calm,
-                    priority: .high
-                )
+                TaskSuggestion(title: "Cut the grass", description: "Peaceful outdoor activity", emotion: .routine, priority: .low),
+                TaskSuggestion(title: "Call a friend", description: "Gentle social connection", emotion: .calming, priority: .low)
             ]
         case .creative:
             return [
-                TaskSuggestion(
-                    title: "Creative exploration",
-                    description: "Try something new and creative",
-                    emotion: .creative,
-                    priority: .medium
-                )
+                TaskSuggestion(title: "Design or art work", description: "Channel your creativity", emotion: .creative, priority: .medium),
+                TaskSuggestion(title: "Brainstorm new ideas", description: "Let inspiration flow", emotion: .creative, priority: .medium)
+            ]
+        case .stressed:
+            return [
+                TaskSuggestion(title: "Take a walk", description: "Simple, calming movement", emotion: .calming, priority: .high),
+                TaskSuggestion(title: "Deep breathing exercise", description: "Reduce stress with mindfulness", emotion: .calming, priority: .medium)
+            ]
+        case .tired:
+            return [
+                TaskSuggestion(title: "Rest and recharge", description: "Take a short nap if possible", emotion: .calming, priority: .high),
+                TaskSuggestion(title: "Simple organization", description: "Low-energy tasks to feel productive", emotion: .routine, priority: .low)
             ]
         }
     }
     
-    private func getWellnessSuggestions() -> [TaskSuggestion] {
-        return [
-            TaskSuggestion(
-                title: "Hydration check",
-                description: "Drink a glass of water",
-                emotion: .calm,
+    private func getPersonalizedSuggestions(from completedTasks: [Task], mood: MoodType) -> [TaskSuggestion] {
+        var suggestions: [TaskSuggestion] = []
+        
+        // Analyze patterns in completed tasks
+        let taskTypes = Dictionary(grouping: completedTasks, by: { $0.emotion })
+            .mapValues { $0.count }
+        
+        // Find most common task type
+        if let mostCommonType = taskTypes.max(by: { $0.value < $1.value })?.key {
+            // Suggest similar tasks based on user's history and current mood
+            if mood.compatibleTaskEmotions.contains(mostCommonType) {
+                switch mostCommonType {
+                case .energizing:
+                    suggestions.append(TaskSuggestion(
+                        title: "Another energizing activity",
+                        description: "You seem to enjoy these types of tasks",
+                        emotion: .energizing,
+                        priority: .medium
+                    ))
+                case .focused:
+                    suggestions.append(TaskSuggestion(
+                        title: "Focus session",
+                        description: "Based on your productivity patterns",
+                        emotion: .focused,
+                        priority: .medium
+                    ))
+                case .calming:
+                    suggestions.append(TaskSuggestion(
+                        title: "Mindfulness break",
+                        description: "You benefit from these moments",
+                        emotion: .calming,
+                        priority: .medium
+                    ))
+                case .creative:
+                    suggestions.append(TaskSuggestion(
+                        title: "Creative exploration",
+                        description: "Tap into your creative side",
+                        emotion: .creative,
+                        priority: .medium
+                    ))
+                case .routine:
+                    suggestions.append(TaskSuggestion(
+                        title: "Quick organization task",
+                        description: "You're good at completing these",
+                        emotion: .routine,
+                        priority: .medium
+                    ))
+                case .stressful:
+                    // Don't suggest stressful tasks based on history
+                    break
+                }
+            }
+        }
+        
+        // Look for recurring task patterns
+        let taskTitles = completedTasks.map { $0.title.lowercased() }
+        if taskTitles.contains(where: { $0.contains("exercise") || $0.contains("workout") || $0.contains("gym") }) {
+            suggestions.append(TaskSuggestion(
+                title: "Exercise session",
+                description: "Stay consistent with your fitness",
+                emotion: .energizing,
                 priority: .medium
-            ),
-            TaskSuggestion(
-                title: "Stretch break",
-                description: "Take 5 minutes to stretch",
-                emotion: .calm,
-                priority: .low
-            ),
-            TaskSuggestion(
-                title: "Gratitude practice",
-                description: "Write down 3 things you're grateful for",
-                emotion: .positive,
-                priority: .low
-            )
-        ]
+            ))
+        }
+        
+        if taskTitles.contains(where: { $0.contains("meditate") || $0.contains("mindfulness") || $0.contains("breathing") }) {
+            suggestions.append(TaskSuggestion(
+                title: "Meditation practice",
+                description: "Continue your mindfulness routine",
+                emotion: .calming,
+                priority: .medium
+            ))
+        }
+        
+        return suggestions
     }
 }
 
-struct TaskSuggestion: Identifiable {
-    let id = UUID()
-    let title: String
-    let description: String
-    let emotion: EmotionType
-    let priority: TaskPriority
-} 

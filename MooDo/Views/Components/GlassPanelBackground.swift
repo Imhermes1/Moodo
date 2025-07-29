@@ -13,10 +13,10 @@ struct GlassPanelBackground: View {
             .fill(
                 LinearGradient(
                     gradient: Gradient(stops: [
-                        .init(color: .black.opacity(0.15), location: 0.0),
-                        .init(color: .black.opacity(0.05), location: 0.3),
-                        .init(color: .black.opacity(0.02), location: 0.7),
-                        .init(color: .black.opacity(0.08), location: 1.0)
+                        .init(color: Color(red: 0.19, green: 0.30, blue: 0.55, opacity: 0.30), location: 0.0),
+                        .init(color: Color(red: 0.16, green: 0.38, blue: 0.71, opacity: 0.16), location: 0.4),
+                        .init(color: Color(red: 0.60, green: 0.85, blue: 1.0, opacity: 0.10), location: 0.7),
+                        .init(color: Color(red: 0.36, green: 0.17, blue: 0.89, opacity: 0.13), location: 1.0)
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -24,19 +24,19 @@ struct GlassPanelBackground: View {
             )
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(.thinMaterial)
+                    .fill(.ultraThinMaterial)
                     .opacity(0.3)
             )
             .overlay(
-                // Inner liquid glass highlight
+                // Inner neon glass highlight with cool tones
                 RoundedRectangle(cornerRadius: 20)
                     .stroke(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                .white.opacity(0.15),
-                                .white.opacity(0.05),
-                                .white.opacity(0.02),
-                                .white.opacity(0.1)
+                                .cyan,
+                                .blue.opacity(0.23),
+                                .purple.opacity(0.17),
+                                .white.opacity(0.10)
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -45,10 +45,16 @@ struct GlassPanelBackground: View {
                     )
             )
             .overlay(
-                // Outer subtle glow for depth
+                // Outer subtle glow for added depth and pop
                 RoundedRectangle(cornerRadius: 20)
-                    .stroke(.white.opacity(0.02), lineWidth: 0.3)
-                    .blur(radius: 2)
+                    .stroke(.white.opacity(0.06), lineWidth: 0.3)
+                    .blur(radius: 4)
+            )
+            .overlay(
+                // Soft cyan glow behind the glass for futuristic effect
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.cyan.opacity(0.09))
+                    .blur(radius: 12)
             )
             .shadow(color: .white.opacity(0.03), radius: 2, x: 0, y: -1)
             .shadow(color: .black.opacity(0.15), radius: 15, x: 0, y: 8)

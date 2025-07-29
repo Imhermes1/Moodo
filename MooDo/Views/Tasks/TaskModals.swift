@@ -108,20 +108,20 @@ struct EditTaskView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
                             
-                            // Emotion
+                            // Task Characteristic
                             VStack(alignment: .leading, spacing: 8) {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "heart")
+                                    Image(systemName: "brain.head.profile")
                                         .foregroundColor(.white.opacity(0.8))
                                         .font(.caption)
-                                    Text("Mood")
+                                    Text("Task Type")
                                         .font(.caption)
                                         .fontWeight(.medium)
                                         .foregroundColor(.white.opacity(0.8))
                                 }
                                 
-                                Picker("Mood", selection: $editedTask.emotion) {
-                                    ForEach(EmotionType.allCases, id: \.self) { emotion in
+                                Picker("Task Type", selection: $editedTask.emotion) {
+                                    ForEach(TaskEmotion.allCases, id: \.self) { emotion in
                                         HStack {
                                             Image(systemName: emotion.icon)
                                                 .foregroundColor(emotion.color)
@@ -137,6 +137,7 @@ struct EditTaskView: View {
                                 .background(GlassPanelBackground())
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
                             }
+
                         }
                         
                         // Reminder Section

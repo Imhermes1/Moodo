@@ -247,7 +247,7 @@ extension Task {
               let emotionRaw = record["emotion"] as? String,
               let _ = record["createdAt"] as? Date,
               let priority = TaskPriority(rawValue: priorityRaw),
-              let emotion = EmotionType(rawValue: emotionRaw),
+              let emotion = TaskEmotion(rawValue: emotionRaw),
               let id = UUID(uuidString: record.recordID.recordName) else {
             return nil
         }

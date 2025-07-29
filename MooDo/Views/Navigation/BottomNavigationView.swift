@@ -140,5 +140,5 @@ struct MoodLensBottomNavigationView: View {
         selectedTab: .constant(0),
         screenSize: CGSize(width: 390, height: 844)
     )
-    .background(UniversalBackground())
+    .background(UniversalBackground().ignoresSafeArea())
 } 

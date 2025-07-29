@@ -51,6 +51,7 @@ struct ContentView: View {
                             showingNotifications: $showingNotifications,
                             showingAccountSettings: $showingAccountSettings,
                             taskManager: taskManager,
+                            moodManager: moodManager,
                             screenSize: geometry.size
                         )
                         .tag(2)

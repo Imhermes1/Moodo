@@ -112,5 +112,5 @@ struct TopNavigationView: View {
         onAddTaskTap: {},
         screenSize: CGSize(width: 390, height: 844)
     )
-    .background(UniversalBackground())
+    .background(UniversalBackground().ignoresSafeArea())
 } 
