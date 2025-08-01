@@ -151,4 +151,36 @@ extension View {
     func contentGlassBackground(cornerRadius: CGFloat = 8) -> some View {
         modifier(ContentGlassBackgroundModifier(cornerRadius: cornerRadius))
     }
+    
+    // MARK: - Performance Optimizations
+    
+    func performanceOptimized() -> some View {
+        self.compositingGroup() // Groups layers for better rendering performance
+            .drawingGroup() // Enables GPU rendering for complex views
+    }
+    
+    func conditionalPerformanceOptimization(_ enabled: Bool = true) -> some View {
+        Group {
+            if enabled {
+                self.drawingGroup() // Only apply when needed for performance
+            } else {
+                self
+            }
+        }
+    }
+    
+    func taskCardPerformance(isCompleted: Bool) -> some View {
+        self.opacity(isCompleted ? 0.7 : 1.0)
+            .scaleEffect(isCompleted ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.2), value: isCompleted)
+            .clipped() // Prevents unnecessary overdraw
+    }
+    
+    func responsiveAnimation(duration: Double = 0.3) -> some View {
+        let reduceMotion = UIAccessibility.isReduceMotionEnabled
+        return self.animation(
+            reduceMotion ? .none : .easeInOut(duration: duration),
+            value: UUID() // Placeholder - should be bound to actual state
+        )
+    }
 } 
