@@ -33,7 +33,7 @@ struct TasksView: View {
                         )
                     }
                     .padding(.horizontal, max(screenSize.width * 0.02, 8)) // Reduced horizontal padding
-                    .padding(.top, 8)
+                    .padding(.top, 0) // Removed top padding to lower the UI
                     .padding(.bottom, 12)
                 }
             }

@@ -124,6 +124,10 @@ struct MoodBasedTasksView: View {
                             },
                             onTap: {
                                 onTaskTap?(task)
+                            },
+                            onEdit: { updatedTask in
+                                taskManager.updateTask(updatedTask)
+                                refreshSmartTasks()
                             }
                         )
                     }
@@ -550,7 +554,9 @@ struct SmartTaskCard: View {
     let task: Task
     let onToggleComplete: () -> Void
     let onTap: () -> Void
+    let onEdit: (Task) -> Void // Add edit callback
     @State private var glowEffect: Bool = false
+    @State private var showingEditView = false // Add edit state
     
     var body: some View {
         HStack(spacing: 12) {
@@ -672,6 +678,23 @@ struct SmartTaskCard: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .scaleEffect(task.isCompleted ? 0.98 : 1.0)
+        .contextMenu {
+            // Context menu for quick edit access
+            Button(action: {
+                showingEditView = true
+            }) {
+                Label("Edit Task", systemImage: "pencil")
+            }
+        }
+        .sheet(isPresented: $showingEditView) {
+            EditTaskView(task: task, onSave: { updatedTask in
+                onEdit(updatedTask)
+                showingEditView = false
+            }, onDelete: { deletedTask in
+                // Handle deletion if needed
+                showingEditView = false
+            })
+        }
         .opacity(task.isCompleted ? 0.7 : 1.0)
         .animation(.easeInOut(duration: 0.2), value: task.isCompleted)
         .onAppear {
@@ -709,9 +732,7 @@ struct RecommendationBanner: View {
                     .foregroundColor(.white)
                 
                 if let description = task.description {
-                    Text(description)
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
+                    TaskDescriptionView(description, font: .caption, color: .white.opacity(0.7), lineLimit: 2)
                 }
             }
             
