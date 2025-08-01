@@ -344,19 +344,11 @@ struct EnhancedTaskRowView: View {
                     
                     if isAllTasksView {
                         if let description = task.description, !description.isEmpty {
-                            Text(description)
-                                .font(.caption2)
-                                .foregroundColor(.white.opacity(0.6))
-                                .lineLimit(1)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            TaskDescriptionView(description, font: .caption2, color: .white.opacity(0.6), lineLimit: 1)
                         }
                         
                         if let description = task.description, !description.isEmpty {
-                                                          Text(description)
-                                .font(.caption2)
-                                .foregroundColor(.white.opacity(0.6))
-                                .lineLimit(1)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            TaskDescriptionView(description, font: .caption2, color: .white.opacity(0.6), lineLimit: 1)
                         }
                     }
                 }
@@ -393,10 +385,7 @@ struct EnhancedTaskRowView: View {
             if isExpanded {
                 VStack(spacing: isAllTasksView ? 8 : 12) {
                     if let description = task.description, !description.isEmpty {
-                        Text(description)
-                            .font(.body)
-                            .foregroundColor(.white.opacity(0.8))
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                        TaskDescriptionView(description, font: .body, color: .white.opacity(0.8))
                     }
                     
                     // Tags

@@ -141,7 +141,7 @@ struct AllTasksListView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 20)
+                .padding(.top, 10) // Reduced from 20 to 10 to lower the UI
                 
                 // Task Count and Filter Info
                 HStack {

@@ -29,21 +29,35 @@ class EventKitManager: ObservableObject {
     
     func requestAuthorization() async {
         do {
-            let granted = try await eventStore.requestFullAccessToEvents()
+            // Request reminders authorization for proper task notifications
+            let granted = try await eventStore.requestFullAccessToReminders()
             isAuthorized = granted
             authorizationStatus = EKEventStore.authorizationStatus(for: .reminder)
+            
+            // Also ensure notification permissions are granted
+            await requestNotificationPermissionsAsync()
         } catch {
             print("Failed to request EventKit authorization: \(error)")
         }
     }
     
     private func requestNotificationPermissions() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-            if let error = error {
-                print("❌ Failed to request notification permissions: \(error)")
-            } else {
-                print("🔔 Notification permissions granted: \(granted)")
+        Task {
+            await requestNotificationPermissionsAsync()
+        }
+    }
+    
+    private func requestNotificationPermissionsAsync() async {
+        do {
+            let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+            print("🔔 Notification permissions granted: \(granted)")
+            
+            if granted {
+                // Setup notification categories for interactive notifications
+                EventKitManager.setupNotificationActions()
             }
+        } catch {
+            print("❌ Failed to request notification permissions: \(error)")
         }
     }
     
