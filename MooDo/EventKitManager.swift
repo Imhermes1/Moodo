@@ -11,40 +11,23 @@ import UserNotifications
 
 @MainActor
 class EventKitManager: ObservableObject {
-    private let eventStore = EKEventStore()
-    @Published var isAuthorized = false
-    @Published var authorizationStatus: EKAuthorizationStatus = .notDetermined
-    
     init() {
-        checkAuthorizationStatus()
-        requestNotificationPermissions()
+        self.eventStore = EKEventStore()
     }
+    
+    private let eventStore: EKEventStore
+    @Published var isAuthorized = false
     
     // MARK: - Authorization
     
-    private func checkAuthorizationStatus() {
-        authorizationStatus = EKEventStore.authorizationStatus(for: .reminder)
-        isAuthorized = authorizationStatus == .fullAccess
-    }
-    
     func requestAuthorization() async {
-        do {
-            // Request reminders authorization for proper task notifications
-            let granted = try await eventStore.requestFullAccessToReminders()
-            isAuthorized = granted
-            authorizationStatus = EKEventStore.authorizationStatus(for: .reminder)
-            
-            // Also ensure notification permissions are granted
-            await requestNotificationPermissionsAsync()
-        } catch {
-            print("Failed to request EventKit authorization: \(error)")
-        }
+        // Only request notification permissions since we're not using Apple Reminders
+        await requestNotificationPermissionsAsync()
+        isAuthorized = true // Always authorized since we only need notifications
     }
     
-    private func requestNotificationPermissions() {
-        Task {
-            await requestNotificationPermissionsAsync()
-        }
+    private func requestNotificationPermissions() async {
+        await requestNotificationPermissionsAsync()
     }
     
     private func requestNotificationPermissionsAsync() async {
@@ -61,108 +44,44 @@ class EventKitManager: ObservableObject {
         }
     }
     
-    // MARK: - Reminder Management
-    // Note: We use EventKit for calendar sync but MooDo notifications for user alerts
+    // MARK: - Notification Management
+    // Note: We use only MooDo notifications for user alerts
     
     func createReminder(for task: Task) async -> String? {
-        if !isAuthorized {
-            await requestAuthorization()
-            if !isAuthorized {
-                return nil
-            }
-        }
+        // Generate a unique identifier for this task notification
+        let notificationID = "moodo-task-\(task.id.uuidString)"
         
-        let reminder = EKReminder(eventStore: eventStore)
-        reminder.title = task.title
-        reminder.notes = task.description
-        reminder.priority = task.priority.eventKitPriority
+        // Schedule MooDo notification
+        await scheduleMooDoNotification(for: task, eventKitIdentifier: notificationID)
         
-        if let reminderDate = task.reminderAt {
-            reminder.dueDateComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: reminderDate)
-            
-            // Create an alarm for the reminder
-            let alarm = EKAlarm(absoluteDate: reminderDate)
-            reminder.addAlarm(alarm)
-        }
-        
-        // Set the calendar (default reminders list)
-        reminder.calendar = eventStore.defaultCalendarForNewReminders()
-        
-        do {
-            try eventStore.save(reminder, commit: true)
-            
-            // Schedule MooDo notification as primary
-            await scheduleMooDoNotification(for: task, eventKitIdentifier: reminder.calendarItemIdentifier)
-            
-            return reminder.calendarItemIdentifier
-        } catch {
-            print("Failed to save reminder: \(error)")
-            return nil
-        }
+        return notificationID
     }
     
     func updateReminder(for task: Task) async {
-        guard let eventKitID = task.eventKitIdentifier,
-              let reminder = eventStore.calendarItem(withIdentifier: eventKitID) as? EKReminder else {
-            // Create new reminder if it doesn't exist
-            _ = await createReminder(for: task)
-            return
-        }
-        
-        reminder.title = task.title
-        reminder.notes = task.description
-        reminder.priority = task.priority.eventKitPriority
-        reminder.isCompleted = task.isCompleted
-        
-        if let reminderDate = task.reminderAt {
-            reminder.dueDateComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: reminderDate)
-            
-            // Update alarm
-            reminder.alarms?.forEach { reminder.removeAlarm($0) }
-            let alarm = EKAlarm(absoluteDate: reminderDate)
-            reminder.addAlarm(alarm)
-        }
-        
-        do {
-            try eventStore.save(reminder, commit: true)
-            
-            // Update MooDo notification
-            await updateMooDoNotification(for: task)
-        } catch {
-            print("Failed to update reminder: \(error)")
-        }
+        // Update MooDo notification
+        await updateMooDoNotification(for: task)
     }
     
     func deleteReminder(eventKitIdentifier: String) {
-        guard let reminder = eventStore.calendarItem(withIdentifier: eventKitIdentifier) as? EKReminder else {
-            return
-        }
-        
-        do {
-            try eventStore.remove(reminder, commit: true)
-            
-            // Remove MooDo notification
-            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [eventKitIdentifier])
-        } catch {
-            print("Failed to delete reminder: \(error)")
-        }
+        // Remove MooDo notification
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [eventKitIdentifier])
     }
     
     // MARK: - MooDo Notifications (Primary)
     
     private func scheduleMooDoNotification(for task: Task, eventKitIdentifier: String) async {
-        guard let reminderDate = task.reminderAt, reminderDate > Date() else { 
+        guard let reminderDate = task.reminderAt, reminderDate > Date() else {
             print("🔔 Notification: Reminder date is in the past or nil")
-            return 
+            return
         }
         
         print("🔔 Scheduling notification for task: \(task.title)")
         print("🔔 Reminder date: \(reminderDate)")
         
         let content = UNMutableNotificationContent()
-        content.title = "MooDo Task Reminder"
+        content.title = "🎯 MooDo: Time for your task!"
         content.subtitle = task.title
-        content.body = task.description ?? "Time to complete your task!"
+        content.body = "Based on your mood, this is perfect timing for: \(task.description ?? "your task")"
         content.sound = .default
         content.categoryIdentifier = "MOODO_TASK_REMINDER"
         
@@ -292,4 +211,5 @@ extension EventKitManager {
         
         UNUserNotificationCenter.current().setNotificationCategories([category])
     }
-} 
+}
+

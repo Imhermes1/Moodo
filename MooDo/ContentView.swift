@@ -21,8 +21,10 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Universal background
+                // Universal background - extends to ALL edges including safe areas
                 UniversalBackground()
+                    .ignoresSafeArea(.all, edges: .all)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
                 ZStack {
                     // Main content area (full screen)
@@ -38,10 +40,8 @@ struct ContentView: View {
                         .tag(0)
                         
                         TasksView(
-                            showingAddTaskModal: $showingAddTaskModal,
-                            showingNotifications: $showingNotifications,
-                            showingAccountSettings: $showingAccountSettings,
                             taskManager: taskManager,
+                            moodManager: moodManager,
                             screenSize: geometry.size
                         )
                         .tag(1)
@@ -68,24 +68,26 @@ struct ContentView: View {
                         .tag(3)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-                    .animation(.easeInOut(duration: 0.3), value: selectedTab)
+                    .animation(.linear(duration: 0.25), value: selectedTab) // Use linear animation for better performance
                     
-                    // Bottom navigation overlay
-                    VStack {
+                    // Top navigation overlay (transparent background)
+                    VStack(spacing: 0) {
+                        TopNavigationView(
+                            onNotificationTap: { showingNotifications = true },
+                            onAccountTap: { showingAccountSettings = true },
+                            onAddTaskTap: { showingAddTaskModal = true },
+                            screenSize: geometry.size
+                        )
+                        Spacer()
+                    }
+                    
+                    // Bottom navigation overlay (transparent background)
+                    VStack(spacing: 0) {
                         Spacer()
                         MoodLensBottomNavigationView(selectedTab: $selectedTab, screenSize: geometry.size)
+                            .padding(.bottom, 25)
                     }
-                }
-                
-                // Top Navigation overlay
-                VStack {
-                    TopNavigationView(
-                        onNotificationTap: { showingNotifications = true },
-                        onAccountTap: { showingAccountSettings = true },
-                        onAddTaskTap: { showingAddTaskModal = true },
-                        screenSize: geometry.size
-                    )
-                    Spacer()
+                    .ignoresSafeArea(edges: .bottom)
                 }
                 
                 // CloudKit sync status overlay (positioned at top right)
@@ -93,7 +95,7 @@ struct ContentView: View {
                     HStack {
                         Spacer()
                         CloudSyncStatusView()
-                            .padding(.top, max(50, geometry.size.height * 0.07))
+                            .padding(.top, 10) // Minimal padding from top navigation
                             .padding(.trailing, max(16, geometry.size.width * 0.04))
                     }
                     Spacer()
@@ -103,7 +105,10 @@ struct ContentView: View {
         .background(Color.clear)
         .preferredColorScheme(.dark)
         .sheet(isPresented: $showingAddTaskModal) {
-            AddTaskModalView(taskManager: taskManager)
+            QuickAddTaskView(taskManager: taskManager, moodManager: moodManager)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+                .interactiveDismissDisabled(false)
         }
         .sheet(isPresented: $showingNotifications) {
             NotificationsView()

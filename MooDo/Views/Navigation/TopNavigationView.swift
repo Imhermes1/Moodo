@@ -15,46 +15,22 @@ struct TopNavigationView: View {
     
     var body: some View {
         ZStack {
-            // Glass background with subtle frost effect
+            // Frosted transparent white background
             RoundedRectangle(cornerRadius: 16)
-                .fill(.thinMaterial)
-                .opacity(0.35) // Increased opacity for frost effect
-                .background(
+                .fill(.ultraThinMaterial)
+                .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(.ultraThinMaterial)
-                        .opacity(0.05) // Added 5% frost layer
-                )
-                .background(
-                    // Subtle icy blue frost overlay
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.35),
-                                    Color.blue.opacity(0.25),
-                                    Color.cyan.opacity(0.22),
-                                    Color.white.opacity(0.30)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(Color.white.opacity(0.1))
                 )
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(0.15),
-                                    Color.white.opacity(0.05)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 0.5
-                        )
+                        .stroke(Color.black.opacity(0.8), lineWidth: 1.5)
                 )
-                .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                )
+                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 4)
             
             HStack {
                 // MoodLens logo and title
@@ -64,11 +40,11 @@ struct TopNavigationView: View {
                         .foregroundColor(.white)
                     
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("MooDo By LumoraLabs")
+                        Text("MooDo")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
-                        Text("Feel. Plan. Flow.")
-                            .font(.system(size: 10, weight: .regular))
+                        Text("Feel. Plan. Do.")
+                            .font(.system(size: 10, weight: .regular)) 
                             .foregroundColor(.white.opacity(0.7))
                     }
                 }
@@ -112,5 +88,4 @@ struct TopNavigationView: View {
         onAddTaskTap: {},
         screenSize: CGSize(width: 390, height: 844)
     )
-    .background(UniversalBackground().ignoresSafeArea())
 } 

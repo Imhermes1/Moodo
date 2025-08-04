@@ -40,7 +40,7 @@ struct DateFormatting {
     
     private static let compactFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yy.M.d, h:mm a"
+        formatter.dateFormat = "d/M/yy, h:mm a"
         return formatter
     }()
     
@@ -65,24 +65,53 @@ struct DateFormatting {
     }
     
     static func formatReminderTime(_ date: Date) -> String {
-        let now = Date()
         let calendar = Calendar.current
+        let now = Date()
         
-        if calendar.isDate(date, inSameDayAs: now) {
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            return "Today \(formatter.string(from: date))"
-        }
+        // Get start of this week (Sunday)
+        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+        let endOfWeek = calendar.date(byAdding: .day, value: 6, to: startOfWeek) ?? now
         
-        let daysUntil = calendar.dateComponents([.day], from: now, to: date).day ?? 0
-        if daysUntil == 1 {
-            return "Tomorrow \(shortTimeFormatter.string(from: date))"
-        } else if daysUntil <= 7 && daysUntil > 0 {
-            return dayTimeFormatter.string(from: date)
-        } else if daysUntil < 0 {
-            return "Overdue \(shortDateFormatter.string(from: date))"
+        // Check if the date is within this week
+        if date >= startOfWeek && date <= endOfWeek {
+            // This week - show day name and time
+            let dayFormatter = DateFormatter()
+            dayFormatter.dateFormat = "EEEE" // Full day name
+            
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "h:mm a" // 5:00 PM format
+            
+            let dayName = dayFormatter.string(from: date)
+            let timeString = timeFormatter.string(from: date)
+            
+            // Remove minutes if it's exactly on the hour (5:00 PM -> 5pm)
+            let cleanTimeString = timeString.replacingOccurrences(of: ":00", with: "").lowercased()
+            
+            // Check if it's today or tomorrow
+            if calendar.isDateInToday(date) {
+                return "Today \(cleanTimeString)"
+            } else if calendar.isDateInTomorrow(date) {
+                return "Tomorrow \(cleanTimeString)"
+            } else {
+                return "\(dayName) \(cleanTimeString)"
+            }
+        } else if date < now {
+            // Overdue
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "d MMM"
+            return "Overdue \(dateFormatter.string(from: date))"
         } else {
-            return shortDateFormatter.string(from: date) + " " + shortTimeFormatter.string(from: date)
+            // Beyond this week - show date and time
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "d MMM" // 15 Aug format
+            
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "h:mm a" // 5:00 PM format
+            
+            let dateString = dateFormatter.string(from: date)
+            let timeString = timeFormatter.string(from: date)
+            
+            return "\(dateString) \(timeString)"
         }
     }
     

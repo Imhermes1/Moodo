@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 // MARK: - All Tasks List View
 
@@ -77,30 +78,31 @@ struct AllTasksListView: View {
         VStack(spacing: 0) {
             VStack(spacing: 12) {
                 // Header
-                HStack {
-                    Text("All Tasks")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    Button(action: onAddTask) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "plus")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                            Text("Add")
-                                .font(.caption)
-                                .fontWeight(.medium)
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("All Tasks")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Button(action: onAddTask) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                Text("Add")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
                                 ZStack {
                                     // Base glass layer
-                            Capsule()
+                                    Capsule()
                                         .fill(.ultraThinMaterial)
                                         .opacity(0.4)
                                     
@@ -138,166 +140,11 @@ struct AllTasksListView: View {
                             )
                             .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
                             .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 10) // Reduced from 20 to 10 to lower the UI
-                
-                // Task Count and Filter Info
-                HStack {
-                    Text("\(filteredTasks.count) tasks")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-                    
-                        if selectedFilter != .all || selectedTag != nil {
-                            HStack(spacing: 4) {
-                    if selectedFilter != .all {
-                        Text("• \(selectedFilter.rawValue)")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.5))
-                                }
-                                if selectedTag != nil {
-                                    Text("• #\(selectedTag!)")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.5))
-                                }
-                            }
-                    }
-                    
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 8)
-                
-                    // Filter Dropdowns
-                    HStack(spacing: 12) {
-                        // Filter Dropdown
-                        VStack {
-                            Button(action: { showingFilterDropdown.toggle() }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: selectedFilter.icon)
-                                        .font(.caption)
-                                        .foregroundColor(.white)
-                                    
-                                    Text(selectedFilter.rawValue)
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.white)
-                                    
-                                    Image(systemName: "chevron.down")
-                                        .font(.caption2)
-                                        .foregroundColor(.white.opacity(0.7))
-                                        .rotationEffect(.degrees(showingFilterDropdown ? 180 : 0))
-                                }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(
-                                    ZStack {
-                                        Capsule()
-                                            .fill(.ultraThinMaterial)
-                                            .opacity(0.4)
-                                        
-                                        Capsule()
-                                            .fill(
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [
-                                                        .white.opacity(0.25),
-                                                        .white.opacity(0.08),
-                                                        .clear,
-                                                        .black.opacity(0.05)
-                                                    ]),
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                )
-                                            )
-                                        
-                                        Capsule()
-                                            .strokeBorder(
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [
-                                                        .white.opacity(0.6),
-                                                        .white.opacity(0.2),
-                                                        .white.opacity(0.05),
-                                                        .white.opacity(0.3)
-                                                    ]),
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                ),
-                                                lineWidth: 1.5
-                                            )
-                                    }
-                                )
-                                .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
-                                .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
-                            }
-                            .clipShape(Capsule())
-                            
-                            // Dropdown Menu
-                            if showingFilterDropdown {
-                                VStack(spacing: 0) {
-                        ForEach(TaskFilter.allCases, id: \.self) { filter in
-                                        Button(action: {
-                                            selectedFilter = filter
-                                            showingFilterDropdown = false
-                                        }) {
-                                            HStack(spacing: 8) {
-                                    Image(systemName: filter.icon)
-                                        .font(.caption)
-                                                    .foregroundColor(.white)
-                                                
-                                    Text(filter.rawValue)
-                                        .font(.caption)
-                                        .fontWeight(.medium)
-                                                    .foregroundColor(.white)
-                                                
-                                                Spacer()
-                                                
-                                                if selectedFilter == filter {
-                                                    Image(systemName: "checkmark")
-                                                        .font(.caption2)
-                                                        .foregroundColor(.green)
-                                                }
-                                            }
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(
-                                                filter == selectedFilter ? 
-                                                Color.white.opacity(0.1) : 
-                                                Color.clear
-                                            )
-                                        }
-                                    }
-                                }
-                                .background(
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(.ultraThinMaterial)
-                                            .opacity(0.4)
-                                        
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .strokeBorder(
-                                                LinearGradient(
-                                                    gradient: Gradient(colors: [
-                                                        .white.opacity(0.6),
-                                                        .white.opacity(0.2),
-                                                        .white.opacity(0.05),
-                                                        .white.opacity(0.3)
-                                                    ]),
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                ),
-                                                lineWidth: 1.5
-                                            )
-                                    }
-                                )
-                                .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .transition(.scale(scale: 0.95, anchor: .top).combined(with: .opacity))
-                            }
                         }
-                        .animation(.easeInOut(duration: 0.2), value: showingFilterDropdown)
-                        
-                        // Tags Dropdown
+                    }
+                    
+                    // Tags Dropdown underneath Add button
+                    HStack {
                         VStack {
                             Button(action: { showingTagDropdown.toggle() }) {
                                 HStack(spacing: 8) {
@@ -319,11 +166,11 @@ struct AllTasksListView: View {
                                 .padding(.vertical, 8)
                                 .background(
                                     ZStack {
-                                    Capsule()
+                                        Capsule()
                                             .fill(.ultraThinMaterial)
                                             .opacity(0.4)
                                         
-                                            Capsule()
+                                        Capsule()
                                             .fill(
                                                 LinearGradient(
                                                     gradient: Gradient(colors: [
@@ -458,7 +305,217 @@ struct AllTasksListView: View {
                         
                         Spacer()
                     }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 10) // Reduced from 20 to 10 to lower the UI
+                
+                // Filter and Tags in 2 rows
+                VStack(spacing: 12) {
+                    // Row 1: Filter and Tags side by side
+                    HStack(spacing: 12) {
+                        // Filter Dropdown
+                        VStack {
+                            Button(action: { showingFilterDropdown.toggle() }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: selectedFilter.icon)
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                    
+                                    Text(selectedFilter.rawValue)
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.white)
+                                    
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption2)
+                                        .foregroundColor(.white.opacity(0.7))
+                                        .rotationEffect(.degrees(showingFilterDropdown ? 180 : 0))
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    Capsule()
+                                        .fill(.ultraThinMaterial)
+                                        .opacity(0.4)
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                                .clipShape(Capsule())
+                            }
+                            
+                            // Dropdown Menu
+                            if showingFilterDropdown {
+                                VStack(spacing: 0) {
+                                    ForEach(TaskFilter.allCases, id: \.self) { filter in
+                                        Button(action: {
+                                            selectedFilter = filter
+                                            showingFilterDropdown = false
+                                        }) {
+                                            HStack(spacing: 8) {
+                                                Image(systemName: filter.icon)
+                                                    .font(.caption)
+                                                    .foregroundColor(.white)
+                                                
+                                                Text(filter.rawValue)
+                                                    .font(.caption)
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.white)
+                                                
+                                                Spacer()
+                                                
+                                                if selectedFilter == filter {
+                                                    Image(systemName: "checkmark")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.green)
+                                                }
+                                            }
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 8)
+                                            .background(
+                                                filter == selectedFilter ? 
+                                                Color.white.opacity(0.1) : 
+                                                Color.clear
+                                            )
+                                        }
+                                    }
+                                }
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                        .opacity(0.4)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .transition(.scale(scale: 0.95, anchor: .top).combined(with: .opacity))
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.2), value: showingFilterDropdown)
+                        
+                        // Tags Dropdown
+                        VStack {
+                            Button(action: { showingTagDropdown.toggle() }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "tag")
+                                        .font(.caption)
+                                        .foregroundColor(.white)
+                                    
+                                    Text(selectedTag ?? "All Tags")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.white)
+                                    
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption2)
+                                        .foregroundColor(.white.opacity(0.7))
+                                        .rotationEffect(.degrees(showingTagDropdown ? 180 : 0))
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(
+                                    Capsule()
+                                        .fill(.ultraThinMaterial)
+                                        .opacity(0.4)
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                                .clipShape(Capsule())
+                            }
+                            
+                            // Dropdown Menu
+                            if showingTagDropdown {
+                                VStack(spacing: 0) {
+                                    // All Tags option
+                                    Button(action: {
+                                        selectedTag = nil
+                                        showingTagDropdown = false
+                                    }) {
+                                        HStack(spacing: 8) {
+                                            Image(systemName: "tag")
+                                                .font(.caption)
+                                                .foregroundColor(.white)
+                                            
+                                            Text("All Tags")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.white)
+                                            
+                                            Spacer()
+                                            
+                                            if selectedTag == nil {
+                                                Image(systemName: "checkmark")
+                                                    .font(.caption2)
+                                                    .foregroundColor(.green)
+                                            }
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                        .background(
+                                            selectedTag == nil ? 
+                                            Color.white.opacity(0.1) : 
+                                            Color.clear
+                                        )
+                                    }
+                                    
+                                    // Individual tags
+                                    ForEach(allTags, id: \.self) { tag in
+                                        Button(action: {
+                                            selectedTag = tag
+                                            showingTagDropdown = false
+                                        }) {
+                                            HStack(spacing: 8) {
+                                                Image(systemName: "tag.fill")
+                                                    .font(.caption)
+                                                    .foregroundColor(.blue)
+                                                
+                                                Text("#\(tag)")
+                                                    .font(.caption)
+                                                    .fontWeight(.medium)
+                                                    .foregroundColor(.white)
+                                                
+                                                Spacer()
+                                                
+                                                if selectedTag == tag {
+                                                    Image(systemName: "checkmark")
+                                                        .font(.caption2)
+                                                        .foregroundColor(.green)
+                                                }
+                                            }
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 8)
+                                            .background(
+                                                tag == selectedTag ? 
+                                                Color.white.opacity(0.1) : 
+                                                Color.clear
+                                            )
+                                        }
+                                    }
+                                }
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                        .opacity(0.4)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .transition(.scale(scale: 0.95, anchor: .top).combined(with: .opacity))
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.2), value: showingTagDropdown)
+                        
+                        Spacer()
+                    }
                     .padding(.horizontal, 20)
+                }
                 .padding(.bottom, 16)
             }
             .background(
@@ -507,17 +564,15 @@ struct AllTasksListView: View {
                             )
                     }
                 )
-                .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
-                .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
-                .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
+                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .padding(.horizontal, 8)
+            .drawingGroup() // GPU acceleration for complex task list rendering
             
             // Performance optimized task list with LazyVStack
             if !filteredTasks.isEmpty {
                 LazyVStack(spacing: 12) {
-                    ForEach(filteredTasks.indices, id: \.self) { index in
-                        let task = filteredTasks[index]
+                    ForEach(filteredTasks, id: \.id) { task in
                         StreamlinedTaskCard(
                             task: task,
                             onToggleComplete: {
@@ -533,13 +588,7 @@ struct AllTasksListView: View {
                             },
                             taskManager: taskManager
                         )
-                        .id(task.id) // Stable identity for performance
-                        .onAppear {
-                            // Preload next tasks for smooth scrolling
-                            if index == filteredTasks.count - 5 && filteredTasks.count > 10 {
-                                // Trigger preload if needed
-                            }
-                        }
+                        .gpuAccelerated() // GPU acceleration for task cards
                     }
                 }
                 .padding(.horizontal, 8)
@@ -937,6 +986,14 @@ struct CompactTaskRowView: View {
         .buttonStyle(PlainButtonStyle())
         .offset(y: waveOffset)
         .rotationEffect(.degrees(waveRotation))
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                HapticManager.shared.notification(.warning)
+                taskManager.deleteTask(task)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
         .onAppear {
             // Create wave-like floating animation with different timing for each task
             let delay = Double.random(in: 0...2)
@@ -1092,6 +1149,14 @@ struct MoodLensTaskRowView: View {
             .opacity(task.isCompleted ? 0.75 : 1.0)
         }
         .buttonStyle(PlainButtonStyle())
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                HapticManager.shared.notification(.warning)
+                taskManager.deleteTask(task)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
         .sheet(isPresented: $showingEditView) {
             EditTaskView(task: task, onSave: { updatedTask in
                 taskManager.updateTask(updatedTask)
@@ -1116,14 +1181,14 @@ struct StreamlinedTaskCard: View {
         Button(action: {
             showingEditView = true
         }) {
-            VStack(spacing: 8) { // Added spacing between rows
+            VStack(spacing: 8) {
                 // Row 1: Completion + Title + Priority
                 HStack(spacing: 12) {
                     // Completion button
                     Button(action: onToggleComplete) {
                         ZStack {
                             Circle()
-                                .stroke(task.isCompleted ? task.emotion.color : .white.opacity(0.4), lineWidth: 2)
+                                .stroke(task.emotion.color, lineWidth: 2)
                                 .frame(width: 24, height: 24)
                             
                             if task.isCompleted {
@@ -1134,11 +1199,11 @@ struct StreamlinedTaskCard: View {
                             }
                         }
                     }
-                    .buttonStyle(PlainButtonStyle()) // Prevent tap propagation
+                    .buttonStyle(PlainButtonStyle())
                     
                     // Task title
                     Text(task.title)
-                        .font(.subheadline)
+                        .font(.body)
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .strikethrough(task.isCompleted)
@@ -1147,320 +1212,144 @@ struct StreamlinedTaskCard: View {
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    // Mood indicator
-                    HStack(spacing: 4) {
-                        Image(systemName: task.emotion.icon)
-                            .font(.caption2)
-                            .foregroundColor(task.emotion.color)
-                        
-                        Text(task.emotion.displayName)
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        ZStack {
-                            Capsule()
-                                .fill(.ultraThinMaterial)
-                                .opacity(0.4)
-                            
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            .white.opacity(0.25),
-                                            .white.opacity(0.08),
-                                            .clear,
-                                            .black.opacity(0.05)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                            
-                            Capsule()
-                                .strokeBorder(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            .white.opacity(0.6),
-                                            .white.opacity(0.2),
-                                            .white.opacity(0.05),
-                                            .white.opacity(0.3)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1.5
-                                )
-                        }
-                    )
-                    .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
-                    .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
-                    .clipShape(Capsule())
-                }
-                
-                // Row 2: Metadata + Tags + Time info
-                HStack(spacing: 12) {
-                // Creation date badge
-                HStack(spacing: 4) {
-                    Image(systemName: "calendar")
-                        .font(.caption2)
-                        .foregroundColor(.white.opacity(0.7))
-                    Text("Created \(formatCreationDate(task.createdAt))")
+                    Spacer()
+                    
+                    // Priority badge
+                    Text(task.priority.displayName)
                         .font(.caption2)
                         .fontWeight(.medium)
-                        .foregroundColor(.white.opacity(0.7))
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(
-                    ZStack {
-                        Capsule()
-                            .fill(.ultraThinMaterial)
-                            .opacity(0.3)
-                        
-                        Capsule()
-                            .fill(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        .white.opacity(0.15),
-                                        .white.opacity(0.05),
-                                        .clear,
-                                        .black.opacity(0.02)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(task.priority.color.opacity(0.3))
+                                .background(.thinMaterial)
+                                .opacity(0.6)
+                                .overlay(
+                                    Capsule()
+                                        .stroke(.white.opacity(0.3), lineWidth: 1)
                                 )
-                            )
-                        
-                        Capsule()
-                            .strokeBorder(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        .white.opacity(0.4),
-                                        .white.opacity(0.1),
-                                        .white.opacity(0.02),
-                                        .white.opacity(0.2)
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                    }
-                )
-                .shadow(color: .black.opacity(0.04), radius: 2, x: 0, y: 1)
-                .shadow(color: .white.opacity(0.05), radius: 1, x: 0, y: -0.25)
-                .clipShape(Capsule())
+                        )
+                }
                 
-                // Tags (if any)
-                if !task.tags.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            ForEach(task.tags.prefix(3), id: \.self) { tag in
-                                HStack(spacing: 3) {
-                                    Image(systemName: "tag.fill")
-                                        .font(.caption2)
-                                        .foregroundColor(.blue)
-                                    Text("#\(tag)")
-                                        .font(.caption2)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.white)
-                                }
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    ZStack {
+                // Row 2: Tags + Time info
+                HStack(spacing: 12) {
+                    // Tags (if any)
+                    if !task.tags.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 6) {
+                                ForEach(task.tags.prefix(3), id: \.self) { tag in
+                                    HStack(spacing: 3) {
+                                        Image(systemName: "tag.fill")
+                                            .font(.caption2)
+                                            .foregroundColor(.blue)
+                                        Text("#\(tag)")
+                                            .font(.caption2)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(.white)
+                                    }
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(
                                         Capsule()
                                             .fill(.ultraThinMaterial)
                                             .opacity(0.3)
-                                        
-                                        Capsule()
-                                            .strokeBorder(.blue.opacity(0.4), lineWidth: 1)
-                                    }
-                                )
-                                .clipShape(Capsule())
-                            }
-                            
-                            if task.tags.count > 3 {
-                                Text("+\(task.tags.count - 3)")
-                                    .font(.caption2)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.white.opacity(0.7))
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(Color.white.opacity(0.1))
+                                            .overlay(
+                                                Capsule()
+                                                    .stroke(.blue.opacity(0.4), lineWidth: 1)
+                                            )
+                                    )
                                     .clipShape(Capsule())
+                                }
+                                
+                                if task.tags.count > 3 {
+                                    Text("+\(task.tags.count - 3)")
+                                        .font(.caption2)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.white.opacity(0.7))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.white.opacity(0.1))
+                                        .clipShape(Capsule())
+                                }
                             }
                         }
                     }
-                }
-                
-                Spacer()
-                
-                // Time info (reminder/deadline) - enhanced glassy design
-                if let reminderAt = task.reminderAt {
-                    HStack(spacing: 3) {
-                        Image(systemName: "bell.fill") // Changed from clock.fill to bell.fill
-                            .font(.caption2)
-                            .foregroundColor(.blue)
-                        Text(formatReminderShort(reminderAt)) // Use new compact format
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        ZStack {
+                    
+                    Spacer()
+                    
+                    // Time info (reminder/deadline)
+                    if let reminderAt = task.reminderAt {
+                        HStack(spacing: 3) {
+                            Image(systemName: "bell.fill")
+                                .font(.caption2)
+                                .foregroundColor(.blue)
+                            Text(formatReminderShort(reminderAt))
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
                             Capsule()
                                 .fill(.ultraThinMaterial)
                                 .opacity(0.4)
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            .white.opacity(0.25),
-                                            .white.opacity(0.08),
-                                            .clear,
-                                            .black.opacity(0.05)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                                .overlay(
+                                    Capsule()
+                                        .stroke(.white.opacity(0.3), lineWidth: 1)
                                 )
-                            Capsule()
-                                .strokeBorder(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            .white.opacity(0.6),
-                                            .white.opacity(0.2),
-                                            .white.opacity(0.05),
-                                            .white.opacity(0.3)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1.5
-                                )
-                        }
-                    )
-                    .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
-                    .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
-                    .clipShape(Capsule())
-                } else if let deadlineAt = task.deadlineAt {
-                    HStack(spacing: 3) {
-                        Image(systemName: "calendar.badge.clock")
-                            .font(.caption2)
-                            .foregroundColor(.red)
-                        Text(formatReminderTime(deadlineAt))
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                            .foregroundColor(.white)
+                        )
+                        .clipShape(Capsule())
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(
-                        ZStack {
-                            Capsule()
-                                .fill(.ultraThinMaterial)
-                                .opacity(0.4)
-                            
-                            Capsule()
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            .white.opacity(0.25),
-                                            .white.opacity(0.08),
-                                            .clear,
-                                            .black.opacity(0.05)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                            
-                            Capsule()
-                                .strokeBorder(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            .white.opacity(0.6),
-                                            .white.opacity(0.2),
-                                            .white.opacity(0.05),
-                                            .white.opacity(0.3)
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 1.5
-                                )
-                        }
-                    )
-                    .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
-                    .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
-                    .clipShape(Capsule())
                 }
             }
-        }
         }
         .buttonStyle(PlainButtonStyle()) // Prevent default button styling
         .padding(.horizontal, 16)
         .padding(.top, 12) // Reduced by 2 more points
         .padding(.bottom, 14) // Reduced by 2 points
         .background(
-            ZStack {
-                // Base glass layer with 3D depth
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.4)
-                
-                // Inner highlight layer for 3D effect
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                .white.opacity(0.25),
-                                .white.opacity(0.08),
-                                .clear,
-                                .black.opacity(0.05)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+            // Frosted glass effect for task rows
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.thinMaterial)
+                .opacity(0.6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    .white.opacity(0.8),
+                                    .white.opacity(0.3),
+                                    .white.opacity(0.1),
+                                    .white.opacity(0.6)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5
                         )
-                    )
-                
-                // Outer stroke with glass shimmer
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                .white.opacity(0.6),
-                                .white.opacity(0.2),
-                                .white.opacity(0.05),
-                                .white.opacity(0.3)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.5
-                    )
-                
-                // Inner stroke for depth
-                RoundedRectangle(cornerRadius: 15)
-                    .strokeBorder(
-                        .white.opacity(0.1),
-                        lineWidth: 0.5
-                    )
-            }
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(.white.opacity(0.2), lineWidth: 0.5)
+                        .blur(radius: 1)
+                )
+                .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
+                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
         )
-        .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 3)
-        .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .opacity(task.isCompleted ? 0.75 : 1.0)
-        .scaleEffect(task.isCompleted ? 0.98 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: task.isCompleted)
+        .animation(.easeInOut(duration: 0.15), value: task.isCompleted)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                HapticManager.shared.notification(.warning)
+                taskManager.deleteTask(task)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
         .sheet(isPresented: $showingEditView) {
             EditTaskView(task: task, onSave: { updatedTask in
                 taskManager.updateTask(updatedTask)
@@ -1471,52 +1360,15 @@ struct StreamlinedTaskCard: View {
     }
     
     private func formatCreationDate(_ date: Date) -> String {
-        let now = Date()
-        let calendar = Calendar.current
-        
-        if calendar.isDateInToday(date) {
-            return "today"
-        } else if calendar.isDateInYesterday(date) {
-            return "yesterday"
-        } else {
-            let daysAgo = calendar.dateComponents([.day], from: date, to: now).day ?? 0
-            if daysAgo <= 7 {
-                return "\(daysAgo) days ago"
-            } else {
-                let formatter = DateFormatter()
-                formatter.dateStyle = .short
-                return formatter.string(from: date)
-            }
-        }
+        return DateFormatting.formatCreationDate(date)
     }
     
     private func formatReminderTime(_ date: Date) -> String {
-        let now = Date()
-        let calendar = Calendar.current
-        
-        if calendar.isDate(date, inSameDayAs: now) {
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        }
-        
-        let daysUntil = calendar.dateComponents([.day], from: now, to: date).day ?? 0
-        if daysUntil <= 7 && daysUntil > 0 {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "E, HH:mm"
-            return formatter.string(from: date)
-        } else {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .short
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
-        }
+        return DateFormatting.formatReminderTime(date)
     }
 
     // Add a new helper for compact date formatting
     private func formatReminderShort(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yy.M.d, h:mm a"
-        return formatter.string(from: date)
+        return DateFormatting.formatReminderShort(date)
     }
 }

@@ -218,6 +218,164 @@ class NaturalLanguageProcessor: ObservableObject {
         #if DEBUG
         print("❌ No time pattern matched for: '\(input)'")
         #endif
+        
+        // Enhanced date patterns for days of week and specific dates
+        if let smartDate = extractSmartDate(from: lowercased, now: now) {
+            #if DEBUG
+            print("✅ Extracted smart date: \(smartDate)")
+            #endif
+            return smartDate
+        }
+        
+        return nil
+    }
+    
+    // MARK: - Enhanced Date Extraction
+    
+    private func extractSmartDate(from input: String, now: Date) -> Date? {
+        let words = input.components(separatedBy: " ")
+        
+        // Day names mapping
+        let dayNames = [
+            "monday": 2, "tuesday": 3, "wednesday": 4, "thursday": 5,
+            "friday": 6, "saturday": 7, "sunday": 1,
+            "mon": 2, "tue": 3, "wed": 4, "thu": 5, "fri": 6, "sat": 7, "sun": 1
+        ]
+        
+        // Month names mapping
+        let monthNames = [
+            "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
+            "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
+            "jan": 1, "feb": 2, "mar": 3, "apr": 4, "jun": 6, "jul": 7, "aug": 8,
+            "sep": 9, "oct": 10, "nov": 11, "dec": 12
+        ]
+        
+        var targetDate: Date?
+        var timeComponents: (hour: Int, minute: Int)?
+        
+        // Extract time (5pm, 3:30pm, etc.)
+        for word in words {
+            if word.contains("pm") || word.contains("am") {
+                let isPM = word.contains("pm")
+                let timeString = word.replacingOccurrences(of: "pm", with: "").replacingOccurrences(of: "am", with: "")
+                
+                if timeString.contains(":") {
+                    let timeParts = timeString.components(separatedBy: ":")
+                    if timeParts.count == 2, let hour = Int(timeParts[0]), let minute = Int(timeParts[1]) {
+                        var adjustedHour = hour
+                        if isPM && hour != 12 {
+                            adjustedHour += 12
+                        } else if !isPM && hour == 12 {
+                            adjustedHour = 0
+                        }
+                        timeComponents = (adjustedHour, minute)
+                    }
+                } else if let hour = Int(timeString) {
+                    var adjustedHour = hour
+                    if isPM && hour != 12 {
+                        adjustedHour += 12
+                    } else if !isPM && hour == 12 {
+                        adjustedHour = 0
+                    }
+                    timeComponents = (adjustedHour, 0)
+                }
+                break
+            }
+        }
+        
+        // Handle "tomorrow"
+        if input.contains("tomorrow") {
+            targetDate = calendar.date(byAdding: .day, value: 1, to: now)
+        }
+        
+        // Handle "today"
+        if input.contains("today") {
+            targetDate = now
+        }
+        
+        // Handle "next week" patterns
+        if input.contains("next week") {
+            targetDate = calendar.date(byAdding: .weekOfYear, value: 1, to: now)
+        }
+        
+        // Handle day names (friday, next friday, etc.)
+        for (dayName, dayNumber) in dayNames {
+            if input.contains(dayName) {
+                let currentWeekday = calendar.component(.weekday, from: now)
+                var daysToAdd = dayNumber - currentWeekday
+                
+                // If it's the same day or earlier in the week, go to next week
+                if daysToAdd <= 0 {
+                    daysToAdd += 7
+                }
+                
+                // Handle "next" modifier
+                if input.contains("next \(dayName)") || input.contains("next week") {
+                    daysToAdd += 7
+                }
+                
+                targetDate = calendar.date(byAdding: .day, value: daysToAdd, to: now)
+                break
+            }
+        }
+        
+        // Handle specific dates (august 15, 15th august, etc.)
+        for (monthName, monthNumber) in monthNames {
+            if input.contains(monthName) {
+                // Look for day number near the month
+                for word in words {
+                    let cleanWord = word.replacingOccurrences(of: "th", with: "")
+                        .replacingOccurrences(of: "st", with: "")
+                        .replacingOccurrences(of: "nd", with: "")
+                        .replacingOccurrences(of: "rd", with: "")
+                        .replacingOccurrences(of: ",", with: "")
+                    
+                    if let day = Int(cleanWord), day >= 1 && day <= 31 {
+                        var dateComponents = calendar.dateComponents([.year], from: now)
+                        dateComponents.month = monthNumber
+                        dateComponents.day = day
+                        
+                        // If the date is in the past this year, assume next year
+                        let potentialDate = calendar.date(from: dateComponents)
+                        if let date = potentialDate, date < now {
+                            dateComponents.year = (dateComponents.year ?? 0) + 1
+                        }
+                        
+                        targetDate = calendar.date(from: dateComponents)
+                        break
+                    }
+                }
+                break
+            }
+        }
+        
+        // Combine date and time if both found
+        if let date = targetDate, let time = timeComponents {
+            var dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
+            dateComponents.hour = time.hour
+            dateComponents.minute = time.minute
+            
+            let finalDate = calendar.date(from: dateComponents)
+            
+            // If time has passed today, and we're setting for "today", move to tomorrow
+            if input.contains("today"), let result = finalDate, result <= now {
+                var tomorrowComponents = calendar.dateComponents([.year, .month, .day], from: calendar.date(byAdding: .day, value: 1, to: now) ?? now)
+                tomorrowComponents.hour = time.hour
+                tomorrowComponents.minute = time.minute
+                return calendar.date(from: tomorrowComponents)
+            }
+            
+            return finalDate
+        }
+        
+        // If we found a date but no time, default to 9 AM
+        if let date = targetDate {
+            var dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
+            dateComponents.hour = 9
+            dateComponents.minute = 0
+            return calendar.date(from: dateComponents)
+        }
+        
         return nil
     }
     

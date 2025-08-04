@@ -54,4 +54,30 @@ class HapticManager {
     func voiceRecordingStopped() {
         impactMedium.impactOccurred()
     }
+    
+    // Generic methods for new TasksView
+    func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        switch style {
+        case .light:
+            impactLight.impactOccurred()
+        case .medium:
+            impactMedium.impactOccurred()
+        case .heavy:
+            impactHeavy.impactOccurred()
+        @unknown default:
+            impactMedium.impactOccurred()
+        }
+    }
+    
+    func success() {
+        notificationGenerator.notificationOccurred(.success)
+    }
+    
+    func selection() {
+        impactLight.impactOccurred()
+    }
+    
+    func notification(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        notificationGenerator.notificationOccurred(type)
+    }
 }

@@ -127,8 +127,8 @@ struct AnimatedGlassPanelBackground: View {
             .shadow(color: .white.opacity(0.03), radius: 2, x: 0, y: -1)
             .shadow(color: .black.opacity(0.15), radius: 15, x: 0, y: 8)
             .onAppear {
-                // Animated light sweep that moves across the glass (slower)
-                withAnimation(.linear(duration: 5.0).delay(Double.random(in: 0...3)).repeatForever(autoreverses: false)) {
+                // Animated light sweep that moves across the glass (much slower for performance)
+                withAnimation(.linear(duration: 8.0).delay(Double.random(in: 0...2)).repeatForever(autoreverses: false)) {
                     lightSweepOffset = 400
                 }
             }

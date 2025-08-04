@@ -13,6 +13,8 @@ struct EditTaskView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var editedTask: Task
     @State private var tagText = ""
+    @FocusState private var titleFieldFocused: Bool
+    @FocusState private var tagFieldFocused: Bool
     let onSave: (Task) -> Void
     let onDelete: ((Task) -> Void)?
     
@@ -23,18 +25,64 @@ struct EditTaskView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                // Universal background
-                UniversalBackground()
+        ZStack {
+            // Universal background
+            UniversalBackground()
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Custom header
+                HStack {
+                    Button("Cancel") {
+                        HapticManager.shared.impact(.light)
+                        dismiss()
+                    }
+                    .font(.body)
+                    .foregroundColor(.white.opacity(0.8))
+                    
+                    Spacer()
+                    
+                    Text("Edit Task")
+                        .font(.headline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Button("Save") {
+                        HapticManager.shared.success()
+                        onSave(editedTask)
+                        dismiss()
+                    }
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(editedTask.title.trimmingCharacters(in: .whitespaces).isEmpty ? .white.opacity(0.5) : .peacefulGreen)
+                    .disabled(editedTask.title.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Title Editor
+                        // Gentle header for mental health
+                        VStack(spacing: 8) {
+                            Text("Let's refine this task together")
+                                .font(.title3)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                            
+                            Text("Take your time, every detail matters 💙")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
+                        .padding(.top, 8)
+                        
+                        // Title Editor with enhanced styling
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Image(systemName: "textformat")
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.blue)
                                     .font(.title3)
                                 Text("Task Title")
                                     .font(.headline)
@@ -46,9 +94,16 @@ struct EditTaskView: View {
                                 .font(.body)
                                 .foregroundColor(.white)
                                 .padding(16)
-                                .background(GlassPanelBackground())
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .stroke(Color.calmingBlue.opacity(0.5), lineWidth: 1)
+                                        )
+                                )
                                 .lineLimit(2...4)
+                                .focused($titleFieldFocused)
                         }
                         
                         // Description Editor
@@ -70,8 +125,14 @@ struct EditTaskView: View {
                                 .font(.body)
                                 .foregroundColor(.white)
                                 .padding(16)
-                                .background(GlassPanelBackground())
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16)
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
                                 .lineLimit(3...6)
                         }
                         
@@ -104,8 +165,14 @@ struct EditTaskView: View {
                                 .pickerStyle(MenuPickerStyle())
                                 .foregroundColor(.white)
                                 .padding(12)
-                                .background(GlassPanelBackground())
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
                             }
                             
                             // Task Characteristic
@@ -134,8 +201,14 @@ struct EditTaskView: View {
                                 .pickerStyle(MenuPickerStyle())
                                 .foregroundColor(.white)
                                 .padding(12)
-                                .background(GlassPanelBackground())
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
                             }
 
                         }
@@ -177,8 +250,14 @@ struct EditTaskView: View {
                                 }
                             }
                             .padding(16)
-                            .background(GlassPanelBackground())
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(.white.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
                         }
                         
                         // Deadline Section
@@ -218,8 +297,14 @@ struct EditTaskView: View {
                                 }
                             }
                             .padding(16)
-                            .background(GlassPanelBackground())
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(.white.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
                         }
                         
                         // Tags Section
@@ -240,17 +325,24 @@ struct EditTaskView: View {
                                     TextField("Add tag", text: $tagText)
                                         .font(.body)
                                         .foregroundColor(.white)
+                                        .focused($tagFieldFocused)
                                         .onSubmit {
                                             addTag()
                                         }
                                     
                                     Button("Add", action: addTag)
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(.calmingBlue)
                                         .disabled(tagText.trimmingCharacters(in: .whitespaces).isEmpty)
                                 }
                                 .padding(12)
-                                .background(GlassPanelBackground())
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
                                 
                                 // Current tags
                                 if !editedTask.tags.isEmpty {
@@ -281,43 +373,46 @@ struct EditTaskView: View {
                                 }
                             }
                             .padding(16)
-                            .background(GlassPanelBackground())
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .background(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .stroke(.white.opacity(0.3), lineWidth: 1)
+                                    )
+                            )
+                        }
+                        
+                        // Delete button below tags if available
+                        if let onDelete = onDelete {
+                            Button("Delete Task") {
+                                HapticManager.shared.notification(.warning)
+                                onDelete(editedTask)
+                                dismiss()
+                            }
+                            .foregroundColor(.red)
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(.ultraThinMaterial)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(.red.opacity(0.5), lineWidth: 1)
+                                    )
+                            )
                         }
                     }
                     .padding(20)
                 }
             }
-            .navigationTitle("Edit Task")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button("Save") {
-                            onSave(editedTask)
-                            dismiss()
-                        }
-                        
-                        if let onDelete = onDelete {
-                            Button("Delete Task", role: .destructive) {
-                                onDelete(editedTask)
-                                dismiss()
-                            }
-                        }
-                    } label: {
-                        Text("Save")
-                            .foregroundColor(.white)
-                    }
-                    .disabled(editedTask.title.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            }
+        }
+        .onTapGesture {
+            // Dismiss keyboard when tapping outside
+            titleFieldFocused = false
+            tagFieldFocused = false
         }
     }
     
@@ -345,8 +440,44 @@ struct AddTaskListView: View {
     private let icons = ["list.bullet", "person", "briefcase", "heart", "cart", "house", "book", "gamecontroller"]
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
+        ZStack {
+            // Universal background
+            UniversalBackground()
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Custom header
+                HStack {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .font(.body)
+                    .foregroundColor(.white.opacity(0.8))
+                    
+                    Spacer()
+                    
+                    Text("New List")
+                        .font(.headline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Button("Add") {
+                        let newList = TaskList(name: listName, color: Color(hex: selectedColor), icon: selectedIcon)
+                        onAdd(newList)
+                        dismiss()
+                    }
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .foregroundColor(listName.isEmpty ? .white.opacity(0.5) : .peacefulGreen)
+                    .disabled(listName.isEmpty)
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
+                
+                ScrollView {
+                    VStack(spacing: 24) {
                 // List name
                 VStack(alignment: .leading, spacing: 8) {
                     Text("List Name")
@@ -354,8 +485,13 @@ struct AddTaskListView: View {
                         .foregroundColor(.white)
                     
                     TextField("Enter list name", text: $listName)
-                        .textFieldStyle(.roundedBorder)
-                        .foregroundColor(.black)
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(.ultraThinMaterial)
+                                .stroke(.white.opacity(0.15), lineWidth: 1)
+                        )
+                        .foregroundColor(.white)
                 }
                 
                 // Color selection
@@ -403,26 +539,9 @@ struct AddTaskListView: View {
                     }
                 }
                 
-                Spacer()
-            }
-            .padding(24)
-            .navigationTitle("New List")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
+                        Spacer()
                     }
-                    .foregroundColor(.white)
-                }
-                
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Add") {
-                        let newList = TaskList(name: listName, color: Color(hex: selectedColor), icon: selectedIcon)
-                        onAdd(newList)
-                        dismiss()
-                    }
-                    .foregroundColor(.white)
-                    .disabled(listName.isEmpty)
+                    .padding(24)
                 }
             }
         }

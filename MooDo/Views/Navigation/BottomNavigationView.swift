@@ -15,7 +15,7 @@ struct MoodLensBottomNavigationView: View {
         HStack(spacing: 0) {
             // Home tab
             Button(action: { 
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 0
                 }
             }) {
@@ -25,7 +25,7 @@ struct MoodLensBottomNavigationView: View {
                     Text("Home")
                         .font(.system(size: 10, weight: .medium))
                 }
-                .foregroundColor(selectedTab == 0 ? .white : .white.opacity(0.7))
+                .foregroundColor(selectedTab == 0 ? .black : .black.opacity(0.7))
                 .frame(maxWidth: .infinity)
                 .scaleEffect(selectedTab == 0 ? 1.05 : 1.0)
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTab)
@@ -33,7 +33,7 @@ struct MoodLensBottomNavigationView: View {
             
             // Tasks tab
             Button(action: { 
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 1
                 }
             }) {
@@ -43,7 +43,7 @@ struct MoodLensBottomNavigationView: View {
                     Text("Tasks")
                         .font(.system(size: 10, weight: .medium))
                 }
-                .foregroundColor(selectedTab == 1 ? .white : .white.opacity(0.7))
+                .foregroundColor(selectedTab == 1 ? .black : .black.opacity(0.7))
                 .frame(maxWidth: .infinity)
                 .scaleEffect(selectedTab == 1 ? 1.05 : 1.0)
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTab)
@@ -51,7 +51,7 @@ struct MoodLensBottomNavigationView: View {
             
             // Voice tab
             Button(action: { 
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 2
                 }
             }) {
@@ -61,7 +61,7 @@ struct MoodLensBottomNavigationView: View {
                     Text("Voice")
                         .font(.system(size: 10, weight: .medium))
                 }
-                .foregroundColor(selectedTab == 2 ? .white : .white.opacity(0.7))
+                .foregroundColor(selectedTab == 2 ? .black : .black.opacity(0.7))
                 .frame(maxWidth: .infinity)
                 .scaleEffect(selectedTab == 2 ? 1.05 : 1.0)
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTab)
@@ -69,7 +69,7 @@ struct MoodLensBottomNavigationView: View {
             
             // Insights tab
             Button(action: { 
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 3
                 }
             }) {
@@ -79,7 +79,7 @@ struct MoodLensBottomNavigationView: View {
                     Text("Insights")
                         .font(.system(size: 10, weight: .medium))
                 }
-                .foregroundColor(selectedTab == 3 ? .white : .white.opacity(0.7))
+                .foregroundColor(selectedTab == 3 ? .black : .black.opacity(0.7))
                 .frame(maxWidth: .infinity)
                 .scaleEffect(selectedTab == 3 ? 1.05 : 1.0)
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTab)
@@ -88,50 +88,25 @@ struct MoodLensBottomNavigationView: View {
         .padding(.vertical, max(10, screenSize.height * 0.015))
         .background(
             ZStack {
-                // Glass background with subtle frost effect matching the top navigation
+                // Frosted transparent white background
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(.thinMaterial)
-                    .opacity(0.35) // Increased opacity for frost effect
-                    .background(
+                    .fill(.ultraThinMaterial)
+                    .overlay(
                         RoundedRectangle(cornerRadius: 20)
-                            .fill(.ultraThinMaterial)
-                            .opacity(0.15) // Added 15% frost layer (increased by 5% more)
-                    )
-                    .background(
-                        // Subtle icy blue frost overlay
-                        RoundedRectangle(cornerRadius: 20)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.35),
-                                        Color.blue.opacity(0.25),
-                                        Color.cyan.opacity(0.22),
-                                        Color.white.opacity(0.30)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
+                            .fill(Color.white.opacity(0.1))
                     )
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.15),
-                                        Color.white.opacity(0.05)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 0.5
-                            )
+                            .stroke(Color.black.opacity(0.8), lineWidth: 1.5)
                     )
-                    .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: -2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                    )
+                    .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: -4)
             }
         )
         .padding(.horizontal, max(16, screenSize.width * 0.04))
-        .padding(.bottom, max(8, screenSize.height * 0.01))
     }
 }
 
@@ -140,5 +115,4 @@ struct MoodLensBottomNavigationView: View {
         selectedTab: .constant(0),
         screenSize: CGSize(width: 390, height: 844)
     )
-    .background(UniversalBackground().ignoresSafeArea())
 } 

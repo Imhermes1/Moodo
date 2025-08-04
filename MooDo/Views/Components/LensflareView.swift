@@ -14,7 +14,7 @@ struct LensflareView: View {
     @State private var isVisible = false
     
     // Performance optimization: Minimal animation properties
-    private let animationDuration: Double = 12.0 // Slower for better performance
+    private let animationDuration: Double = 20.0 // Much slower for better performance
     
     var body: some View {
         GeometryReader { geometry in
@@ -29,17 +29,17 @@ struct LensflareView: View {
         }
         .onAppear {
             // Delayed start for better initial app performance
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                isVisible = true
-                withAnimation(.easeInOut(duration: animationDuration).repeatForever(autoreverses: true)) {
-                    animationPhase = .pi * 2
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.isVisible = true
+                withAnimation(.linear(duration: self.animationDuration).repeatForever(autoreverses: false)) {
+                    self.animationPhase = .pi * 2
                 }
             }
         }
         .onDisappear {
             isVisible = false
         }
-        .drawingGroup() // Performance optimization: GPU rendering
+        .proMotionOptimized() // ProMotion-optimized GPU rendering
     }
     
     private var liquidShineLayer: some View {
@@ -55,11 +55,11 @@ struct LensflareView: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .scaleEffect(1.2 + Foundation.sin(animationPhase) * 0.1) // Minimal scale animation
-            .rotationEffect(.degrees(Foundation.sin(animationPhase * 0.05) * 15)) // Reduced rotation
+            .scaleEffect(1.1 + Foundation.sin(animationPhase) * 0.05) // Minimal scale animation
+            .rotationEffect(.degrees(Foundation.sin(animationPhase * 0.02) * 8)) // Reduced rotation
             .offset(
-                x: Foundation.sin(animationPhase * 0.3) * 80, // Reduced movement
-                y: Foundation.cos(animationPhase * 0.2) * 60
+                x: Foundation.sin(animationPhase * 0.1) * 40, // Reduced movement
+                y: Foundation.cos(animationPhase * 0.08) * 30
             )
             .blur(radius: 20) // Reduced blur for better performance
     }
@@ -70,3 +70,4 @@ struct LensflareView: View {
         .frame(width: 300, height: 300)
         .background(UniversalBackground())
 } 
+

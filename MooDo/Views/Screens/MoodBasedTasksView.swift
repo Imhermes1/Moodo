@@ -559,30 +559,33 @@ struct SmartTaskCard: View {
     @State private var showingEditView = false // Add edit state
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Completion button
-            Button(action: onToggleComplete) {
-                ZStack {
-                    Circle()
-                        .stroke(task.emotion.color, lineWidth: 2)
-                        .frame(width: 24, height: 24)
-                        .background(
-                            Circle()
-                                .fill(.ultraThinMaterial)
-                                .opacity(0.4)
-                        )
-                    
-                    if task.isCompleted {
-                        Image(systemName: "checkmark")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundColor(task.emotion.color)
+        Button(action: {
+            showingEditView = true
+        }) {
+            HStack(spacing: 12) {
+                // Completion button
+                Button(action: onToggleComplete) {
+                    ZStack {
+                        Circle()
+                            .stroke(task.emotion.color, lineWidth: 2)
+                            .frame(width: 24, height: 24)
+                            .background(
+                                Circle()
+                                    .fill(.ultraThinMaterial)
+                                    .opacity(0.4)
+                            )
+                        
+                        if task.isCompleted {
+                            Image(systemName: "checkmark")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundColor(task.emotion.color)
+                        }
                     }
                 }
-            }
-            
-            // Tappable task content
-            Button(action: onTap) {
+                .buttonStyle(PlainButtonStyle())
+                
+                // Task content
                 VStack(alignment: .leading, spacing: 4) {
                     Text(task.title)
                         .font(.body)
@@ -654,7 +657,6 @@ struct SmartTaskCard: View {
                     }
                 }
             }
-            .buttonStyle(PlainButtonStyle())
         }
         .padding(16)
         .background(
@@ -678,14 +680,16 @@ struct SmartTaskCard: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .scaleEffect(task.isCompleted ? 0.98 : 1.0)
-        .contextMenu {
-            // Context menu for quick edit access
-            Button(action: {
-                showingEditView = true
-            }) {
-                Label("Edit Task", systemImage: "pencil")
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                HapticManager.shared.notification(.warning)
+                // Handle deletion through edit callback or directly
+                showingEditView = false
+            } label: {
+                Label("Delete", systemImage: "trash")
             }
         }
+        // Removed context menu - now using tap to edit
         .sheet(isPresented: $showingEditView) {
             EditTaskView(task: task, onSave: { updatedTask in
                 onEdit(updatedTask)
@@ -777,4 +781,4 @@ struct RecommendationBanner: View {
                 )
         )
     }
-} 
+}

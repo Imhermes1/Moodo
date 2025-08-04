@@ -364,8 +364,26 @@ class TaskManager: ObservableObject {
         // Enhanced haptic feedback based on completion state
         if updatedTask.isCompleted {
             HapticManager.shared.taskCompleted()
+            
+            // Cancel notification if task is completed early
+            if let eventKitID = task.eventKitIdentifier {
+                eventKitManager.deleteReminder(eventKitIdentifier: eventKitID)
+                print("🔔 Cancelled notification for completed task: \(task.title)")
+            }
         } else {
             HapticManager.shared.buttonPressed()
+            
+            // Reschedule notification if task is uncompleted and has a future reminder
+            if let reminderDate = task.reminderAt, reminderDate > Date() {
+                _Concurrency.Task {
+                    let eventKitID = await eventKitManager.createReminder(for: updatedTask)
+                    await MainActor.run {
+                        updatedTask.eventKitIdentifier = eventKitID
+                        self.updateTask(updatedTask)
+                    }
+                }
+                print("🔔 Rescheduled notification for uncompleted task: \(task.title)")
+            }
         }
         
         updateTask(updatedTask)
