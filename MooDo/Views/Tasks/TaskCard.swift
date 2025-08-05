@@ -109,6 +109,24 @@ struct TaskCard: View {
                             .shadow(color: task.emotion.color.opacity(0.15), radius: 2, x: 0, y: 1)
                     )
                     
+                    // AI tag if task is AI-generated
+                    if task.isAIGenerated {
+                        Text("AI")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundColor(.purple.opacity(0.9))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule()
+                                    .fill(.purple.opacity(0.2))
+                                    .overlay(
+                                        Capsule()
+                                            .stroke(.purple.opacity(0.4), lineWidth: 1)
+                                    )
+                            )
+                    }
+                    
                     Spacer()
                     
                     // Reminder time with gentle styling
@@ -142,7 +160,20 @@ struct TaskCard: View {
                     .fill(.ultraThinMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                            .stroke(
+                                task.isAIGenerated ? 
+                                LinearGradient(
+                                    colors: [.red, .orange, .yellow, .green, .blue, .purple, .pink],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ) :
+                                LinearGradient(
+                                    colors: [.white.opacity(0.2), .white.opacity(0.2)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                ),
+                                lineWidth: task.isAIGenerated ? 1.5 : 1
+                            )
                     )
                     .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
                     .shadow(color: .white.opacity(0.05), radius: 1, x: 0, y: -1)

@@ -556,7 +556,7 @@ struct QuickAddTaskView: View {
         } else {
             // Beyond this week - show date and time
             let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "d MMM" // 15 Aug format
+            dateFormatter.dateFormat = "d MMM" // Australian format: 15 Aug (day first)
             
             let timeFormatter = DateFormatter()
             timeFormatter.dateFormat = "h:mm a" // 5:00 PM format

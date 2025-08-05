@@ -27,20 +27,14 @@ struct MoodLensMoodCheckinView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 18) {
-            // Header (smaller and more compact)
-            VStack(spacing: 6) {
-                Text("How are you feeling?")
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-                
-                Text("Track your emotional state throughout the day")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
+        VStack(spacing: 12) { // Reduced from 18
+            // Header (streamlined - removed subtitle)
+            Text("How are you feeling?")
+                .font(.title3)
+                .fontWeight(.bold)
+                .foregroundColor(.primary)
             
-            // Mood selection buttons (smaller and more compact) wrapped in horizontal ScrollView
+            // Mood selection buttons (smaller padding) wrapped in horizontal ScrollView
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 14) {
                     ForEach(moodOptions, id: \.type) { moodOption in
@@ -151,7 +145,7 @@ struct MoodLensMoodCheckinView: View {
             .scaleEffect(selectedMood == nil ? 0.95 : 1.0)
             .animation(.easeInOut(duration: 0.2), value: selectedMood)
         }
-        .padding(20)
+        .padding(14) // Reduced from 20 for slimmer card
         .background(
             ZStack {
                 // Base glass layer with 3D depth

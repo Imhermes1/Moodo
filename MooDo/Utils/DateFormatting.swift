@@ -40,7 +40,7 @@ struct DateFormatting {
     
     private static let compactFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "d/M/yy, h:mm a"
+        formatter.dateFormat = "d/M/yy, h:mm a" // Australian format: day/month/year
         return formatter
     }()
     
@@ -98,12 +98,12 @@ struct DateFormatting {
         } else if date < now {
             // Overdue
             let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "d MMM"
+            dateFormatter.dateFormat = "d MMM" // Australian format: 15 Aug (day first)
             return "Overdue \(dateFormatter.string(from: date))"
         } else {
             // Beyond this week - show date and time
             let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "d MMM" // 15 Aug format
+            dateFormatter.dateFormat = "d MMM" // Australian format: 15 Aug (day first)
             
             let timeFormatter = DateFormatter()
             timeFormatter.dateFormat = "h:mm a" // 5:00 PM format

@@ -70,7 +70,6 @@ struct TasksView: View {
                     if filteredTasks.isEmpty {
                         EmptyTasksView(filter: selectedFilter)
                             .frame(maxWidth: .infinity)
-                            .padding(.top, isSearching ? 60 : 20) // Direct padding instead of invisible spacer
                     } else {
                         ForEach(filteredTasks) { task in
                             TaskCard(
@@ -110,7 +109,7 @@ struct TasksView: View {
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, isSearching ? 60 : 20) // Padding for tasks content
+                .padding(.top, isSearching ? 135 : 95) // Increased by 10 more points for better clearance
                 .padding(.bottom, 100) // Space for floating button
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

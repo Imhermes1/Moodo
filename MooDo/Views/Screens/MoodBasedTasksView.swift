@@ -7,129 +7,211 @@
 
 import SwiftUI
 
-// MARK: - Mood-Based Smart Tasks View (Main Screen)
+// MARK: - Focus List View (Main Screen)
 
 struct MoodBasedTasksView: View {
     @ObservedObject var taskManager: TaskManager
     @ObservedObject var moodManager: MoodManager
     let onAddTask: () -> Void
-    let onTaskTap: ((Task) -> Void)?
     let screenSize: CGSize
     @State private var smartRecommendations: [Task] = []
     @State private var isRefreshing = false
     @StateObject private var smartTaskSuggestions = SmartTaskSuggestions()
     
+    // AI-powered recommendations (maximum 2 as backup)
+    @StateObject private var aiEngine: MLTaskEngine
+    @State private var isRefreshingAI = false
+    
     // New recommendation states
     @State private var recommendedTask: Task?
     @State private var showRecommendation = false
     
+    @State private var editingTask: Task? = nil
+    
+    init(taskManager: TaskManager, moodManager: MoodManager, onAddTask: @escaping () -> Void, screenSize: CGSize) {
+        self.taskManager = taskManager
+        self.moodManager = moodManager
+        self.onAddTask = onAddTask
+        self.screenSize = screenSize
+        let engine = MLTaskEngine(taskManager: taskManager, moodManager: moodManager)
+        self._aiEngine = StateObject(wrappedValue: engine)
+    }
+    
     var body: some View {
+        // Single comprehensive card container
         VStack(spacing: 20) {
-            // Smart Tasks Header
-            VStack(spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Smart Tasks")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                        
-                        HStack(spacing: 6) {
-                            Image(systemName: "brain.head.profile")
-                                .foregroundColor(.purple)
-                                .font(.caption)
-                            
-                            Text("Top \(smartRecommendations.count) recommendations based on deadlines and your mood")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                    }
-                    
-                    Spacer()
-                    
-                    HStack(spacing: 12) {
-                        // Refresh smart tasks button
-                        Button(action: refreshSmartTasks) {
-                            Image(systemName: isRefreshing ? "arrow.clockwise" : "brain.head.profile")
-                                .foregroundColor(.white)
-                                .font(.title3)
-                                .fontWeight(.medium)
-                                .frame(width: 32, height: 32)
-                                .background(
-                                    Circle()
-                                        .fill(.purple.opacity(0.3))
-                                        .overlay(
-                                            Circle()
-                                                .stroke(.purple.opacity(0.5), lineWidth: 1)
-                                        )
-                                )
-                                .rotationEffect(.degrees(isRefreshing ? 360 : 0))
-                                .animation(.linear(duration: 1).repeatCount(isRefreshing ? .max : 1, autoreverses: false), value: isRefreshing)
-                        }
-                        
-                        // Add task button with recommendation trigger
-                        Button(action: {
-                            onAddTask()
-                            // Generate recommendation after user adds a task
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                generateRecommendationAfterAdd()
-                            }
-                        }) {
-                            Image(systemName: "plus")
-                                .foregroundColor(.white)
-                                .font(.title3)
-                                .fontWeight(.medium)
-                                .frame(width: 32, height: 32)
-                                .background(
-                                    Circle()
-                                        .fill(.green.opacity(0.3))
-                                        .overlay(
-                                            Circle()
-                                                .stroke(.green.opacity(0.5), lineWidth: 1)
-                                        )
-                                )
-                        }
-                    }
+            focusListCard
+        }
+        .onAppear {
+            refreshSmartTasks()
+            // Removed automatic AI recommendations on app open
+        }
+        .onReceive(taskManager.objectWillChange) { _ in
+            refreshSmartTasks()
+        }
+        .sheet(item: $editingTask) { task in
+            EditTaskView(
+                task: task,
+                onSave: { updatedTask in
+                    taskManager.updateTask(updatedTask)
+                    editingTask = nil
+                },
+                onDelete: { deletedTask in
+                    taskManager.deleteTask(deletedTask)
+                    editingTask = nil
                 }
-                
-                // Recommendation banner (new)
-                if let recommended = recommendedTask, showRecommendation {
-                    RecommendationBanner(
-                        task: recommended,
-                        onAccept: {
-                            acceptRecommendation(recommended)
-                        },
-                        onDismiss: {
-                            dismissRecommendation()
+            )
+            .presentationDetents([.large])
+        }
+    }
+    
+    // MARK: - Focus List Card
+    private var focusListCard: some View {
+        VStack(spacing: 16) {
+            // Header Section - Centered
+            VStack(spacing: 4) {
+                Text("Focus List")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+            }
+            .frame(maxWidth: .infinity)
+            
+            // Controls Row - Centered
+            HStack(spacing: 16) {
+                // AI Button
+                Button(action: refreshAIRecommendations) {
+                    HStack(spacing: 6) {
+                        if isRefreshingAI {
+                            Image(systemName: "brain.head.profile")
+                                .font(.callout)
+                                .opacity(0.5)
+                            Text("AI")
+                                .font(.callout)
+                                .fontWeight(.medium)
+                                .opacity(0.5)
+                        } else {
+                            Image(systemName: "brain.head.profile")
+                                .font(.callout)
+                            Text("AI")
+                                .font(.callout)
+                                .fontWeight(.medium)
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(.purple.opacity(isRefreshingAI ? 0.2 : 0.3))
+                    )
+                    .overlay(
+                        // Flowing rainbow outline when refreshing
+                        Group {
+                            if isRefreshingAI {
+                                FlowingRainbowBorder(cornerRadius: 10)
+                            }
                         }
                     )
-                    .transition(.slide)
+                }
+                .disabled(isRefreshingAI)
+                
+                // Refresh Button
+                Button(action: refreshSmartTasks) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.callout)
+                        Text("Refresh")
+                            .font(.callout)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(.blue.opacity(0.3))
+                    )
                 }
                 
-                // Mood insights
-                moodInsightsSection
+                // Add Button
+                Button(action: {
+                    onAddTask()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        generateRecommendationAfterAdd()
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus")
+                            .font(.callout)
+                        Text("Add")
+                            .font(.callout)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(.green.opacity(0.3))
+                    )
+                }
             }
             
-            // Smart task recommendations
-            if smartRecommendations.isEmpty {
+            // Task List Section
+            if smartRecommendations.isEmpty && aiEngine.aiRecommendations.isEmpty && !isRefreshingAI {
                 emptyStateView
             } else {
-                LazyVStack(spacing: 12) {
+                VStack(spacing: 8) {
+                    // User Tasks
                     ForEach(smartRecommendations) { task in
-                        SmartTaskCard(
+                        FocusTaskCard(
                             task: task,
+                            isAIGenerated: task.isAIGenerated,
                             onToggleComplete: {
                                 taskManager.toggleTaskCompletion(task)
                                 refreshSmartTasks()
                             },
-                            onTap: {
-                                onTaskTap?(task)
-                            },
-                            onEdit: { updatedTask in
-                                taskManager.updateTask(updatedTask)
-                                refreshSmartTasks()
-                            }
+                            onTap: { editingTask = task }
                         )
+                    }
+                    
+                    // AI Tasks - only show when not refreshing
+                    if !isRefreshingAI {
+                        ForEach(aiEngine.aiRecommendations) { aiRec in
+                            FocusAITaskCard(
+                                recommendation: aiRec,
+                                onAdd: {
+                                    addAIRecommendationAsTask(aiRec)
+                                },
+                                onDismiss: {
+                                    dismissAIRecommendation(aiRec)
+                                }
+                            )
+                        }
+                    }
+                    
+                    // Placeholder space when AI is refreshing to maintain card size
+                    if isRefreshingAI {
+                        VStack(spacing: 12) {
+                            Text("AI is thinking...")
+                                .font(.callout)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white.opacity(0.8))
+                            
+                            Text("Feel. Plan. Do.")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.purple.opacity(0.9))
+                            
+                            Text("Analyzing your current mood and energy levels to suggest the perfect tasks that match how you're feeling right now")
+                                .font(.caption)
+                                .foregroundColor(.white.opacity(0.6))
+                                .multilineTextAlignment(.center)
+                                .lineLimit(3)
+                        }
+                        .padding(.vertical, 20)
+                        .frame(maxWidth: .infinity)
                     }
                 }
             }
@@ -162,15 +244,15 @@ struct MoodBasedTasksView: View {
                     .strokeBorder(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                .white.opacity(0.6),
-                                .white.opacity(0.2),
+                                .white.opacity(0.5),
+                                .white.opacity(0.15),
                                 .white.opacity(0.05),
-                                .white.opacity(0.3)
+                                .white.opacity(0.25)
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1.5
+                        lineWidth: 1
                     )
                 
                 // Inner stroke for depth
@@ -181,117 +263,32 @@ struct MoodBasedTasksView: View {
                     )
             }
         )
-        .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
-        .shadow(color: .black.opacity(0.04), radius: 16, x: 0, y: 8)
-        .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .onAppear {
-            refreshSmartTasks()
+        .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 2)
+        .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
+    }
+    
+    // MARK: - Empty State View
+    private var emptyStateView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "list.bullet.clipboard")
+                .font(.title2)
+                .foregroundColor(.white.opacity(0.6))
+            
+            Text("No tasks yet")
+                .font(.headline)
+                .foregroundColor(.white.opacity(0.8))
+            
+            Text("Feel. Plan. Do.")
+                .font(.subheadline)
+                .foregroundColor(.white.opacity(0.6))
         }
-        .onChange(of: moodManager.currentMood) { 
-            print("🔄 MoodBasedTasksView: MoodManager currentMood changed to: \(moodManager.currentMood)")
-            refreshSmartTasks() 
-        }
-        .onChange(of: taskManager.tasks) { 
-            print("🔄 MoodBasedTasksView: TaskManager tasks changed, count: \(taskManager.tasks.count)")
-            refreshSmartTasks() 
-        }
+        .padding(.vertical, 20)
     }
     
     // MARK: - Computed Properties
     
     private var currentMood: MoodType {
         moodManager.latestMoodEntry?.mood ?? .energized
-    }
-    
-    // MARK: - Subviews
-    
-    private var moodInsightsSection: some View {
-        HStack {
-            Image(systemName: "brain.head.profile")
-                .foregroundColor(.purple)
-                .font(.caption)
-            
-            Text("Smart recommendations from your \(taskManager.tasks.count) tasks")
-                .font(.caption)
-                .foregroundColor(.white.opacity(0.8))
-            
-            Spacer()
-            
-            if !smartRecommendations.isEmpty {
-                Text("\(smartRecommendations.filter { !$0.isCompleted }.count) remaining")
-                    .font(.caption)
-                    .foregroundColor(.orange)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill(.orange.opacity(0.15))
-                            .overlay(
-                                Capsule()
-                                    .stroke(.orange.opacity(0.3), lineWidth: 1)
-                            )
-                    )
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(
-            GlassPanelBackground()
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-    
-    private var emptyStateView: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "brain.head.profile")
-                    .font(.title3)
-                    .foregroundColor(.purple.opacity(0.7))
-                
-                Text(taskManager.tasks.isEmpty ? "No tasks yet" : "No recommendations right now")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white.opacity(0.7))
-                
-                Spacer()
-                
-                Button(action: onAddTask) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "plus")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                        Text("Add Task")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                    }
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(.green.opacity(0.3))
-                            .overlay(
-                                Capsule()
-                                    .stroke(.green.opacity(0.5), lineWidth: 1)
-                            )
-                    )
-                }
-            }
-            
-            if taskManager.tasks.isEmpty {
-                Text("Add some tasks and I'll recommend the best ones based on deadlines and your mood!")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
-                    .multilineTextAlignment(.leading)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            GlassPanelBackground()
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
     
     // MARK: - Methods
@@ -328,6 +325,90 @@ struct MoodBasedTasksView: View {
             withAnimation(.easeInOut(duration: 0.3)) {
                 isRefreshing = false
             }
+        }
+    }
+    
+    // MARK: - Initial AI Task Generation
+    
+    private func generateInitialAITasks() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            isRefreshingAI = true
+        }
+        
+        // Force AI recommendations even with no existing tasks
+        _Concurrency.Task {
+            await aiEngine.generateInitialRecommendations()
+            
+            await MainActor.run {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isRefreshingAI = false
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - AI Refresh Method
+    
+    private func refreshAIRecommendations() {
+        withAnimation(.easeInOut(duration: 0.3)) {
+            isRefreshingAI = true
+        }
+        
+        _Concurrency.Task {
+            // Generate AI recommendations but don't show them yet
+            if taskManager.tasks.isEmpty {
+                print("🤖 No existing tasks - generating initial AI recommendations")
+                await aiEngine.generateInitialRecommendations()
+            } else {
+                print("🤖 Found \(taskManager.tasks.count) tasks - generating AI recommendations")
+                await aiEngine.generateAIRecommendations()
+            }
+            
+            await MainActor.run {
+                print("🤖 Generated \(aiEngine.aiRecommendations.count) AI recommendations")
+                
+                // Keep the loading state for 5 seconds before showing tasks
+                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        isRefreshingAI = false
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - AI Recommendation Handling
+    
+    private func addAIRecommendationAsTask(_ aiRecommendation: AITaskRecommendation) {
+        let newTask = Task(
+            title: aiRecommendation.title,
+            description: aiRecommendation.description,
+            priority: aiRecommendation.priority,
+            emotion: aiRecommendation.emotion,
+            category: aiRecommendation.category,
+            estimatedTime: aiRecommendation.estimatedDuration,
+            createdAt: Date(),
+            isAIGenerated: true // Mark as AI-generated to maintain rainbow outline
+        )
+        
+        taskManager.addTask(newTask)
+        HapticManager.shared.taskAdded()
+        
+        // Remove the AI recommendation from the list
+        aiEngine.aiRecommendations.removeAll { $0.id == aiRecommendation.id }
+        
+        // Only refresh regular tasks, don't trigger AI refresh to avoid loop
+        refreshSmartTasks()
+        
+        print("🤖 Added AI recommendation as task: \(newTask.title)")
+    }
+    
+    private func dismissAIRecommendation(_ aiRecommendation: AITaskRecommendation) {
+        withAnimation(.easeOut(duration: 0.3)) {
+            aiEngine.aiRecommendations.removeAll { $0.id == aiRecommendation.id }
+            print("🤖 Dismissed AI recommendation: \(aiRecommendation.title)")
         }
     }
     
@@ -488,44 +569,56 @@ struct MoodBasedTasksView: View {
         case .energized:
             return Task(
                 title: "Tackle a challenging project",
-                description: "Your energy is high - perfect for complex work",
+                description: "⚡️ Your energy is high - perfect for complex work that requires focus and determination. Break it into 25-minute focused blocks.",
                 priority: .high,
-                emotion: .energizing
+                emotion: .energizing,
+                category: .work,
+                isAIGenerated: true
             )
         case .calm:
             return Task(
                 title: "Organize your workspace",
-                description: "Use this peaceful state for tidying up",
+                description: "🏠 Use this peaceful state for thoughtful tidying. Start with one area - your calm energy makes decision-making easier.",
                 priority: .medium,
-                emotion: .routine
+                emotion: .routine,
+                category: .personal,
+                isAIGenerated: true
             )
         case .focused:
             return Task(
                 title: "Deep work session",
-                description: "Ideal time for concentrated tasks",
+                description: "🎯 Ideal time for concentrated tasks. Turn off notifications and dive into your most important project for 45-90 minutes.",
                 priority: .high,
-                emotion: .focused
+                emotion: .focused,
+                category: .work,
+                isAIGenerated: true
             )
         case .stressed:
             return Task(
                 title: "Take a mindful break",
-                description: "Step back and recharge",
+                description: "🫁 Step back and recharge with 5 minutes of deep breathing. Your stress levels are high - self-care is productive right now.",
                 priority: .medium,
-                emotion: .calming
+                emotion: .calming,
+                category: .health,
+                isAIGenerated: true
             )
         case .creative:
             return Task(
                 title: "Brainstorm new ideas",
-                description: "Channel your creativity",
+                description: "🎨 Channel your creativity into idea generation. Set a 20-minute timer and aim for quantity over quality - let your mind flow freely.",
                 priority: .medium,
-                emotion: .creative
+                emotion: .creative,
+                category: .creative,
+                isAIGenerated: true
             )
         case .tired:
             return Task(
                 title: "Simple administrative task",
-                description: "Low-energy but productive",
+                description: "💼 Low-energy but productive work. Try organizing emails, filing documents, or updating your calendar - easy wins that build momentum.",
                 priority: .low,
-                emotion: .routine
+                emotion: .routine,
+                category: .personal,
+                isAIGenerated: true
             )
         }
     }
@@ -548,237 +641,288 @@ struct MoodBasedTasksView: View {
     }
 }
 
-// MARK: - Smart Task Card Component
+// MARK: - Focus Task Card Component (User & AI Tasks with Dynamic Outlines)
 
-struct SmartTaskCard: View {
+struct FocusTaskCard: View {
     let task: Task
+    let isAIGenerated: Bool
     let onToggleComplete: () -> Void
     let onTap: () -> Void
-    let onEdit: (Task) -> Void // Add edit callback
-    @State private var glowEffect: Bool = false
-    @State private var showingEditView = false // Add edit state
     
+    // Computed properties for cleaner conditional logic
+    private var strokeGradient: LinearGradient {
+        if task.isAIGenerated {
+            return LinearGradient(
+                colors: [.red, .orange, .yellow, .green, .blue, .purple, .pink],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        } else {
+            return LinearGradient(
+                colors: [.black, .black],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
+    }
+    
+    private var strokeOpacity: Double {
+        task.isAIGenerated ? 0.8 : 1.0
+    }
+
     var body: some View {
-        Button(action: {
-            showingEditView = true
-        }) {
-            HStack(spacing: 12) {
-                // Completion button
-                Button(action: onToggleComplete) {
-                    ZStack {
+        HStack(spacing: 12) {
+            // Completion button
+            Button(action: onToggleComplete) {
+                Circle()
+                    .stroke(task.isAIGenerated ? Color.purple : Color.black, lineWidth: 2)
+                    .frame(width: 20, height: 20)
+                    .background(
                         Circle()
-                            .stroke(task.emotion.color, lineWidth: 2)
-                            .frame(width: 24, height: 24)
-                            .background(
-                                Circle()
-                                    .fill(.ultraThinMaterial)
-                                    .opacity(0.4)
-                            )
-                        
-                        if task.isCompleted {
-                            Image(systemName: "checkmark")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(task.emotion.color)
-                        }
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-                
-                // Task content
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(task.title)
-                        .font(.body)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .strikethrough(task.isCompleted)
-                        .opacity(task.isCompleted ? 0.6 : 1.0)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    HStack(spacing: 8) {
-                        // Emotion badge
-                        HStack(spacing: 4) {
-                            Image(systemName: task.emotion.icon)
-                                .font(.caption2)
-                            Text(task.emotion.displayName)
-                                .font(.caption2)
-                                .fontWeight(.medium)
-                        }
-                        .foregroundColor(task.emotion.color)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule()
-                                .fill(task.emotion.color.opacity(0.15))
-                                .overlay(
-                                    Capsule()
-                                        .stroke(task.emotion.color.opacity(0.3), lineWidth: 1)
-                                )
-                        )
-                        
-                        // Priority badge
-                        Text(task.priority.displayName.prefix(1))
+                            .fill(task.isCompleted ? (task.isAIGenerated ? Color.purple : Color.black) : Color.clear)
+                    )
+                    .overlay(
+                        Image(systemName: "checkmark")
                             .font(.caption2)
                             .fontWeight(.bold)
-                            .foregroundColor(task.priority.color)
-                            .frame(width: 16, height: 16)
-                            .background(
-                                Circle()
-                                    .fill(task.priority.color.opacity(0.15))
-                                    .overlay(
-                                        Circle()
-                                            .stroke(task.priority.color.opacity(0.3), lineWidth: 1)
-                                    )
-                            )
-                        
-                        Spacer()
-                        
-                        // AI optimized badge
-                        HStack(spacing: 4) {
-                            Image(systemName: "brain.head.profile")
+                            .foregroundColor(.white)
+                            .opacity(task.isCompleted ? 1 : 0)
+                    )
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            // Task content
+            VStack(alignment: .leading, spacing: 4) {
+                Text(task.title)
+                    .font(.callout)
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .strikethrough(task.isCompleted)
+                    .opacity(task.isCompleted ? 0.6 : 1.0)
+                    .lineLimit(2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(spacing: 6) {
+                    // Left side: Mood/Emotion
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(task.priority.color)
+                            .frame(width: 6, height: 6)
+                        Text(task.emotion.displayName)
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.7))
+                    }
+                    Spacer()
+                    // Center: Auto-applied tags
+                    HStack(spacing: 3) {
+                        if task.isAIGenerated {
+                            Text("AI")
                                 .font(.caption2)
-                                .foregroundColor(.purple)
-                            Text("Smart")
-                                .font(.caption2)
-                                .fontWeight(.medium)
-                                .foregroundColor(.purple)
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule()
-                                .fill(.purple.opacity(0.15))
-                                .overlay(
-                                    Capsule()
-                                        .stroke(.purple.opacity(0.3), lineWidth: 1)
+                                .foregroundColor(.purple.opacity(0.9))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(.purple.opacity(0.2))
                                 )
-                        )
+                        }
+                        if task.category != .personal {
+                            Text(task.category.rawValue.capitalized)
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.6))
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(.white.opacity(0.1))
+                                )
+                        }
+                    }
+                    Spacer()
+                    // Right side: Reminder info
+                    if let reminder = task.reminderAt {
+                        HStack(spacing: 2) {
+                            Image(systemName: "bell.fill")
+                                .font(.caption2)
+                                .foregroundColor(.orange.opacity(0.8))
+                            Text(formatReminderTime(reminder))
+                                .font(.caption2)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
                     }
                 }
             }
         }
-        .padding(16)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 8)
                 .fill(.ultraThinMaterial)
-                .opacity(0.4)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(
-                            LinearGradient(
-                                colors: [
-                                    Color.white.opacity(glowEffect ? 0.6 : 0.4),
-                                    Color.white.opacity(0.2)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                )
+                .opacity(0.3)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .scaleEffect(task.isCompleted ? 0.98 : 1.0)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button(role: .destructive) {
-                HapticManager.shared.notification(.warning)
-                // Handle deletion through edit callback or directly
-                showingEditView = false
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(strokeGradient.opacity(strokeOpacity), lineWidth: 1.5)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap()
         }
-        // Removed context menu - now using tap to edit
-        .sheet(isPresented: $showingEditView) {
-            EditTaskView(task: task, onSave: { updatedTask in
-                onEdit(updatedTask)
-                showingEditView = false
-            }, onDelete: { deletedTask in
-                // Handle deletion if needed
-                showingEditView = false
-            })
+    }
+
+    private func formatReminderTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        if Calendar.current.isDateInToday(date) {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "d/M" // Australian format
         }
-        .opacity(task.isCompleted ? 0.7 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: task.isCompleted)
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
-                glowEffect.toggle()
-            }
-        }
+        return formatter.string(from: date)
     }
 }
 
-// MARK: - Recommendation Banner Component
+// MARK: - Focus AI Task Card Component (AI Task Suggestions - Rainbow Outline)
 
-struct RecommendationBanner: View {
-    let task: Task
-    let onAccept: () -> Void
+struct FocusAITaskCard: View {
+    let recommendation: AITaskRecommendation
+    let onAdd: () -> Void
     let onDismiss: () -> Void
+    @State private var isExpanded = false
     
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Image(systemName: "lightbulb.fill")
-                        .foregroundColor(.yellow)
-                        .font(.caption)
-                    
-                    Text("Suggested for you")
+        VStack(spacing: 8) {
+            HStack(spacing: 10) {
+                // AI Icon - smaller
+                Image(systemName: "sparkles")
+                    .foregroundColor(.purple)
+                    .font(.caption)
+                    .frame(width: 16, height: 16)
+                
+                // Content - more compact
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(recommendation.title)
                         .font(.caption)
                         .fontWeight(.medium)
-                        .foregroundColor(.yellow)
-                }
-                
-                Text(task.title)
-                    .font(.body)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                
-                if let description = task.description {
-                    TaskDescriptionView(description, font: .caption, color: .white.opacity(0.7), lineLimit: 2)
-                }
-            }
-            
-            Spacer()
-            
-            HStack(spacing: 8) {
-                Button("Add", action: {
-                    HapticManager.shared.buttonPressed()
-                    onAccept()
-                })
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(.green.opacity(0.3))
-                            .overlay(
-                                Capsule()
-                                    .stroke(.green.opacity(0.5), lineWidth: 1)
-                            )
-                    )
-                
-                Button(action: {
-                    HapticManager.shared.buttonPressed()
-                    onDismiss()
-                }) {
-                    Image(systemName: "xmark")
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                    
+                    // Description with expandable view
+                    Text(recommendation.description)
                         .font(.caption2)
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(.white.opacity(0.7))
+                        .lineLimit(isExpanded ? nil : 2)
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.3)) {
+                                isExpanded.toggle()
+                            }
+                        }
+                    
+                    // Show "tap to expand" hint if text is truncated
+                    if !isExpanded && recommendation.description.count > 80 {
+                        Text("tap to read more...")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.4))
+                            .italic()
+                    }
+                    
+                    // Bottom row - more compact
+                    HStack(spacing: 6) {
+                        // Priority dot
+                        Circle()
+                            .fill(recommendation.priority.color)
+                            .frame(width: 4, height: 4)
+                        
+                        Text(recommendation.emotion.displayName)
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.6))
+                        
+                        Spacer()
+                        
+                        // Estimated time
+                        Text("\(recommendation.estimatedDuration)min")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                }
+                
+                // Action buttons - smaller and closer
+                HStack(spacing: 4) {
+                    Button(action: {
+                        HapticManager.shared.buttonPressed()
+                        onAdd()
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.caption2)
+                            .foregroundColor(.white)
+                            .frame(width: 22, height: 22)
+                            .background(
+                                Circle()
+                                    .fill(.green.opacity(0.3))
+                            )
+                    }
+                    
+                    Button(action: {
+                        HapticManager.shared.buttonPressed()
+                        onDismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.caption2)
+                            .foregroundColor(.white.opacity(0.6))
+                            .frame(width: 22, height: 22)
+                            .background(
+                                Circle()
+                                    .fill(.gray.opacity(0.3))
+                            )
+                    }
                 }
             }
         }
-        .padding(12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial.opacity(0.3))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(.yellow.opacity(0.3), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 8)
+                .fill(.ultraThinMaterial)
+                .opacity(0.3)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(
+                    LinearGradient(
+                        colors: [.red, .orange, .yellow, .green, .blue, .purple, .pink],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    lineWidth: 1.5
                 )
         )
+    }
+}
+
+// MARK: - Flowing Rainbow Border Component
+
+struct FlowingRainbowBorder: View {
+    let cornerRadius: CGFloat
+    @State private var rotation: Double = 0
+    
+    var body: some View {
+        RoundedRectangle(cornerRadius: cornerRadius)
+            .stroke(
+                AngularGradient(
+                    gradient: Gradient(colors: [
+                        .red, .orange, .yellow, .green, .blue, .purple, .pink, .red
+                    ]),
+                    center: .center,
+                    angle: .degrees(rotation)
+                ),
+                lineWidth: 2
+            )
+            .onAppear {
+                withAnimation(
+                    Animation.linear(duration: 2.0)
+                        .repeatForever(autoreverses: false)
+                ) {
+                    rotation = 360
+                }
+            }
     }
 }

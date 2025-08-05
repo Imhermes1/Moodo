@@ -30,10 +30,6 @@ struct HomeView: View {
                         onAddTask: {
                             showingAddTaskModal = true
                         },
-                        onTaskTap: { task in
-                            // Handle task tap - could open task details or mark as complete
-                            print("Task tapped: \(task.title)")
-                        },
                         screenSize: screenSize
                     )
                     
@@ -56,3 +52,4 @@ struct HomeView: View {
         }
     }
 }
+

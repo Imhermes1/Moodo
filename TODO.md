@@ -11,10 +11,32 @@
 - Sync user data (tasks, moods, etc.) with Supabase backend.
 - Handle error states and provide user feedback.
 
-## 3. Improve Smart Tasks & Recommendations
-- Enhance task recommendation algorithms based on user mood, history, and preferences.
-- Use ML or rule-based logic for smarter suggestions.
-- Display recommendations contextually in `HomeView` and `TasksView`.
+## 3. ✅ Smart Tasks & Recommendations (IMPLEMENTED)
+- ✅ Enhanced task recommendation algorithms based on user mood, history, and preferences.
+- ✅ Implemented local AI/ML logic for intelligent suggestions using Core ML and Natural Language frameworks.
+- ✅ Added AI-powered recommendations displayed contextually in `HomeView` via enhanced `MoodBasedTasksView`.
+- ✅ Created `SmartTaskRecommendationEngine` with privacy-first, on-device ML processing.
+- ✅ Added maximum 2 AI backup recommendations to complement user's existing tasks.
+- ✅ Implemented separate AI refresh button and enhanced UI with confidence indicators.
+- ✅ Added comprehensive user behavior learning and pattern recognition.
+- ✅ Enhanced task model with `category`, `estimatedTime`, and `completedAt` for better AI analysis.
+
+## 3.1. 🔮 Enhanced AI Task Generation System (FUTURE)
+- **Phase 1**: Create comprehensive mood-to-tasks mapping system
+  - Build dedicated `MoodTaskDatabase.swift` file with extensive task variations per mood
+  - Expand from current 3-6 tasks per mood to 15-20+ variations 
+  - Add intelligent randomization based on time, day, user history, context
+  - Mix and match task components (titles, descriptions, tips) for variety
+  - Add seasonal/contextual variations (weather, holidays, work patterns)
+  
+- **Phase 2**: Real AI Integration Options
+  - **Option A**: OpenAI API integration for truly generative tasks (~$5-20/month)
+  - **Option B**: Local AI model (TinyLlama, Phi-3) for offline generation  
+  - **Option C**: Hybrid approach - enhanced local + optional API for "Super AI" mode
+  
+- **Benefits**: Unlimited task variety, personalized recommendations, reduced repetition
+- **Priority**: Medium (after core features stable)
+- **Estimated Effort**: Phase 1: 4-6 hours, Phase 2: 2-3 days
 
 ## 4. Clean Up the UI
 - Audit all views for consistency in padding, spacing, and color usage.
@@ -54,7 +76,28 @@
 - Add toggles for notifications, theme, account management, etc.
 - Ensure settings persist and sync with backend.
 
----
+## 12. Create Introductory Onboarding Screen
+- Design and implement a welcome/onboarding screen for first-time users.
+- Include app introduction, key features overview, and mood tracking explanation.
+- Guide users through initial setup and first mood entry.
+- Show "Feel. Plan. Do." philosophy and how the Focus List works.
+- Add smooth transitions from onboarding to main app experience.
+- Store onboarding completion status to avoid showing again.
+
+## 13. Review & Fix Haptic Feedback System
+- Audit all uses of `HapticManager` and haptic feedback throughout the app
+- Ensure haptics trigger reliably on all supported devices (task completion, add, delete, AI, etc.)
+- Test on real hardware (not just simulator)
+- Consider user settings for enabling/disabling haptics
+- Add fallback or error handling for unsupported devices
+
+## 14. Add Sections to All Tasks View
+- Organize tasks into logical sections (Today, Tomorrow, This Week, Overdue, etc.)
+- Add collapsible section headers with task counts
+- Improve navigation and overview of task organization
+- Consider grouping by priority, category, or due date
+- Add smooth animations for expanding/collapsing sections
+
 
 ## Codebase Analysis & Further Suggestions
 
