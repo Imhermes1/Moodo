@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import _Concurrency
+import UserNotifications
 
 // MARK: - Data Models
 
@@ -414,7 +415,14 @@ class TaskManager: ObservableObject {
         // Enhanced haptic feedback based on completion state
         if updatedTask.isCompleted {
             HapticManager.shared.taskCompleted()
-            
+
+            // Encourage wellness after long focus sessions
+            if updatedTask.emotion == .focused,
+               let minutes = updatedTask.estimatedTime,
+               minutes >= 45 {
+                scheduleWellnessReminder()
+            }
+
             // Cancel notification if task is completed early
             if let eventKitID = task.eventKitIdentifier {
                 eventKitManager.deleteReminder(eventKitIdentifier: eventKitID)
@@ -445,7 +453,25 @@ class TaskManager: ObservableObject {
             }
         }
     }
-    
+
+    private func scheduleWellnessReminder(after timeInterval: TimeInterval = 300) {
+        let content = UNMutableNotificationContent()
+        content.title = "Time for a break"
+        content.body = "Try a quick breathing exercise, stretch, or think of something you're grateful for."
+        content.sound = .default
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
+        let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("⚠️ Failed to schedule wellness reminder: \(error.localizedDescription)")
+            } else {
+                print("🧘‍♀️ Scheduled wellness reminder")
+            }
+        }
+    }
+
     // MARK: - Completed Tasks Management
     
     private func archiveCompletedTask(_ task: Task) {
