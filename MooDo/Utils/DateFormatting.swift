@@ -57,7 +57,8 @@ struct DateFormatting {
         } else {
             let daysAgo = calendar.dateComponents([.day], from: date, to: now).day ?? 0
             if daysAgo <= 7 {
-                return "\(daysAgo) days ago"
+                let unit = daysAgo == 1 ? "day" : "days"
+                return "\(daysAgo) \(unit) ago"
             } else {
                 return shortDateFormatter.string(from: date)
             }
