@@ -191,6 +191,15 @@ struct TasksView: View {
                 .presentationDragIndicator(.visible)
                 .interactiveDismissDisabled(false)
         }
+        .sheet(item: $taskManager.moodPickerTask, onDismiss: {
+            if let task = taskManager.moodPickerTask {
+                taskManager.finalizeTaskCompletion(task, mood: nil)
+            }
+        }) { task in
+            MoodPicker { mood in
+                taskManager.finalizeTaskCompletion(task, mood: mood)
+            }
+        }
         .onChange(of: selectedFilter) { oldFilter, newFilter in
             HapticManager.shared.impact(.light)
         }

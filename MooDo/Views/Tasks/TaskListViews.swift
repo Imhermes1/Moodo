@@ -665,6 +665,15 @@ struct AllTasksListView: View {
                 .padding(.top, 12)
             }
         }
+        .sheet(item: $taskManager.moodPickerTask, onDismiss: {
+            if let task = taskManager.moodPickerTask {
+                taskManager.finalizeTaskCompletion(task, mood: nil)
+            }
+        }) { task in
+            MoodPicker { mood in
+                taskManager.finalizeTaskCompletion(task, mood: mood)
+            }
+        }
     }
     
     // MARK: - Computed Properties
@@ -823,6 +832,15 @@ struct MoodLensTaskListView: View {
                 )
         )
         .clipShape(RoundedRectangle(cornerRadius: 20))
+        .sheet(item: $taskManager.moodPickerTask, onDismiss: {
+            if let task = taskManager.moodPickerTask {
+                taskManager.finalizeTaskCompletion(task, mood: nil)
+            }
+        }) { task in
+            MoodPicker { mood in
+                taskManager.finalizeTaskCompletion(task, mood: mood)
+            }
+        }
     }
 }
 

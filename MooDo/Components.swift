@@ -1157,7 +1157,12 @@ struct SimpleMoodInsightsView: View {
                 if let keyInsight = generateKeyInsight() {
                     KeyInsightView(insight: keyInsight)
                 }
-                
+
+                // Task-Mood Insight
+                if let taskInsight = generateTaskMoodInsight() {
+                    TaskMoodInsightView(insight: taskInsight)
+                }
+
                 // Mood patterns
                 MoodPatternsView(moodEntries: moodEntries)
                 
@@ -1233,6 +1238,23 @@ struct SimpleMoodInsightsView: View {
         } else {
             return "You might be going through a rough patch. Remember, it's okay to take breaks."
         }
+    }
+
+    private func generateTaskMoodInsight() -> String? {
+        let completedTasks = taskManager.getCompletedTasks().filter { $0.completedMood != nil }
+        guard !completedTasks.isEmpty else { return nil }
+
+        var counts: [TaskEmotion: [MoodType: Int]] = [:]
+        for task in completedTasks {
+            guard let mood = task.completedMood else { continue }
+            counts[task.emotion, default: [:]][mood, default: 0] += 1
+        }
+
+        guard let (emotion, moodCounts) = counts.max(by: { lhs, rhs in
+            lhs.value.values.reduce(0, +) < rhs.value.values.reduce(0, +)
+        }), let (mood, _) = moodCounts.max(by: { $0.value < $1.value }) else { return nil }
+
+        return "You feel \(mood.displayName.lowercased()) after \(emotion.displayName.lowercased()) tasks."
     }
 }
 
@@ -1573,6 +1595,34 @@ struct KeyInsightView: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(.yellow.opacity(0.3), lineWidth: 1)
+                )
+        )
+    }
+}
+
+struct TaskMoodInsightView: View {
+    let insight: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "face.smiling")
+                .foregroundColor(.green)
+                .font(.title3)
+
+            Text(insight)
+                .font(.subheadline)
+                .foregroundColor(.white)
+                .multilineTextAlignment(.leading)
+
+            Spacer()
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(.green.opacity(0.15))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(.green.opacity(0.3), lineWidth: 1)
                 )
         )
     }
