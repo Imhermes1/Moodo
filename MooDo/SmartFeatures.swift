@@ -985,6 +985,13 @@ class SmartTaskSuggestions: ObservableObject {
                         emotion: .routine,
                         priority: .medium
                     ))
+                case .anxious:
+                    suggestions.append(TaskSuggestion(
+                        title: "Take a wellness break",
+                        description: "A short breathing or stretch break can ease anxiety",
+                        emotion: .calming,
+                        priority: .medium
+                    ))
                 case .stressful:
                     // Don't suggest stressful tasks based on history
                     break

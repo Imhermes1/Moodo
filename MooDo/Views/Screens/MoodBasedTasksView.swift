@@ -518,7 +518,11 @@ struct MoodBasedTasksView: View {
         if content.contains("energy") || content.contains("workout") || content.contains("exercise") || content.contains("project") || content.contains("taxes") {
             return .energizing
         }
-        
+
+        if content.contains("anxious") || content.contains("anxiety") || content.contains("nervous") || content.contains("worry") {
+            return .anxious
+        }
+
         if content.contains("deadline") || content.contains("urgent") || content.contains("important") || content.contains("presentation") || content.contains("stress") {
             return .stressful
         }
