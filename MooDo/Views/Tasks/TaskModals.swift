@@ -15,6 +15,9 @@ struct EditTaskView: View {
     @State private var tagText = ""
     @FocusState private var titleFieldFocused: Bool
     @FocusState private var tagFieldFocused: Bool
+    @State private var showingNoteEditor = false
+    @State private var noteDraft = ""
+    @State private var noteToEdit: TaskNote? = nil
     let onSave: (Task) -> Void
     let onDelete: ((Task) -> Void)?
     
@@ -135,7 +138,60 @@ struct EditTaskView: View {
                                 )
                                 .lineLimit(3...6)
                         }
-                        
+
+                        // Notes section
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "note.text")
+                                    .foregroundColor(.white)
+                                    .font(.title3)
+                                Text("Notes")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.white)
+
+                                Spacer()
+
+                                Button(action: {
+                                    noteToEdit = nil
+                                    noteDraft = ""
+                                    showingNoteEditor = true
+                                }) {
+                                    Image(systemName: "plus.circle")
+                                        .foregroundColor(.white)
+                                }
+                            }
+
+                            if editedTask.notes.isEmpty {
+                                Text("No notes yet")
+                                    .font(.caption)
+                                    .foregroundColor(.white.opacity(0.6))
+                            } else {
+                                ForEach(editedTask.notes) { note in
+                                    Button(action: {
+                                        noteToEdit = note
+                                        noteDraft = note.text
+                                        showingNoteEditor = true
+                                    }) {
+                                        Text(note.text)
+                                            .font(.caption)
+                                            .foregroundColor(.white)
+                                            .lineLimit(1)
+                                            .padding(8)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(.ultraThinMaterial)
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 12)
+                                                            .stroke(.white.opacity(0.3), lineWidth: 1)
+                                                    )
+                                            )
+                                    }
+                                }
+                            }
+                        }
+
                         // Priority and Emotion
                         HStack(spacing: 16) {
                             // Priority
@@ -406,6 +462,35 @@ struct EditTaskView: View {
                         }
                     }
                     .padding(20)
+                }
+            }
+        }
+        .sheet(isPresented: $showingNoteEditor) {
+            NavigationView {
+                VStack {
+                    TextEditor(text: $noteDraft)
+                        .padding()
+                    Spacer()
+                }
+                .navigationTitle(noteToEdit == nil ? "New Note" : "Edit Note")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showingNoteEditor = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            let trimmed = noteDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !trimmed.isEmpty else { return }
+                            if let existing = noteToEdit,
+                               let index = editedTask.notes.firstIndex(where: { $0.id == existing.id }) {
+                                editedTask.notes[index].text = trimmed
+                                editedTask.notes[index].timestamp = Date()
+                            } else {
+                                editedTask.notes.append(TaskNote(text: trimmed))
+                            }
+                            showingNoteEditor = false
+                        }
+                    }
                 }
             }
         }
