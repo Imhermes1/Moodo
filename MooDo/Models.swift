@@ -131,6 +131,7 @@ enum TaskEmotion: String, CaseIterable, Codable {
     case creative = "creative"       // Creative work (design, brainstorming)
     case routine = "routine"         // Simple tasks (cut grass, organize)
     case stressful = "stressful"     // Demanding tasks (deadlines, presentations)
+    case anxious = "anxious"         // Anxious tasks needing wellness break
     
     var displayName: String {
         switch self {
@@ -140,6 +141,7 @@ enum TaskEmotion: String, CaseIterable, Codable {
         case .creative: return "Creative"
         case .routine: return "Routine"
         case .stressful: return "Stressful"
+        case .anxious: return "Anxious"
         }
     }
     
@@ -151,6 +153,7 @@ enum TaskEmotion: String, CaseIterable, Codable {
         case .creative: return "lightbulb"
         case .routine: return "repeat"
         case .stressful: return "exclamationmark.triangle"
+        case .anxious: return "questionmark.circle"
         }
     }
     
@@ -162,6 +165,7 @@ enum TaskEmotion: String, CaseIterable, Codable {
         case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // creative-purple
         case .routine: return Color(red: 0.22, green: 0.69, blue: 0.42) // routine-green
         case .stressful: return Color(red: 0.91, green: 0.3, blue: 0.24) // stressful-red
+        case .anxious: return Color(red: 0.95, green: 0.86, blue: 0.07) // anxious-yellow
         }
     }
 }
@@ -354,6 +358,11 @@ class TaskManager: ObservableObject {
         
         // Immediate UI update (optimistic)
         tasks.append(newTask)
+
+        // Trigger wellness reminder for anxious tasks
+        if newTask.emotion == .anxious {
+            WellnessManager.shared.triggerMicroBreak()
+        }
         
         // Enhanced haptic feedback
         HapticManager.shared.taskAdded()
@@ -422,12 +431,17 @@ class TaskManager: ObservableObject {
     func updateTask(_ task: Task) {
         if let index = tasks.firstIndex(where: { $0.id == task.id }) {
             tasks[index] = task
-            
+
+            // Trigger wellness reminder for anxious tasks
+            if task.emotion == .anxious {
+                WellnessManager.shared.triggerMicroBreak()
+            }
+
             // Update EventKit reminder if it exists
             _Concurrency.Task {
                 await eventKitManager.updateReminder(for: task)
             }
-            
+
             debouncedSave()
         }
     }
@@ -1249,7 +1263,8 @@ class TaskScheduler: ObservableObject {
             .energizing: [.focused, .creative],
             .stressful: [.calming],
             .creative: [.energizing, .focused],
-            .routine: [.calming, .focused]
+            .routine: [.calming, .focused],
+            .anxious: [.calming]
         ]
         
         return compatibilityMap[emotion2]?.contains(emotion1) ?? false

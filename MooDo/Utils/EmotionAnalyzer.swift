@@ -67,7 +67,7 @@ class EmotionAnalyzer {
             "pay", "bill", "invoice", "receipt", "form", "paperwork", "admin", "basic", "simple",
             "quick", "easy", "straightforward", "normal", "standard", "usual", "typical"
         ],
-        
+
         .stressful: [
             // Deadline pressure
             "deadline", "urgent", "asap", "rush", "hurry", "pressure", "stress", "crisis", "emergency",
@@ -77,6 +77,12 @@ class EmotionAnalyzer {
             "interview", "presentation", "meeting", "exam", "test", "evaluation", "review",
             // Anxiety-inducing
             "tax", "taxes", "legal", "doctor", "medical", "finance", "budget", "money", "debt"
+        ],
+
+        .anxious: [
+            // Anxiety-related terms
+            "anxious", "anxiety", "nervous", "worry", "worried", "uneasy", "fear", "scared",
+            "concern", "panic", "apprehensive"
         ]
     ]
     
@@ -97,7 +103,8 @@ class EmotionAnalyzer {
             .calming: 0,
             .focused: 0,
             .routine: 0,
-            .stressful: 0
+            .stressful: 0,
+            .anxious: 0
         ]
         
         // Analyze each word in the title
@@ -246,12 +253,18 @@ class EmotionAnalyzer {
                 return "Regular task detected"
             }
             return "Simple routine activity"
-            
+
         case .stressful:
             if lowercaseTitle.contains("deadline") || lowercaseTitle.contains("urgent") {
                 return "Time pressure detected"
             }
             return "Challenging task identified"
+
+        case .anxious:
+            if lowercaseTitle.contains("worry") || lowercaseTitle.contains("anxious") {
+                return "Anxiety-inducing task"
+            }
+            return "May trigger anxiety"
         }
     }
 }

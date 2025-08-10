@@ -677,6 +677,10 @@ struct AddTaskModalView: View {
         if content.contains("urgent") || content.contains("deadline") || content.contains("emergency") {
             return .stressful
         }
+
+        if content.contains("anxious") || content.contains("anxiety") || content.contains("nervous") || content.contains("worry") {
+            return .anxious
+        }
         
         if content.contains("creative") || content.contains("design") || content.contains("brainstorm") || content.contains("idea") {
             return .creative

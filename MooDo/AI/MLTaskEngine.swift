@@ -644,6 +644,7 @@ class MLTaskEngine: ObservableObject {
         case .focused: return 0.7
         case .creative: return 0.6
         case .stressful: return 0.8
+        case .anxious: return 0.8
         case .routine: return 0.4
         case .calming: return 0.3
         }

@@ -244,7 +244,8 @@ struct EditTaskView: View {
                                 }
                                 
                                 Picker("Task Type", selection: $editedTask.emotion) {
-                                    ForEach(TaskEmotion.allCases, id: \.self) { emotion in
+                                    // Sorted to ensure new emotions like .anxious appear predictably
+                                    ForEach(TaskEmotion.allCases.sorted(by: { $0.displayName < $1.displayName }), id: \.self) { emotion in
                                         HStack {
                                             Image(systemName: emotion.icon)
                                                 .foregroundColor(emotion.color)
