@@ -35,7 +35,8 @@ struct HomeView: View {
                     
                     // Today's Progress (animated counters like web app)
                     TodaysProgressView(tasks: taskManager.tasks, moodEntries: moodManager.moodEntries)
-
+                    // Quick wellness actions
+                    WellnessActionsView()
                     // Notes section
                     NotesSectionView(taskManager: taskManager)
                 }
