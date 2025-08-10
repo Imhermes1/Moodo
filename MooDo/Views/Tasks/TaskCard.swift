@@ -108,7 +108,30 @@ struct TaskCard: View {
                             )
                             .shadow(color: task.emotion.color.opacity(0.15), radius: 2, x: 0, y: 1)
                     )
-                    
+
+                    // Notes indicator
+                    if let firstNote = task.notes.first {
+                        HStack(spacing: 4) {
+                            Image(systemName: "note.text")
+                                .font(.caption2)
+                                .foregroundColor(.yellow)
+                            Text(firstNote.text)
+                                .font(.caption2)
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color.yellow.opacity(0.4), lineWidth: 1)
+                                )
+                        )
+                    }
+
                     // AI tag if task is AI-generated
                     if task.isAIGenerated {
                         Text("AI")
