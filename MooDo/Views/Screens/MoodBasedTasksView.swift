@@ -63,6 +63,15 @@ struct MoodBasedTasksView: View {
             )
             .presentationDetents([.large])
         }
+        .sheet(item: $taskManager.moodPickerTask, onDismiss: {
+            if let task = taskManager.moodPickerTask {
+                taskManager.finalizeTaskCompletion(task, mood: nil)
+            }
+        }) { task in
+            MoodPicker { mood in
+                taskManager.finalizeTaskCompletion(task, mood: mood)
+            }
+        }
     }
     
     // MARK: - Focus List Card

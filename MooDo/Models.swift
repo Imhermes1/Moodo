@@ -35,6 +35,7 @@ struct Task: Identifiable, Codable, Equatable {
     var category: TaskCategory // Added for AI recommendations
     var estimatedTime: Int? // Added for AI recommendations (in minutes)
     var completedAt: Date? // Added for AI learning
+    var completedMood: MoodType? // Mood when task was completed
     var reminderAt: Date?
     var deadlineAt: Date? // Separate deadline date from reminder
     var naturalLanguageInput: String?
@@ -67,6 +68,8 @@ struct Task: Identifiable, Codable, Equatable {
          createdAt: Date = Date(),
          isAIGenerated: Bool = false,
          notes: [TaskNote] = []) {
+    
+    init(id: UUID = UUID(), title: String, description: String? = nil, isCompleted: Bool = false, isFlagged: Bool = false, isRecurring: Bool = false, priority: TaskPriority = .medium, emotion: TaskEmotion = .focused, category: TaskCategory = .personal, estimatedTime: Int? = nil, completedAt: Date? = nil, completedMood: MoodType? = nil, reminderAt: Date? = nil, deadlineAt: Date? = nil, naturalLanguageInput: String? = nil, list: TaskList? = nil, tags: [String] = [], subtasks: [Task]? = nil, eventKitIdentifier: String? = nil, createdAt: Date = Date(), isAIGenerated: Bool = false) {
         self.id = id
         self.title = title
         self.description = description
@@ -78,6 +81,7 @@ struct Task: Identifiable, Codable, Equatable {
         self.category = category
         self.estimatedTime = estimatedTime
         self.completedAt = completedAt
+        self.completedMood = completedMood
         self.reminderAt = reminderAt
         self.deadlineAt = deadlineAt
         self.naturalLanguageInput = naturalLanguageInput
@@ -315,6 +319,7 @@ struct VoiceCheckin: Identifiable, Codable {
 class TaskManager: ObservableObject {
     @Published var tasks: [Task] = []
     @Published var taskLists: [TaskList] = []
+    @Published var moodPickerTask: Task? = nil
     let taskScheduler = TaskScheduler()
     let eventKitManager = EventKitManager()
     
@@ -444,19 +449,26 @@ class TaskManager: ObservableObject {
     func toggleTaskCompletion(_ task: Task) {
         var updatedTask = task
         updatedTask.isCompleted.toggle()
-        
+
         // Enhanced haptic feedback based on completion state
         if updatedTask.isCompleted {
             HapticManager.shared.taskCompleted()
-            
+
             // Cancel notification if task is completed early
             if let eventKitID = task.eventKitIdentifier {
                 eventKitManager.deleteReminder(eventKitIdentifier: eventKitID)
                 print("🔔 Cancelled notification for completed task: \(task.title)")
             }
+
+            // Present mood picker
+            moodPickerTask = updatedTask
         } else {
             HapticManager.shared.buttonPressed()
-            
+
+            // Reset completion metadata when uncompleting
+            updatedTask.completedMood = nil
+            updatedTask.completedAt = nil
+
             // Reschedule notification if task is uncompleted and has a future reminder
             if let reminderDate = task.reminderAt, reminderDate > Date() {
                 _Concurrency.Task {
@@ -469,15 +481,23 @@ class TaskManager: ObservableObject {
                 print("🔔 Rescheduled notification for uncompleted task: \(task.title)")
             }
         }
-        
+
         updateTask(updatedTask)
-        
-        // Auto-archive completed tasks with a delay for user feedback
-        if updatedTask.isCompleted {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                self.archiveCompletedTask(updatedTask)
-            }
+    }
+
+    func finalizeTaskCompletion(_ task: Task, mood: MoodType?) {
+        var updatedTask = task
+        updatedTask.completedMood = mood
+        if updatedTask.completedAt == nil {
+            updatedTask.completedAt = Date()
         }
+        updateTask(updatedTask)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            self.archiveCompletedTask(updatedTask)
+        }
+
+        moodPickerTask = nil
     }
     
     // MARK: - Completed Tasks Management
