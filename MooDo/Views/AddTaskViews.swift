@@ -26,6 +26,10 @@ struct AddTaskModalView: View {
     @ObservedObject var taskManager: TaskManager
     @StateObject private var nlpProcessor = NaturalLanguageProcessor()
     @StateObject private var voiceRecognition = VoiceRecognitionManager()
+    @State private var taskNotes: [TaskNote] = []
+    @State private var showingNoteEditor = false
+    @State private var noteDraft = ""
+    @State private var noteToEdit: TaskNote? = nil
     
     // Animation states for achievement effect
     @State private var showSuccessAnimation = false
@@ -185,7 +189,7 @@ struct AddTaskModalView: View {
                                                 .foregroundColor(.white.opacity(0.8))
                                         }
                                         
-                                        TextField("Add tags separated by commas or use #hashtags", text: $taskTags)
+                                    TextField("Add tags separated by commas or use #hashtags", text: $taskTags)
                                             .font(.body)
                                             .foregroundColor(.white)
                                             .padding(12)
@@ -194,7 +198,54 @@ struct AddTaskModalView: View {
                                             )
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
                                     }
-                                    
+
+                                    // Notes section
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "note.text")
+                                                .foregroundColor(.white.opacity(0.8))
+                                                .font(.caption)
+                                            Text("Notes")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.white.opacity(0.8))
+
+                                            Spacer()
+
+                                            Button(action: {
+                                                noteToEdit = nil
+                                                noteDraft = ""
+                                                showingNoteEditor = true
+                                            }) {
+                                                Image(systemName: "plus.circle")
+                                                    .foregroundColor(.white)
+                                            }
+                                        }
+
+                                        if taskNotes.isEmpty {
+                                            Text("No notes yet")
+                                                .font(.caption2)
+                                                .foregroundColor(.white.opacity(0.6))
+                                        } else {
+                                            ForEach(taskNotes) { note in
+                                                Button(action: {
+                                                    noteToEdit = note
+                                                    noteDraft = note.text
+                                                    showingNoteEditor = true
+                                                }) {
+                                                    Text(note.text)
+                                                        .font(.caption2)
+                                                        .foregroundColor(.white)
+                                                        .lineLimit(1)
+                                                        .padding(8)
+                                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                                        .background(GlassPanelBackground())
+                                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     // Priority and Mood
                                     HStack(spacing: 12) {
                                         // Priority selector
@@ -469,6 +520,35 @@ struct AddTaskModalView: View {
                 .padding(.bottom, 20)
             }
         }
+        .sheet(isPresented: $showingNoteEditor) {
+            NavigationView {
+                VStack {
+                    TextEditor(text: $noteDraft)
+                        .padding()
+                    Spacer()
+                }
+                .navigationTitle(noteToEdit == nil ? "New Note" : "Edit Note")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showingNoteEditor = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            let trimmed = noteDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !trimmed.isEmpty else { return }
+                            if let existing = noteToEdit,
+                               let index = taskNotes.firstIndex(where: { $0.id == existing.id }) {
+                                taskNotes[index].text = trimmed
+                                taskNotes[index].timestamp = Date()
+                            } else {
+                                taskNotes.append(TaskNote(text: trimmed))
+                            }
+                            showingNoteEditor = false
+                        }
+                    }
+                }
+            }
+        }
         .onChange(of: voiceRecognition.transcript) { _, newValue in
             if !newValue.isEmpty {
                 taskInput = newValue
@@ -551,7 +631,8 @@ struct AddTaskModalView: View {
             reminderAt: finalReminderAt,
             deadlineAt: finalDeadlineAt,
             naturalLanguageInput: input,
-            tags: finalTags
+            tags: finalTags,
+            notes: taskNotes
         )
         
         print("📝 Creating task: \(task.title)")
