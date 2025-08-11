@@ -13,6 +13,7 @@ struct TasksView: View {
     @ObservedObject var moodManager: MoodManager
     @State private var selectedFilter: TaskFilter = .today
     @State private var showingAddModal = false
+    @State private var showingTagManagement = false
     @State private var searchText = ""
     @State private var selectedTag: String? = nil
     @State private var keyboardHeight: CGFloat = 0
@@ -94,6 +95,13 @@ struct TasksView: View {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.white.opacity(0.6))
                             }
+                        }
+                        
+                        // Tag management button
+                        Button(action: { showingTagManagement = true }) {
+                            Image(systemName: "tag.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.peacefulGreen)
                         }
                         
                         // Add button inside search bar
@@ -184,13 +192,10 @@ struct TasksView: View {
                                         selectedTag = selectedTag == tag ? nil : tag
                                         HapticManager.shared.selection()
                                     }) {
-                                        let isAITag = tag.hasPrefix("ai-")
-                                        let tagColor: Color = isAITag ? .orange : .blue
-                                        
                                         HStack(spacing: 4) {
                                             Image(systemName: "tag.fill")
                                                 .font(.caption2)
-                                                .foregroundColor(selectedTag == tag ? tagColor : .white.opacity(0.7))
+                                                .foregroundColor(selectedTag == tag ? .blue : .white.opacity(0.7))
                                             
                                             Text(tag)
                                                 .font(.caption)
@@ -205,10 +210,10 @@ struct TasksView: View {
                                         .padding(.vertical, 6)
                                         .background(
                                             Capsule()
-                                                .fill(selectedTag == tag ? tagColor.opacity(0.2) : Color.clear)
+                                                .fill(selectedTag == tag ? .blue.opacity(0.2) : Color.clear)
                                                 .overlay(
                                                     Capsule()
-                                                        .stroke(selectedTag == tag ? tagColor : Color.white.opacity(0.3), lineWidth: 1)
+                                                        .stroke(selectedTag == tag ? .blue : .white.opacity(0.3), lineWidth: 1)
                                                 )
                                         )
                                     }
@@ -305,6 +310,11 @@ struct TasksView: View {
                 MoodPicker { mood in
                     taskManager.finalizeTaskCompletion(task, mood: mood)
                 }
+            }
+            .sheet(isPresented: $showingTagManagement) {
+                TagManagementView()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
             .onChange(of: selectedFilter) { oldFilter, newFilter in
                 selectedTag = nil // Reset tag filter when main filter changes

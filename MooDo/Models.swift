@@ -698,6 +698,39 @@ class TaskManager: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "SavedTasks"),
            let decoded = try? JSONDecoder().decode([Task].self, from: data) {
             tasks = decoded
+        } else {
+            // Add sample tasks with tags for testing when no saved tasks exist
+            tasks = [
+                Task(
+                    title: "Schedule work meeting #work #urgent",
+                    description: "Plan quarterly review with team",
+                    priority: .high,
+                    emotion: .focused,
+                    tags: ["work", "urgent"]
+                ),
+                Task(
+                    title: "Buy groceries #shopping #personal",
+                    description: "Get ingredients for dinner",
+                    priority: .medium,
+                    emotion: .routine,
+                    tags: ["shopping", "personal"]
+                ),
+                Task(
+                    title: "Workout at gym #fitness #health",
+                    description: "30 minutes cardio",
+                    priority: .medium,
+                    emotion: .energizing,
+                    tags: ["fitness", "health"]
+                ),
+                Task(
+                    title: "Design new app feature",
+                    description: "Brainstorm user interface improvements",
+                    priority: .medium,
+                    emotion: .creative,
+                    tags: ["ai"],
+                    isAIGenerated: true
+                )
+            ]
         }
         
         if let data = UserDefaults.standard.data(forKey: "SavedTaskLists"),

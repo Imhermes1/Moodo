@@ -12,11 +12,7 @@ import SwiftUI
 struct EditTaskView: View {
     @Environment(\.dismiss) private var dismiss
     @State var editedTask: Task
-    @State private var tagText = ""
-    @State private var showTagActionSheet = false
-    @State private var selectedTagForAction: String? = nil
     @FocusState private var titleFieldFocused: Bool
-    @FocusState private var tagFieldFocused: Bool
     let onSave: (Task) -> Void
     let onDelete: ((Task) -> Void)?
     
@@ -288,99 +284,9 @@ struct EditTaskView: View {
                             )
                         }
                         
-                        // Tags Section - horizontal pills at bottom
-                        if !editedTask.tags.isEmpty {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Image(systemName: "tag")
-                                        .foregroundColor(.white)
-                                        .font(.title3)
-                                    Text("Tags")
-                                        .font(.headline)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white)
-                                }
-                                
-                                HStack {
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 8) {
-                                            ForEach(editedTask.tags, id: \.self) { tag in
-                                                Button(action: {
-                                                    showTagActionSheet(tag: tag)
-                                                }) {
-                                                    Text("#\(tag)")
-                                                        .font(.caption)
-                                                        .fontWeight(.medium)
-                                                        .foregroundColor(.white)
-                                                        .padding(.horizontal, 12)
-                                                        .padding(.vertical, 6)
-                                                        .background(
-                                                            Capsule()
-                                                                .fill(tag.lowercased().hasPrefix("ai-") ? Color.orange.opacity(0.7) : Color.blue.opacity(0.7))
-                                                        )
-                                                }
-                                            }
-                                        }
-                                        .padding(.leading, 8)
-                                    }
-                                    
-                                    Button(action: {
-                                        // Show text field to add new tag
-                                        tagText = ""
-                                        tagFieldFocused = true
-                                    }) {
-                                        Image(systemName: "plus.circle.fill")
-                                            .font(.title2)
-                                            .foregroundColor(.calmingBlue)
-                                            .padding(.horizontal, 8)
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Add tag field (only shown when adding)
-                        if tagFieldFocused || !tagText.isEmpty {
-                            VStack(alignment: .leading, spacing: 12) {
-                                HStack {
-                                    Image(systemName: "tag")
-                                        .foregroundColor(.white)
-                                        .font(.title3)
-                                    Text("Add Tag")
-                                        .font(.headline)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.white)
-                                }
-                                
-                                HStack {
-                                    TextField("Add tag", text: $tagText)
-                                        .font(.body)
-                                        .foregroundColor(.white)
-                                        .focused($tagFieldFocused)
-                                        .onSubmit {
-                                            addTag()
-                                        }
-                                    
-                                    Button("Add", action: addTag)
-                                        .foregroundColor(.calmingBlue)
-                                        .disabled(tagText.trimmingCharacters(in: .whitespaces).isEmpty)
-                                    
-                                    Button("Cancel") {
-                                        tagText = ""
-                                        tagFieldFocused = false
-                                    }
-                                    .foregroundColor(.white.opacity(0.6))
-                                }
-                                .padding(12)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(.ultraThinMaterial)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(.white.opacity(0.3), lineWidth: 1)
-                                        )
-                                )
-                            }
-                        }
+                        // Tags Section - Using new TagPicker component
+                        TagPicker(selectedTags: $editedTask.tags)
+                            .padding(.top, 8)
                         
                         // Delete button below tags if available
                         if let onDelete = onDelete {
@@ -408,49 +314,10 @@ struct EditTaskView: View {
                 }
             }
         }
-        .actionSheet(isPresented: $showTagActionSheet) {
-            ActionSheet(
-                title: Text(selectedTagForAction ?? "Tag"),
-                message: Text("Edit or delete this tag."),
-                buttons: [
-                    .default(Text("Edit")) {
-                        if let tag = selectedTagForAction {
-                            tagText = tag
-                            removeTag(tag)
-                        }
-                    },
-                    .destructive(Text("Delete")) {
-                        if let tag = selectedTagForAction {
-                            removeTag(tag)
-                        }
-                    },
-                    .cancel()
-                ]
-            )
-        }
         .onTapGesture {
             // Dismiss keyboard when tapping outside
             titleFieldFocused = false
-            tagFieldFocused = false
         }
-    }
-    
-    private func showTagActionSheet(tag: String) {
-        selectedTagForAction = tag
-        showTagActionSheet = true
-    }
-    
-    private func addTag() {
-        let trimmedTag = tagText.trimmingCharacters(in: .whitespaces)
-        if !trimmedTag.isEmpty && !editedTask.tags.contains(trimmedTag) {
-            editedTask.tags.append(trimmedTag)
-            tagText = ""
-            tagFieldFocused = false
-        }
-    }
-    
-    private func removeTag(_ tag: String) {
-        editedTask.tags.removeAll { $0 == tag }
     }
 }
 

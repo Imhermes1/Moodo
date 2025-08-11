@@ -381,9 +381,8 @@ class NaturalLanguageProcessor: ObservableObject {
     
     private func extractTags(from input: String) -> [String] {
         var tags: [String] = []
-        let lowercased = input.lowercased()
         
-        // Look for hashtag-style tags (#tag)
+        // Look for hashtag-style tags (#tag) - this is the only way to add tags
         let hashtagPattern = "#(\\w+)"
         let hashtagRegex = try? NSRegularExpression(pattern: hashtagPattern, options: [])
         let hashtagMatches = hashtagRegex?.matches(in: input, options: [], range: NSRange(location: 0, length: input.count)) ?? []
@@ -391,41 +390,13 @@ class NaturalLanguageProcessor: ObservableObject {
         for match in hashtagMatches {
             if let range = Range(match.range(at: 1), in: input) {
                 let tag = String(input[range])
-                tags.append(tag)
-            }
-        }
-        
-        // Extract contextual tags based on keywords - prefixed with "ai-" to distinguish AI-assigned tags
-        let contextualTags: [String: [String]] = [
-            "ai-work": ["work", "office", "meeting", "presentation", "project", "deadline", "client", "colleague"],
-            "ai-personal": ["personal", "family", "friend", "home", "private", "self"],
-            "ai-health": ["health", "doctor", "medicine", "exercise", "workout", "gym", "fitness", "diet"],
-            "ai-shopping": ["buy", "shop", "grocery", "store", "purchase", "order"],
-            "ai-learning": ["learn", "study", "course", "book", "education", "training", "practice"],
-            "ai-creative": ["creative", "design", "art", "music", "write", "brainstorm", "idea"],
-            "ai-urgent": ["urgent", "asap", "emergency", "immediately", "now"],
-            "ai-routine": ["daily", "weekly", "routine", "habit", "regular"],
-            "ai-travel": ["travel", "trip", "vacation", "flight", "hotel", "book"],
-            "ai-finance": ["money", "bank", "pay", "bill", "budget", "finance", "invest"]
-        ]
-        
-        for (tag, keywords) in contextualTags {
-            if keywords.contains(where: { lowercased.contains($0) }) {
                 if !tags.contains(tag) {
                     tags.append(tag)
                 }
-            }
-        }
-        
-        // Look for @mentions as potential location or person tags
-        let mentionPattern = "@(\\w+)"
-        let mentionRegex = try? NSRegularExpression(pattern: mentionPattern, options: [])
-        let mentionMatches = mentionRegex?.matches(in: input, options: [], range: NSRange(location: 0, length: input.count)) ?? []
-        
-        for match in mentionMatches {
-            if let range = Range(match.range(at: 1), in: input) {
-                let mention = String(input[range])
-                tags.append("@\(mention)")
+                // Limit to 3 tags maximum
+                if tags.count >= 3 {
+                    break
+                }
             }
         }
         

@@ -109,37 +109,59 @@ struct TaskCard: View {
                             .shadow(color: task.emotion.color.opacity(0.15), radius: 2, x: 0, y: 1)
                     )
 
-                    // Tags display
+                    // Tags display with enhanced styling from Tag model
                     if !task.tags.isEmpty {
-                        ForEach(task.tags.prefix(2), id: \.self) { tag in
-                            let isAITag = tag.hasPrefix("ai-")
-                            let tagColor: Color = isAITag ? .orange : .blue
-                            
-                            HStack(spacing: 3) {
-                                Image(systemName: "tag.fill")
-                                    .font(.caption2)
-                                    .foregroundColor(tagColor)
-                                Text(tag)
-                                    .font(.caption2)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
+                        ForEach(task.tags.prefix(3), id: \.self) { tagName in
+                            if let tag = TagManager.shared.getTag(byName: tagName) {
+                                // Use tag model with custom colors and icons
+                                HStack(spacing: 3) {
+                                    Image(systemName: tag.icon)
+                                        .font(.caption2)
+                                        .foregroundColor(tag.color)
+                                    Text(tag.name)
+                                        .font(.caption2)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+                                }
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(
+                                    Capsule()
+                                        .fill(tag.color.opacity(0.2))
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(tag.color.opacity(0.4), lineWidth: 1)
+                                        )
+                                )
+                            } else {
+                                // Fallback for unmigrated string tags
+                                HStack(spacing: 3) {
+                                    Image(systemName: "tag.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(.blue)
+                                    Text(tagName)
+                                        .font(.caption2)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.white)
+                                        .lineLimit(1)
+                                }
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(
+                                    Capsule()
+                                        .fill(.blue.opacity(0.2))
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(.blue.opacity(0.4), lineWidth: 1)
+                                        )
+                                )
                             }
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(
-                                Capsule()
-                                    .fill(tagColor.opacity(0.2))
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(tagColor.opacity(0.4), lineWidth: 1)
-                                    )
-                            )
                         }
                         
-                        // Show "+" indicator if there are more than 2 tags
-                        if task.tags.count > 2 {
-                            Text("+\(task.tags.count - 2)")
+                        // Show "+" indicator if there are more than 3 tags
+                        if task.tags.count > 3 {
+                            Text("+\(task.tags.count - 3)")
                                 .font(.caption2)
                                 .fontWeight(.medium)
                                 .foregroundColor(.white.opacity(0.7))
@@ -179,24 +201,6 @@ struct TaskCard: View {
                         )
                     }
 
-                    // AI tag if task is AI-generated
-                    if task.isAIGenerated {
-                        Text("AI")
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                            .foregroundColor(.purple.opacity(0.9))
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(
-                                Capsule()
-                                    .fill(.purple.opacity(0.2))
-                                    .overlay(
-                                        Capsule()
-                                            .stroke(.purple.opacity(0.4), lineWidth: 1)
-                                    )
-                            )
-                    }
-                    
                     Spacer()
                     
                     // Reminder time with gentle styling

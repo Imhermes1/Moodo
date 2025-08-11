@@ -398,6 +398,7 @@ struct MoodBasedTasksView: View {
             emotion: aiRecommendation.emotion,
             category: aiRecommendation.category,
             estimatedTime: aiRecommendation.estimatedDuration,
+            tags: ["ai"], // AI tasks automatically get #ai tag
             createdAt: Date(),
             isAIGenerated: true // Mark as AI-generated to maintain rainbow outline
         )
