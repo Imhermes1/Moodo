@@ -13,6 +13,7 @@ struct HomeView: View {
     @Binding var showingAccountSettings: Bool
     @ObservedObject var taskManager: TaskManager
     @ObservedObject var moodManager: MoodManager
+    @ObservedObject var thoughtsManager: ThoughtsManager // NEW: Add thoughts manager
     let screenSize: CGSize
     @State private var selectedTab: Int = 0
     
@@ -33,15 +34,19 @@ struct HomeView: View {
                         screenSize: screenSize
                     )
                     
+                    // Recent Thoughts (moved above Today's Progress)
+                    RecentThoughtsView(thoughtsManager: thoughtsManager)
+                    
                     // Today's Progress (animated counters like web app)
-                    TodaysProgressView(tasks: taskManager.tasks, moodEntries: moodManager.moodEntries)
-                    // Quick wellness actions
-                    WellnessActionsView()
-                    // Notes section
-                    NotesSectionView(taskManager: taskManager)
+                    TodaysProgressView(
+                        tasks: taskManager.tasks, 
+                        moodEntries: moodManager.moodEntries,
+                        thoughts: thoughtsManager.thoughts
+                    )
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, max(screenSize.height * 0.08, 60))
+                .padding(.bottom, 120) // Extra bottom padding for better scroll
             }
             .ignoresSafeArea(edges: [.top, .bottom])
             

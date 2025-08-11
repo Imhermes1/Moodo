@@ -11,21 +11,14 @@ import SwiftUI
 
 struct EditTaskView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var editedTask: Task
+    @State var editedTask: Task
     @State private var tagText = ""
+    @State private var showTagActionSheet = false
+    @State private var selectedTagForAction: String? = nil
     @FocusState private var titleFieldFocused: Bool
     @FocusState private var tagFieldFocused: Bool
-    @State private var showingNoteEditor = false
-    @State private var noteDraft = ""
-    @State private var noteToEdit: TaskNote? = nil
     let onSave: (Task) -> Void
     let onDelete: ((Task) -> Void)?
-    
-    init(task: Task, onSave: @escaping (Task) -> Void, onDelete: ((Task) -> Void)? = nil) {
-        self._editedTask = State(initialValue: task)
-        self.onSave = onSave
-        self.onDelete = onDelete
-    }
     
     var body: some View {
         ZStack {
@@ -34,10 +27,9 @@ struct EditTaskView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Custom header
+                // Custom Header
                 HStack {
                     Button("Cancel") {
-                        HapticManager.shared.impact(.light)
                         dismiss()
                     }
                     .font(.body)
@@ -53,47 +45,32 @@ struct EditTaskView: View {
                     Spacer()
                     
                     Button("Save") {
-                        HapticManager.shared.success()
+                        HapticManager.shared.notification(.success)
                         onSave(editedTask)
                         dismiss()
                     }
                     .font(.body)
                     .fontWeight(.medium)
-                    .foregroundColor(editedTask.title.trimmingCharacters(in: .whitespaces).isEmpty ? .white.opacity(0.5) : .peacefulGreen)
-                    .disabled(editedTask.title.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .foregroundColor(.peacefulGreen)
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 16)
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Gentle header for mental health
-                        VStack(spacing: 8) {
-                            Text("Let's refine this task together")
-                                .font(.title3)
-                                .fontWeight(.medium)
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.center)
-                            
-                            Text("Take your time, every detail matters 💙")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                        .padding(.top, 8)
-                        
-                        // Title Editor with enhanced styling
+                        // Title Editor
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
-                                Image(systemName: "textformat")
-                                    .foregroundColor(.blue)
+                                Image(systemName: "doc.text")
+                                    .foregroundColor(.white)
                                     .font(.title3)
-                                Text("Task Title")
+                                Text("Title")
                                     .font(.headline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(.white)
                             }
                             
-                            TextField("Enter task title", text: $editedTask.title, axis: .vertical)
+                            TextField("Task title", text: $editedTask.title, axis: .vertical)
                                 .font(.body)
                                 .foregroundColor(.white)
                                 .padding(16)
@@ -137,59 +114,6 @@ struct EditTaskView: View {
                                         )
                                 )
                                 .lineLimit(3...6)
-                        }
-
-                        // Notes section
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "note.text")
-                                    .foregroundColor(.white)
-                                    .font(.title3)
-                                Text("Notes")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.white)
-
-                                Spacer()
-
-                                Button(action: {
-                                    noteToEdit = nil
-                                    noteDraft = ""
-                                    showingNoteEditor = true
-                                }) {
-                                    Image(systemName: "plus.circle")
-                                        .foregroundColor(.white)
-                                }
-                            }
-
-                            if editedTask.notes.isEmpty {
-                                Text("No notes yet")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.6))
-                            } else {
-                                ForEach(editedTask.notes) { note in
-                                    Button(action: {
-                                        noteToEdit = note
-                                        noteDraft = note.text
-                                        showingNoteEditor = true
-                                    }) {
-                                        Text(note.text)
-                                            .font(.caption)
-                                            .foregroundColor(.white)
-                                            .lineLimit(1)
-                                            .padding(8)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .fill(.ultraThinMaterial)
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 12)
-                                                            .stroke(.white.opacity(0.3), lineWidth: 1)
-                                                    )
-                                            )
-                                    }
-                                }
-                            }
                         }
 
                         // Priority and Emotion
@@ -364,20 +288,69 @@ struct EditTaskView: View {
                             )
                         }
                         
-                        // Tags Section
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "tag")
-                                    .foregroundColor(.white)
-                                    .font(.title3)
-                                Text("Tags")
-                                    .font(.headline)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.white)
+                        // Tags Section - horizontal pills at bottom
+                        if !editedTask.tags.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Image(systemName: "tag")
+                                        .foregroundColor(.white)
+                                        .font(.title3)
+                                    Text("Tags")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                }
+                                
+                                HStack {
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 8) {
+                                            ForEach(editedTask.tags, id: \.self) { tag in
+                                                Button(action: {
+                                                    showTagActionSheet(tag: tag)
+                                                }) {
+                                                    Text("#\(tag)")
+                                                        .font(.caption)
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(.white)
+                                                        .padding(.horizontal, 12)
+                                                        .padding(.vertical, 6)
+                                                        .background(
+                                                            Capsule()
+                                                                .fill(tag.lowercased().hasPrefix("ai-") ? Color.orange.opacity(0.7) : Color.blue.opacity(0.7))
+                                                        )
+                                                }
+                                            }
+                                        }
+                                        .padding(.leading, 8)
+                                    }
+                                    
+                                    Button(action: {
+                                        // Show text field to add new tag
+                                        tagText = ""
+                                        tagFieldFocused = true
+                                    }) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.title2)
+                                            .foregroundColor(.calmingBlue)
+                                            .padding(.horizontal, 8)
+                                    }
+                                }
                             }
-                            
-                            VStack(spacing: 12) {
-                                // Add tag field
+                        }
+                        
+                        // Add tag field (only shown when adding)
+                        if tagFieldFocused || !tagText.isEmpty {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Image(systemName: "tag")
+                                        .foregroundColor(.white)
+                                        .font(.title3)
+                                    Text("Add Tag")
+                                        .font(.headline)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.white)
+                                }
+                                
                                 HStack {
                                     TextField("Add tag", text: $tagText)
                                         .font(.body)
@@ -390,6 +363,12 @@ struct EditTaskView: View {
                                     Button("Add", action: addTag)
                                         .foregroundColor(.calmingBlue)
                                         .disabled(tagText.trimmingCharacters(in: .whitespaces).isEmpty)
+                                    
+                                    Button("Cancel") {
+                                        tagText = ""
+                                        tagFieldFocused = false
+                                    }
+                                    .foregroundColor(.white.opacity(0.6))
                                 }
                                 .padding(12)
                                 .background(
@@ -400,44 +379,7 @@ struct EditTaskView: View {
                                                 .stroke(.white.opacity(0.3), lineWidth: 1)
                                         )
                                 )
-                                
-                                // Current tags
-                                if !editedTask.tags.isEmpty {
-                                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 8) {
-                                        ForEach(editedTask.tags, id: \.self) { tag in
-                                            HStack {
-                                                Text("#\(tag)")
-                                                    .font(.caption)
-                                                    .foregroundColor(.white)
-                                                
-                                                Spacer()
-                                                
-                                                Button(action: { removeTag(tag) }) {
-                                                    Image(systemName: "xmark.circle.fill")
-                                                        .font(.caption)
-                                                        .foregroundColor(.red)
-                                                }
-                                            }
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(
-                                                Capsule()
-                                                    .fill(.blue.opacity(0.3))
-                                                    .background(.thinMaterial)
-                                            )
-                                        }
-                                    }
-                                }
                             }
-                            .padding(16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(.ultraThinMaterial)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 16)
-                                            .stroke(.white.opacity(0.3), lineWidth: 1)
-                                    )
-                            )
                         }
                         
                         // Delete button below tags if available
@@ -466,34 +408,25 @@ struct EditTaskView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingNoteEditor) {
-            NavigationView {
-                VStack {
-                    TextEditor(text: $noteDraft)
-                        .padding()
-                    Spacer()
-                }
-                .navigationTitle(noteToEdit == nil ? "New Note" : "Edit Note")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { showingNoteEditor = false }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
-                            let trimmed = noteDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                            guard !trimmed.isEmpty else { return }
-                            if let existing = noteToEdit,
-                               let index = editedTask.notes.firstIndex(where: { $0.id == existing.id }) {
-                                editedTask.notes[index].text = trimmed
-                                editedTask.notes[index].timestamp = Date()
-                            } else {
-                                editedTask.notes.append(TaskNote(text: trimmed))
-                            }
-                            showingNoteEditor = false
+        .actionSheet(isPresented: $showTagActionSheet) {
+            ActionSheet(
+                title: Text(selectedTagForAction ?? "Tag"),
+                message: Text("Edit or delete this tag."),
+                buttons: [
+                    .default(Text("Edit")) {
+                        if let tag = selectedTagForAction {
+                            tagText = tag
+                            removeTag(tag)
                         }
-                    }
-                }
-            }
+                    },
+                    .destructive(Text("Delete")) {
+                        if let tag = selectedTagForAction {
+                            removeTag(tag)
+                        }
+                    },
+                    .cancel()
+                ]
+            )
         }
         .onTapGesture {
             // Dismiss keyboard when tapping outside
@@ -502,11 +435,17 @@ struct EditTaskView: View {
         }
     }
     
+    private func showTagActionSheet(tag: String) {
+        selectedTagForAction = tag
+        showTagActionSheet = true
+    }
+    
     private func addTag() {
         let trimmedTag = tagText.trimmingCharacters(in: .whitespaces)
         if !trimmedTag.isEmpty && !editedTask.tags.contains(trimmedTag) {
             editedTask.tags.append(trimmedTag)
             tagText = ""
+            tagFieldFocused = false
         }
     }
     
@@ -564,67 +503,67 @@ struct AddTaskListView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
-                // List name
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("List Name")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    
-                    TextField("Enter list name", text: $listName)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(.ultraThinMaterial)
-                                .stroke(.white.opacity(0.15), lineWidth: 1)
-                        )
-                        .foregroundColor(.white)
-                }
-                
-                // Color selection
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Color")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 12) {
-                        ForEach(colors, id: \.self) { color in
-                            Circle()
-                                .fill(Color(hex: color))
-                                .frame(width: 40, height: 40)
-                                .overlay(
-                                    Circle()
-                                        .stroke(selectedColor == color ? .white : .clear, lineWidth: 3)
-                                )
-                                .onTapGesture {
-                                    selectedColor = color
-                                }
-                        }
-                    }
-                }
-                
-                // Icon selection
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Icon")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 12) {
-                        ForEach(icons, id: \.self) { icon in
-                            Image(systemName: icon)
-                                .font(.title2)
-                                .foregroundColor(selectedIcon == icon ? .white : .white.opacity(0.7))
-                                .frame(width: 40, height: 40)
+                        // List name
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("List Name")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            TextField("Enter list name", text: $listName)
+                                .padding()
                                 .background(
-                                    Circle()
-                                        .fill(selectedIcon == icon ? Color(hex: selectedColor) : .white.opacity(0.1))
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(.ultraThinMaterial)
+                                        .stroke(.white.opacity(0.15), lineWidth: 1)
                                 )
-                                .onTapGesture {
-                                    selectedIcon = icon
-                                }
+                                .foregroundColor(.white)
                         }
-                    }
-                }
-                
+                        
+                        // Color selection
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Color")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 12) {
+                                ForEach(colors, id: \.self) { color in
+                                    Circle()
+                                        .fill(Color(hex: color))
+                                        .frame(width: 40, height: 40)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(selectedColor == color ? .white : .clear, lineWidth: 3)
+                                        )
+                                        .onTapGesture {
+                                            selectedColor = color
+                                        }
+                                }
+                            }
+                        }
+                        
+                        // Icon selection
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Icon")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            
+                            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 12) {
+                                ForEach(icons, id: \.self) { icon in
+                                    Image(systemName: icon)
+                                        .font(.title2)
+                                        .foregroundColor(selectedIcon == icon ? .white : .white.opacity(0.7))
+                                        .frame(width: 40, height: 40)
+                                        .background(
+                                            Circle()
+                                                .fill(selectedIcon == icon ? Color(hex: selectedColor) : .white.opacity(0.1))
+                                        )
+                                        .onTapGesture {
+                                            selectedIcon = icon
+                                        }
+                                }
+                            }
+                        }
+                        
                         Spacer()
                     }
                     .padding(24)
@@ -661,4 +600,4 @@ extension Color {
             opacity: Double(a) / 255
         )
     }
-} 
+}

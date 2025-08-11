@@ -330,6 +330,43 @@ class MLTaskEngine: ObservableObject {
                     emotion: .calming
                 )
             ])
+            
+        case .anxious:
+            recommendations.append(contentsOf: [
+                AITaskRecommendation(
+                    title: "Deep breathing exercise",
+                    description: "🫁 Anxiety relief: Try the 4-7-8 technique - breathe in for 4, hold for 7, exhale for 8. This activates your parasympathetic nervous system and reduces anxiety quickly.",
+                    category: .health,
+                    priority: .high,
+                    estimatedDuration: 5,
+                    confidence: 0.95,
+                    reasoning: "Breathing exercises proven to reduce anxiety",
+                    learningSource: .stressPatternAnalysis,
+                    emotion: .calming
+                ),
+                AITaskRecommendation(
+                    title: "Write your worries down",
+                    description: "📝 Anxiety strategy: Set a timer for 10 minutes and write everything you're worried about. Getting it out of your head and onto paper helps your brain process and organize anxious thoughts.",
+                    category: .personal,
+                    priority: .high,
+                    estimatedDuration: 10,
+                    confidence: 0.88,
+                    reasoning: "Journaling helps process anxious thoughts",
+                    learningSource: .stressPatternAnalysis,
+                    emotion: .calming
+                ),
+                AITaskRecommendation(
+                    title: "Simple, comforting task",
+                    description: "🧸 Comfort zone: Choose something familiar and easy - organize photos, make tea, or tidy a small space. Familiar tasks ground you when anxiety is high.",
+                    category: .personal,
+                    priority: .low,
+                    estimatedDuration: 15,
+                    confidence: 0.80,
+                    reasoning: "Familiar routines provide comfort during anxiety",
+                    learningSource: .behaviorPatternAnalysis,
+                    emotion: .routine
+                )
+            ])
         }
         
         // Apply Apple's ranking to starter recommendations
@@ -524,6 +561,18 @@ class MLTaskEngine: ObservableObject {
                     learningSource: .stressPatternAnalysis,
                     emotion: .calming
                 ))
+            case .anxious:
+                recommendations.append(AITaskRecommendation(
+                    title: "Grounding breathing exercise",
+                    description: "🫁 Anxiety relief - try 4-7-8 breathing to calm your nervous system immediately.",
+                    category: .health,
+                    priority: .high,
+                    estimatedDuration: 5,
+                    confidence: 0.95,
+                    reasoning: "Breathing exercises reduce anxiety effectively",
+                    learningSource: .stressPatternAnalysis,
+                    emotion: .calming
+                ))
             }
         }
         
@@ -624,12 +673,14 @@ class MLTaskEngine: ObservableObject {
         case .calm: return 0.4
         case .tired: return 0.2
         case .stressed: return 0.3
+        case .anxious: return 0.2
         }
     }
     
     private func mapMoodToStress(_ mood: MoodType) -> Double {
         switch mood {
         case .stressed: return 0.9
+        case .anxious: return 0.8
         case .tired: return 0.6
         case .energized: return 0.2
         case .focused: return 0.3

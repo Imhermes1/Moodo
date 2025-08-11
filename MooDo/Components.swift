@@ -132,6 +132,7 @@ struct QuickStatsView: View {
         case .stressed: return 2
         case .creative: return 4
         case .tired: return 2
+        case .anxious: return 2
         }
     }
 }
@@ -1782,6 +1783,7 @@ struct BodyScanView: View {
 struct TodaysProgressView: View {
     let tasks: [Task]
     let moodEntries: [MoodEntry]
+    let thoughts: [Thought]? // Optional - for backward compatibility
     
     // Remove animated counters for better performance
     // @State private var animatedTasksCount: Int = 0
@@ -1793,8 +1795,12 @@ struct TodaysProgressView: View {
         tasks.filter { $0.isCompleted }.count
     }
     
-    var mindfulMomentsCount: Int {
-        3 // Mock data matching web app
+    var thoughtsCount: Int {
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        return thoughts?.filter { 
+            $0.dateCreated >= today && $0.dateCreated < tomorrow 
+        }.count ?? 0
     }
     
     var moodCheckinsCount: Int {
@@ -1828,16 +1834,16 @@ struct TodaysProgressView: View {
                 )
                 
                 ProgressCard(
-                    title: "Mindful Moments", 
-                    value: mindfulMomentsCount,
-                    color: Color.blue,
+                    title: "Thoughts Captured", 
+                    value: thoughtsCount,
+                    color: Color.purple,
                     isPercentage: false
                 )
                 
                 ProgressCard(
                     title: "Mood Check-ins",
                     value: moodCheckinsCount,
-                    color: Color.purple,
+                    color: Color.blue,
                     isPercentage: false
                 )
                 

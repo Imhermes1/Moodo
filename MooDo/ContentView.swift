@@ -17,6 +17,7 @@ struct ContentView: View {
     @StateObject private var taskManager = TaskManager()
     @StateObject private var moodManager = MoodManager()
     @StateObject private var voiceManager = VoiceCheckinManager()
+    @StateObject private var thoughtsManager = ThoughtsManager() // NEW: Add thoughts manager
     
     var body: some View {
         GeometryReader { geometry in
@@ -35,6 +36,7 @@ struct ContentView: View {
                             showingAccountSettings: $showingAccountSettings,
                             taskManager: taskManager,
                             moodManager: moodManager,
+                            thoughtsManager: thoughtsManager, // NEW: Pass thoughts manager
                             screenSize: geometry.size
                         )
                         .tag(0)
@@ -46,7 +48,15 @@ struct ContentView: View {
                         )
                         .tag(1)
                         
-                        VoiceView(
+                        ThoughtsView(
+                            thoughtsManager: thoughtsManager,
+                            taskManager: taskManager,
+                            moodManager: moodManager,
+                            screenSize: geometry.size
+                        )
+                        .tag(2)
+                        
+                        WellnessView(
                             showingAddTaskModal: $showingAddTaskModal,
                             showingNotifications: $showingNotifications,
                             showingAccountSettings: $showingAccountSettings,
@@ -54,7 +64,7 @@ struct ContentView: View {
                             moodManager: moodManager,
                             screenSize: geometry.size
                         )
-                        .tag(2)
+                        .tag(3)
                         
                         InsightsView(
                             showingAddTaskModal: $showingAddTaskModal,
@@ -65,7 +75,7 @@ struct ContentView: View {
                             voiceManager: voiceManager,
                             screenSize: geometry.size
                         )
-                        .tag(3)
+                        .tag(4)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                     .animation(.linear(duration: 0.25), value: selectedTab) // Use linear animation for better performance

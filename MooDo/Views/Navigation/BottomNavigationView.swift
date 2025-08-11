@@ -49,16 +49,16 @@ struct MoodLensBottomNavigationView: View {
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTab)
             }
             
-            // Voice tab
+            // Thoughts tab
             Button(action: { 
                 withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 2
                 }
             }) {
                 VStack(spacing: 3) {
-                    Image(systemName: "message.circle.fill")
+                    Image(systemName: "cloud.fill")
                         .font(.system(size: 18, weight: .medium))
-                    Text("Voice")
+                    Text("Thoughts")
                         .font(.system(size: 10, weight: .medium))
                 }
                 .foregroundColor(selectedTab == 2 ? .black : .black.opacity(0.7))
@@ -67,10 +67,28 @@ struct MoodLensBottomNavigationView: View {
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTab)
             }
             
-            // Insights tab
+            // Wellness tab
             Button(action: { 
                 withAnimation(.easeInOut(duration: 0.2)) {
                     selectedTab = 3
+                }
+            }) {
+                VStack(spacing: 3) {
+                    Image(systemName: "heart.circle.fill")
+                        .font(.system(size: 18, weight: .medium))
+                    Text("Wellness")
+                        .font(.system(size: 10, weight: .medium))
+                }
+                .foregroundColor(selectedTab == 3 ? .black : .black.opacity(0.7))
+                .frame(maxWidth: .infinity)
+                .scaleEffect(selectedTab == 3 ? 1.05 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTab)
+            }
+            
+            // Insights tab
+            Button(action: { 
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedTab = 4
                 }
             }) {
                 VStack(spacing: 3) {
@@ -79,9 +97,9 @@ struct MoodLensBottomNavigationView: View {
                     Text("Insights")
                         .font(.system(size: 10, weight: .medium))
                 }
-                .foregroundColor(selectedTab == 3 ? .black : .black.opacity(0.7))
+                .foregroundColor(selectedTab == 4 ? .black : .black.opacity(0.7))
                 .frame(maxWidth: .infinity)
-                .scaleEffect(selectedTab == 3 ? 1.05 : 1.0)
+                .scaleEffect(selectedTab == 4 ? 1.05 : 1.0)
                 .animation(.spring(response: 0.3, dampingFraction: 0.7), value: selectedTab)
             }
         }

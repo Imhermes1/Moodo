@@ -13,7 +13,7 @@ import Foundation
 struct AllTasksListView: View {
     let tasks: [Task]
     let onAddTask: () -> Void
-    let taskManager: TaskManager
+    @ObservedObject var taskManager: TaskManager
     @State private var selectedFilter: TaskFilter = .all
     @State private var selectedTag: String? = nil
     @State private var showingFilterDropdown = false
@@ -879,7 +879,7 @@ struct CompactTaskRowView: View {
                         }
                     }
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.plain)
                 
                 // Task title
                 Text(task.title)
@@ -1001,7 +1001,7 @@ struct CompactTaskRowView: View {
             .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
         .offset(y: waveOffset)
         .rotationEffect(.degrees(waveRotation))
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -1026,7 +1026,7 @@ struct CompactTaskRowView: View {
             }
         }
         .sheet(isPresented: $showingEditView) {
-            EditTaskView(task: task, onSave: { updatedTask in
+            EditTaskView(editedTask: task, onSave: { updatedTask in
                 taskManager.updateTask(updatedTask)
             }, onDelete: { taskToDelete in
                 taskManager.deleteTask(taskToDelete)
@@ -1095,7 +1095,7 @@ struct MoodLensTaskRowView: View {
                     }
                     .clipShape(Circle())
                 }
-                .buttonStyle(PlainButtonStyle())
+                .buttonStyle(.plain)
                 
                 // Task title
                 Text(task.title)
@@ -1166,7 +1166,7 @@ struct MoodLensTaskRowView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .opacity(task.isCompleted ? 0.75 : 1.0)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button(role: .destructive) {
                 HapticManager.shared.notification(.warning)
@@ -1176,7 +1176,7 @@ struct MoodLensTaskRowView: View {
             }
         }
         .sheet(isPresented: $showingEditView) {
-            EditTaskView(task: task, onSave: { updatedTask in
+            EditTaskView(editedTask: task, onSave: { updatedTask in
                 taskManager.updateTask(updatedTask)
             }, onDelete: { taskToDelete in
                 taskManager.deleteTask(taskToDelete)
@@ -1217,7 +1217,7 @@ struct StreamlinedTaskCard: View {
                             }
                         }
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(.plain)
                     
                     // Task title
                     Text(task.title)
@@ -1324,7 +1324,7 @@ struct StreamlinedTaskCard: View {
                 }
             }
         }
-        .buttonStyle(PlainButtonStyle()) // Prevent default button styling
+        .buttonStyle(.plain) // Prevent default button styling
         .padding(.horizontal, 16)
         .padding(.top, 12) // Reduced by 2 more points
         .padding(.bottom, 14) // Reduced by 2 points
@@ -1369,7 +1369,7 @@ struct StreamlinedTaskCard: View {
             }
         }
         .sheet(isPresented: $showingEditView) {
-            EditTaskView(task: task, onSave: { updatedTask in
+            EditTaskView(editedTask: task, onSave: { updatedTask in
                 taskManager.updateTask(updatedTask)
             }, onDelete: { taskToDelete in
                 taskManager.deleteTask(taskToDelete)
@@ -1390,3 +1390,4 @@ struct StreamlinedTaskCard: View {
         return DateFormatting.formatReminderShort(date)
     }
 }
+

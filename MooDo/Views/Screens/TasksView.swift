@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct TasksView: View {
     @ObservedObject var taskManager: TaskManager
@@ -13,7 +14,8 @@ struct TasksView: View {
     @State private var selectedFilter: TaskFilter = .today
     @State private var showingAddModal = false
     @State private var searchText = ""
-    @State private var isSearching = false
+    @State private var selectedTag: String? = nil
+    @State private var keyboardHeight: CGFloat = 0
     let screenSize: CGSize
     
     // MARK: - Debug Screen Tracking
@@ -48,160 +50,266 @@ struct TasksView: View {
         }
     }
     
+    var availableTags: [String] {
+        let allTags = taskManager.tasks.flatMap { $0.tags }
+        return Array(Set(allTags)).sorted()
+    }
+    
     var filteredTasks: [Task] {
-        let tasks = getTasksForFilter()
+        var tasks = getTasksForFilter()
         
-        if searchText.isEmpty {
-            return tasks
-        } else {
-            return tasks.filter { task in
+        // Apply tag filter first
+        if let selectedTag = selectedTag {
+            tasks = tasks.filter { $0.tags.contains(selectedTag) }
+        }
+        
+        // Then apply search filter
+        if !searchText.isEmpty {
+            tasks = tasks.filter { task in
                 task.title.localizedCaseInsensitiveContains(searchText) ||
                 (task.description?.localizedCaseInsensitiveContains(searchText) ?? false) ||
                 task.tags.contains { $0.localizedCaseInsensitiveContains(searchText) }
             }
         }
+        
+        return tasks
     }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            // ScrollView for tasks
-            ScrollView(.vertical, showsIndicators: false) {
-                LazyVStack(spacing: 12) {
-                    if filteredTasks.isEmpty {
-                        EmptyTasksView(filter: selectedFilter)
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        ForEach(filteredTasks) { task in
-                            TaskCard(
-                                task: task,
-                                isExpanded: false,
-                                onToggleExpand: {},
-                                onToggleComplete: {
-                                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
-                                        taskManager.toggleTaskCompletion(task)
-                                    }
-                                    
-                                    if !task.isCompleted {
-                                        // Completing a task
-                                        HapticManager.shared.success()
-                                    } else {
-                                        // Uncompleting a task
-                                        HapticManager.shared.impact(.light)
-                                    }
-                                },
-                                onTaskUpdate: { updatedTask in
-                                    taskManager.updateTask(updatedTask)
-                                    HapticManager.shared.impact(.light)
-                                },
-                                onDelete: { taskToDelete in
-                                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                                        taskManager.deleteTask(taskToDelete)
-                                    }
-                                    HapticManager.shared.notification(.success)
-                                },
-                                taskManager: taskManager
+        GeometryReader { geometry in
+            VStack(spacing: 0) {
+                // Search and Filter Bar - Fixed position with keyboard awareness
+                VStack(spacing: 12) {
+                    // Search Bar with Add Button
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.white.opacity(0.6))
+                        
+                        TextField("Search tasks...", text: $searchText)
+                            .foregroundColor(.white)
+                            .textFieldStyle(PlainTextFieldStyle())
+                        
+                        if !searchText.isEmpty {
+                            Button(action: { searchText = "" }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                        }
+                        
+                        // Add button inside search bar
+                        Button(action: { showingAddModal = true }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title3)
+                                .foregroundColor(.calmingBlue)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.black.opacity(0.2))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
                             )
-                            .transition(.asymmetric(
-                                insertion: .scale(scale: 0.95).combined(with: .opacity),
-                                removal: .scale(scale: 0.95).combined(with: .opacity)
-                            ))
+                    )
+                    
+                    // Task Filter Pills
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(TaskFilter.allCases, id: \.self) { filter in
+                                Button(action: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                                        selectedFilter = filter
+                                    }
+                                    HapticManager.shared.selection()
+                                }) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: filter.icon)
+                                            .font(.caption2)
+                                            .foregroundColor(selectedFilter == filter ? filter.accentColor : .white.opacity(0.7))
+                                        
+                                        Text(filter.rawValue)
+                                            .font(.caption)
+                                            .fontWeight(.medium)
+                                            .foregroundColor(selectedFilter == filter ? .white : .white.opacity(0.7))
+                                        
+                                        Text("(\(getTaskCount(for: filter)))")
+                                            .font(.caption2)
+                                            .foregroundColor(.white.opacity(0.5))
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        Capsule()
+                                            .fill(selectedFilter == filter ? filter.accentColor.opacity(0.2) : Color.clear)
+                                            .overlay(
+                                                Capsule()
+                                                    .stroke(selectedFilter == filter ? filter.accentColor : Color.white.opacity(0.3), lineWidth: 1)
+                                            )
+                                    )
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                    
+                    // Tag Filter Pills (if tags exist)
+                    if !availableTags.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 12) {
+                                // All tags filter
+                                Button(action: {
+                                    selectedTag = nil
+                                    HapticManager.shared.selection()
+                                }) {
+                                    Text("All Tags")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(selectedTag == nil ? .blue : .white.opacity(0.7))
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            Capsule()
+                                                .fill(selectedTag == nil ? Color.blue.opacity(0.2) : Color.clear)
+                                                .overlay(
+                                                    Capsule()
+                                                        .stroke(selectedTag == nil ? Color.blue : Color.white.opacity(0.3), lineWidth: 1)
+                                                )
+                                        )
+                                }
+                                
+                                ForEach(availableTags, id: \.self) { tag in
+                                    Button(action: {
+                                        selectedTag = selectedTag == tag ? nil : tag
+                                        HapticManager.shared.selection()
+                                    }) {
+                                        let isAITag = tag.hasPrefix("ai-")
+                                        let tagColor: Color = isAITag ? .orange : .blue
+                                        
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "tag.fill")
+                                                .font(.caption2)
+                                                .foregroundColor(selectedTag == tag ? tagColor : .white.opacity(0.7))
+                                            
+                                            Text(tag)
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(selectedTag == tag ? .white : .white.opacity(0.7))
+                                            
+                                            Text("(\(getTaskCount(for: selectedFilter, tag: tag)))")
+                                                .font(.caption2)
+                                                .foregroundColor(.white.opacity(0.5))
+                                        }
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(
+                                            Capsule()
+                                                .fill(selectedTag == tag ? tagColor.opacity(0.2) : Color.clear)
+                                                .overlay(
+                                                    Capsule()
+                                                        .stroke(selectedTag == tag ? tagColor : Color.white.opacity(0.3), lineWidth: 1)
+                                                )
+                                        )
+                                    }
+                                }
+                            }
+                            .padding(.horizontal, 4)
                         }
                     }
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, isSearching ? 135 : 95) // Increased by 10 more points for better clearance
-                .padding(.bottom, 100) // Space for floating button
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            
-            // Header (search bar, filter pills) floating above scrollview
-            VStack(spacing: 0) {
-                if isSearching {
-                    SearchBarView(text: $searchText, isSearching: $isSearching)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        // Search button
-                        Button(action: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                isSearching.toggle()
-                                if !isSearching {
-                                    searchText = ""
-                                }
-                            }
-                            HapticManager.shared.impact(.light)
-                        }) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.caption)
-                                .foregroundColor(isSearching ? .calmingBlue : .white.opacity(0.7))
-                                .frame(width: 32, height: 32)
-                                .background(
-                                    Circle()
-                                        .fill(Color.clear)
-                                        .overlay(
-                                            Circle()
-                                                .stroke(isSearching ? Color.calmingBlue : .clear, lineWidth: 1.5)
-                                        )
-                                        .overlay(
-                                            Circle()
-                                                .stroke(Color.black, lineWidth: 0.8)
-                                        )
+                .padding(.top, max(geometry.size.height * 0.08, 60))
+                .padding(.bottom, 16)
+                .background(Color.clear)
+                
+                // Tasks List
+                if filteredTasks.isEmpty {
+                    VStack(spacing: 24) {
+                        Spacer()
+                        
+                        EmptyTasksView(filter: selectedFilter)
+                            .frame(maxWidth: .infinity)
+                        
+                        Spacer()
+                    }
+                } else {
+                    ScrollView(.vertical, showsIndicators: false) {
+                        LazyVStack(spacing: 12) {
+                            ForEach(filteredTasks) { task in
+                                TaskCard(
+                                    task: task,
+                                    isExpanded: false,
+                                    onToggleExpand: {},
+                                    onToggleComplete: {
+                                        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                                            taskManager.toggleTaskCompletion(task)
+                                        }
+                                        
+                                        if !task.isCompleted {
+                                            HapticManager.shared.success()
+                                        } else {
+                                            HapticManager.shared.impact(.light)
+                                        }
+                                    },
+                                    onTaskUpdate: { updatedTask in
+                                        taskManager.updateTask(updatedTask)
+                                        HapticManager.shared.impact(.light)
+                                    },
+                                    onDelete: { taskToDelete in
+                                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                                            taskManager.deleteTask(taskToDelete)
+                                        }
+                                        HapticManager.shared.notification(.success)
+                                    },
+                                    taskManager: taskManager
                                 )
-                        }
-                        ForEach(TaskFilter.allCases, id: \.self) { filter in
-                            FilterPillView(
-                                filter: filter,
-                                isSelected: selectedFilter == filter,
-                                taskCount: getTaskCount(for: filter)
-                            ) {
-                                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                    selectedFilter = filter
-                                }
-                                HapticManager.shared.selection()
+                                .transition(.asymmetric(
+                                    insertion: .scale(scale: 0.95).combined(with: .opacity),
+                                    removal: .scale(scale: 0.95).combined(with: .opacity)
+                                ))
                             }
                         }
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, max(100, keyboardHeight)) // Keyboard-aware bottom padding
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 16)
                 }
-            }
-            .padding(.top, max(screenSize.height * 0.05, 30)) // Move filters up a bit more
-            // No background here, transparent so UniversalBackground shows through
-            
-            // Floating Add Button
-            VStack {
+                
                 Spacer()
-                HStack {
-                    Spacer()
-                    FloatingAddButton {
-                        HapticManager.shared.impact(.medium)
-                        showingAddModal = true
-                    }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 90) // Above bottom nav
+            }
+            .background(
+                UniversalBackground()
+                    .ignoresSafeArea(.all)
+            )
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+                if let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                    keyboardHeight = keyboardFrame.height
                 }
             }
-        }
-        .sheet(isPresented: $showingAddModal) {
-            QuickAddTaskView(taskManager: taskManager, moodManager: moodManager)
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-                .interactiveDismissDisabled(false)
-        }
-        .sheet(item: $taskManager.moodPickerTask, onDismiss: {
-            if let task = taskManager.moodPickerTask {
-                taskManager.finalizeTaskCompletion(task, mood: nil)
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                keyboardHeight = 0
             }
-        }) { task in
-            MoodPicker { mood in
-                taskManager.finalizeTaskCompletion(task, mood: mood)
+            .animation(nil, value: selectedFilter) // Prevent layout animations
+            .animation(nil, value: selectedTag) // Prevent layout animations for tag changes
+            .sheet(isPresented: $showingAddModal) {
+                QuickAddTaskView(taskManager: taskManager, moodManager: moodManager)
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+                    .interactiveDismissDisabled(false)
             }
-        }
-        .onChange(of: selectedFilter) { oldFilter, newFilter in
-            HapticManager.shared.impact(.light)
+            .sheet(item: $taskManager.moodPickerTask, onDismiss: {
+                if let task = taskManager.moodPickerTask {
+                    taskManager.finalizeTaskCompletion(task, mood: nil)
+                }
+            }) { task in
+                MoodPicker { mood in
+                    taskManager.finalizeTaskCompletion(task, mood: mood)
+                }
+            }
+            .onChange(of: selectedFilter) { oldFilter, newFilter in
+                selectedTag = nil // Reset tag filter when main filter changes
+                HapticManager.shared.impact(.light)
+            }
         }
     }
     
@@ -227,8 +335,7 @@ struct TasksView: View {
         case .important:
             return taskManager.tasks.filter { !$0.isCompleted && $0.priority == .high }
         case .completed:
-            let completedTasks = taskManager.getCompletedTasks()
-            return completedTasks
+            return taskManager.tasks.filter { $0.isCompleted }
         }
     }
     
@@ -258,193 +365,68 @@ struct TasksView: View {
         }
     }
     
-    // MARK: - Filter Pill View
-    
-    struct FilterPillView: View {
-        let filter: TasksView.TaskFilter
-        let isSelected: Bool
-        let taskCount: Int
-        let action: () -> Void
-        
-        var body: some View {
-            Button(action: action) {
-                HStack(spacing: 6) {
-                    Image(systemName: filter.icon)
-                        .font(.caption2)
-                        .foregroundColor(isSelected ? filter.accentColor : .white.opacity(0.7))
-                    
-                    Text(filter.rawValue)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .foregroundColor(isSelected ? .white : .white.opacity(0.7))
-                    
-                    Text("(\(taskCount))")
-                        .font(.caption2)
-                        .foregroundColor(.white.opacity(0.5))
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(
-                    Capsule()
-                        .fill(Color.clear)
-                        .overlay(
-                            Capsule()
-                                .stroke(
-                                    isSelected ? filter.accentColor : .white.opacity(0.3),
-                                    lineWidth: 1.5
-                                )
-                        )
-                        .overlay(
-                            Capsule()
-                                .stroke(Color.black, lineWidth: 0.8)
-                        )
-                )
-            }
-        }
+    private func getTaskCount(for filter: TaskFilter, tag: String) -> Int {
+        let baseTasks = getTasksForFilter()
+        return baseTasks.filter { $0.tags.contains(tag) }.count
     }
+}
+
+// MARK: - Empty Tasks View
+
+struct EmptyTasksView: View {
+    let filter: TasksView.TaskFilter
     
-    // MARK: - Search Bar View
-    
-    struct SearchBarView: View {
-        @Binding var text: String
-        @Binding var isSearching: Bool
-        
-        var body: some View {
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.white.opacity(0.7))
-                    .font(.caption)
-                
-                TextField("Search your tasks...", text: $text)
-                    .foregroundColor(.white)
-                    .font(.body)
-                
-                if !text.isEmpty {
-                    Button(action: {
-                        text = ""
-                        HapticManager.shared.impact(.light)
-                    }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundColor(.white.opacity(0.7))
-                            .font(.caption)
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.clear)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.calmingBlue.opacity(0.5), lineWidth: 1)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.black, lineWidth: 0.9)
-                    )
-            )
-        }
-    }
-    
-    // MARK: - Empty Tasks View
-    
-    struct EmptyTasksView: View {
-        let filter: TasksView.TaskFilter
-        
-        var body: some View {
-            VStack(spacing: 20) {
-                Spacer() // Push content to center
-                
-                Image(systemName: emptyStateIcon)
-                    .font(.system(size: 48))
-                    .foregroundColor(filter.accentColor.opacity(0.6))
-                
-                VStack(spacing: 8) {
-                    Text(emptyStateTitle)
-                        .font(.title2)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                    
-                    Text(emptyStateMessage)
-                        .font(.body)
-                        .foregroundColor(.white.opacity(0.7))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
-                }
-                
-                Spacer() // Push content to center
-                Spacer() // Extra spacer to account for bottom navigation
-            }
-            .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height * 0.6) // Ensure enough height for centering
-        }
-        
-        private var emptyStateIcon: String {
-            switch filter {
-            case .today: return "sun.max.fill"
-            case .thisWeek: return "calendar"
-            case .important: return "star.fill"
-            case .completed: return "checkmark.circle.fill"
-            }
-        }
-        
-        private var emptyStateTitle: String {
-            switch filter {
-            case .today: return "Your day looks peaceful"
-            case .thisWeek: return "Week ahead is clear"
-            case .important: return "All caught up!"
-            case .completed: return "Ready to celebrate?"
-            }
-        }
-        
-        private var emptyStateMessage: String {
-            switch filter {
-            case .today: return "Take a moment to breathe. Add a task when you're ready."
-            case .thisWeek: return "No pressure! Plan your week at your own pace."
-            case .important: return "You're on top of your priorities. Well done!"
-            case .completed: return "Complete some tasks to see your accomplishments here."
-            }
-        }
-    }
-    
-    // MARK: - Floating Add Button
-    
-    struct FloatingAddButton: View {
-        let action: () -> Void
-        
-        var body: some View {
-            Button(action: action) {
-                Image(systemName: "plus")
-                    .font(.title3)
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer() // Push content to center
+            
+            Image(systemName: emptyStateIcon)
+                .font(.system(size: 48))
+                .foregroundColor(filter.accentColor.opacity(0.6))
+            
+            VStack(spacing: 8) {
+                Text(emptyStateTitle)
+                    .font(.title2)
                     .fontWeight(.medium)
                     .foregroundColor(.white)
-                    .frame(width: 56, height: 56)
-                    .background(
-                        Circle()
-                            .fill(Color.calmingBlue)
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.calmingBlue.opacity(0.3), lineWidth: 2)
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(Color.black, lineWidth: 1.0)
-                            )
-                            .shadow(color: Color.calmingBlue.opacity(0.3), radius: 8, x: 0, y: 4)
-                    )
+                
+                Text(emptyStateMessage)
+                    .font(.body)
+                    .foregroundColor(.white.opacity(0.7))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
             }
-            .scaleEffect(1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: 1.0)
+            
+            Spacer() // Push content to center
+            Spacer() // Extra spacer to account for bottom navigation
+        }
+        .frame(maxWidth: .infinity, minHeight: UIScreen.main.bounds.height * 0.6) // Ensure enough height for centering
+    }
+    
+    private var emptyStateIcon: String {
+        switch filter {
+        case .today: return "sun.max.fill"
+        case .thisWeek: return "calendar"
+        case .important: return "star.fill"
+        case .completed: return "checkmark.circle.fill"
         }
     }
     
-    /*
-     #Preview {
-     TasksView(
-     taskManager: TaskManager(),
-     moodManager: MoodManager(),
-     screenSize: CGSize(width: 390, height: 844)
-     )
-     }
-     */
+    private var emptyStateTitle: String {
+        switch filter {
+        case .today: return "Today is yours to shape"
+        case .thisWeek: return "A fresh week awaits"
+        case .important: return "You're crushing it!"
+        case .completed: return "Time to celebrate wins"
+        }
+    }
+    
+    private var emptyStateMessage: String {
+        switch filter {
+        case .today: return "Every great day starts with intention. What will you create today?"
+        case .thisWeek: return "The week is your canvas. Paint it with purpose and possibility."
+        case .important: return "You've mastered what matters most. That's the mark of true focus."
+        case .completed: return "Your accomplishments are waiting to inspire you. Complete some tasks to see them shine."
+        }
+    }
 }

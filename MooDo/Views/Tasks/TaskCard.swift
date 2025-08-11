@@ -52,7 +52,7 @@ struct TaskCard: View {
                             }
                         }
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(.plain)
                     
                     // Task title with gentle styling
                     Text(task.title)
@@ -108,6 +108,53 @@ struct TaskCard: View {
                             )
                             .shadow(color: task.emotion.color.opacity(0.15), radius: 2, x: 0, y: 1)
                     )
+
+                    // Tags display
+                    if !task.tags.isEmpty {
+                        ForEach(task.tags.prefix(2), id: \.self) { tag in
+                            let isAITag = tag.hasPrefix("ai-")
+                            let tagColor: Color = isAITag ? .orange : .blue
+                            
+                            HStack(spacing: 3) {
+                                Image(systemName: "tag.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(tagColor)
+                                Text(tag)
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                            }
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(
+                                Capsule()
+                                    .fill(tagColor.opacity(0.2))
+                                    .overlay(
+                                        Capsule()
+                                            .stroke(tagColor.opacity(0.4), lineWidth: 1)
+                                    )
+                            )
+                        }
+                        
+                        // Show "+" indicator if there are more than 2 tags
+                        if task.tags.count > 2 {
+                            Text("+\(task.tags.count - 2)")
+                                .font(.caption2)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white.opacity(0.7))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(
+                                    Capsule()
+                                        .fill(.white.opacity(0.1))
+                                        .overlay(
+                                            Capsule()
+                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                        )
+                                )
+                        }
+                    }
 
                     // Notes indicator
                     if let firstNote = task.notes.first {
@@ -205,7 +252,7 @@ struct TaskCard: View {
             .scaleEffect(task.isCompleted ? 0.98 : 1.0)
             .animation(.easeInOut(duration: 0.2), value: task.isCompleted)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
         .offset(x: dragOffset.width)
         .scaleEffect(isBeingDeleted ? 0.95 : 1.0)
         .opacity(isBeingDeleted ? 0.8 : 1.0)
@@ -266,7 +313,7 @@ struct TaskCard: View {
             Text("Are you sure you want to delete '\(task.title)'? This action cannot be undone.")
         }
         .sheet(isPresented: $showingEditView) {
-            EditTaskView(task: task, onSave: { updatedTask in
+            EditTaskView(editedTask: task, onSave: { updatedTask in
                 onTaskUpdate(updatedTask)
                 HapticManager.shared.success()
             }, onDelete: { taskToDelete in

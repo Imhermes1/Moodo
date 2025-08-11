@@ -26,10 +26,6 @@ struct AddTaskModalView: View {
     @ObservedObject var taskManager: TaskManager
     @StateObject private var nlpProcessor = NaturalLanguageProcessor()
     @StateObject private var voiceRecognition = VoiceRecognitionManager()
-    @State private var taskNotes: [TaskNote] = []
-    @State private var showingNoteEditor = false
-    @State private var noteDraft = ""
-    @State private var noteToEdit: TaskNote? = nil
     
     // Animation states for achievement effect
     @State private var showSuccessAnimation = false
@@ -197,53 +193,6 @@ struct AddTaskModalView: View {
                                                 GlassPanelBackground()
                                             )
                                             .clipShape(RoundedRectangle(cornerRadius: 12))
-                                    }
-
-                                    // Notes section
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "note.text")
-                                                .foregroundColor(.white.opacity(0.8))
-                                                .font(.caption)
-                                            Text("Notes")
-                                                .font(.caption)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(.white.opacity(0.8))
-
-                                            Spacer()
-
-                                            Button(action: {
-                                                noteToEdit = nil
-                                                noteDraft = ""
-                                                showingNoteEditor = true
-                                            }) {
-                                                Image(systemName: "plus.circle")
-                                                    .foregroundColor(.white)
-                                            }
-                                        }
-
-                                        if taskNotes.isEmpty {
-                                            Text("No notes yet")
-                                                .font(.caption2)
-                                                .foregroundColor(.white.opacity(0.6))
-                                        } else {
-                                            ForEach(taskNotes) { note in
-                                                Button(action: {
-                                                    noteToEdit = note
-                                                    noteDraft = note.text
-                                                    showingNoteEditor = true
-                                                }) {
-                                                    Text(note.text)
-                                                        .font(.caption2)
-                                                        .foregroundColor(.white)
-                                                        .lineLimit(1)
-                                                        .padding(8)
-                                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                                        .background(GlassPanelBackground())
-                                                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                                                }
-                                            }
-                                        }
                                     }
 
                                     // Priority and Mood
@@ -520,35 +469,6 @@ struct AddTaskModalView: View {
                 .padding(.bottom, 20)
             }
         }
-        .sheet(isPresented: $showingNoteEditor) {
-            NavigationView {
-                VStack {
-                    TextEditor(text: $noteDraft)
-                        .padding()
-                    Spacer()
-                }
-                .navigationTitle(noteToEdit == nil ? "New Note" : "Edit Note")
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { showingNoteEditor = false }
-                    }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
-                            let trimmed = noteDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-                            guard !trimmed.isEmpty else { return }
-                            if let existing = noteToEdit,
-                               let index = taskNotes.firstIndex(where: { $0.id == existing.id }) {
-                                taskNotes[index].text = trimmed
-                                taskNotes[index].timestamp = Date()
-                            } else {
-                                taskNotes.append(TaskNote(text: trimmed))
-                            }
-                            showingNoteEditor = false
-                        }
-                    }
-                }
-            }
-        }
         .onChange(of: voiceRecognition.transcript) { _, newValue in
             if !newValue.isEmpty {
                 taskInput = newValue
@@ -585,7 +505,32 @@ struct AddTaskModalView: View {
         // Combine manual tags with NLP extracted tags
         var finalTags = processedTask.tags
         if !taskTags.isEmpty {
-            let manualTags = taskTags.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+            // Parse both comma-separated tags and hashtags
+            var manualTags: [String] = []
+            
+            // First, extract hashtags
+            let hashtagPattern = #"#\w+"#
+            let hashtagRegex = try! NSRegularExpression(pattern: hashtagPattern)
+            let hashtagMatches = hashtagRegex.matches(in: taskTags, range: NSRange(taskTags.startIndex..., in: taskTags))
+            
+            for match in hashtagMatches {
+                if let range = Range(match.range, in: taskTags) {
+                    let hashtag = String(taskTags[range]).dropFirst() // Remove the # symbol
+                    if !hashtag.isEmpty {
+                        manualTags.append(String(hashtag))
+                    }
+                }
+            }
+            
+            // Then, parse comma-separated tags (after removing hashtags)
+            let withoutHashtags = hashtagRegex.stringByReplacingMatches(in: taskTags, options: [], range: NSRange(taskTags.startIndex..., in: taskTags), withTemplate: "")
+            let commaTags = withoutHashtags.components(separatedBy: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+            
+            manualTags.append(contentsOf: commaTags)
+            
+            // Add manual tags to final tags (avoiding duplicates)
             for tag in manualTags {
                 if !finalTags.contains(tag) {
                     finalTags.append(tag)
@@ -631,11 +576,11 @@ struct AddTaskModalView: View {
             reminderAt: finalReminderAt,
             deadlineAt: finalDeadlineAt,
             naturalLanguageInput: input,
-            tags: finalTags,
-            notes: taskNotes
+            tags: finalTags
         )
         
         print("📝 Creating task: \(task.title)")
+        print("🏷️ Tags: \(finalTags)")
         print("⏰ Reminder: \(finalReminderAt?.description ?? "None")")
         print("📅 Deadline: \(finalDeadlineAt?.description ?? "None")")
         

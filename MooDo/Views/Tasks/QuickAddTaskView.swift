@@ -461,7 +461,7 @@ struct QuickAddTaskView: View {
                 emotion: selectedEmotion,
                 reminderAt: reminderDate
             )
-            EditTaskView(task: tempTask, onSave: { savedTask in
+            EditTaskView(editedTask: tempTask, onSave: { savedTask in
                 var finalTask = savedTask
                 // If the title was empty, clear the placeholder
                 if taskTitle.isEmpty && finalTask.title == "New Task" {

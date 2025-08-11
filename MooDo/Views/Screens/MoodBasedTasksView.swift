@@ -51,7 +51,7 @@ struct MoodBasedTasksView: View {
         }
         .sheet(item: $editingTask) { task in
             EditTaskView(
-                task: task,
+                editedTask: task,
                 onSave: { updatedTask in
                     taskManager.updateTask(updatedTask)
                     editingTask = nil
@@ -631,6 +631,15 @@ struct MoodBasedTasksView: View {
                 priority: .low,
                 emotion: .routine,
                 category: .personal,
+                isAIGenerated: true
+            )
+        case .anxious:
+            return Task(
+                title: "Grounding breathing exercise",
+                description: "🫁 When anxiety is high, focus on your breath. Try 4-7-8 breathing: inhale for 4, hold for 7, exhale for 8. This activates your calm response.",
+                priority: .high,
+                emotion: .calming,
+                category: .health,
                 isAIGenerated: true
             )
         }

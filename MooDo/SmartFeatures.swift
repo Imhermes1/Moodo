@@ -395,18 +395,18 @@ class NaturalLanguageProcessor: ObservableObject {
             }
         }
         
-        // Extract contextual tags based on keywords
+        // Extract contextual tags based on keywords - prefixed with "ai-" to distinguish AI-assigned tags
         let contextualTags: [String: [String]] = [
-            "work": ["work", "office", "meeting", "presentation", "project", "deadline", "client", "colleague"],
-            "personal": ["personal", "family", "friend", "home", "private", "self"],
-            "health": ["health", "doctor", "medicine", "exercise", "workout", "gym", "fitness", "diet"],
-            "shopping": ["buy", "shop", "grocery", "store", "purchase", "order"],
-            "learning": ["learn", "study", "course", "book", "education", "training", "practice"],
-            "creative": ["creative", "design", "art", "music", "write", "brainstorm", "idea"],
-            "urgent": ["urgent", "asap", "emergency", "immediately", "now"],
-            "routine": ["daily", "weekly", "routine", "habit", "regular"],
-            "travel": ["travel", "trip", "vacation", "flight", "hotel", "book"],
-            "finance": ["money", "bank", "pay", "bill", "budget", "finance", "invest"]
+            "ai-work": ["work", "office", "meeting", "presentation", "project", "deadline", "client", "colleague"],
+            "ai-personal": ["personal", "family", "friend", "home", "private", "self"],
+            "ai-health": ["health", "doctor", "medicine", "exercise", "workout", "gym", "fitness", "diet"],
+            "ai-shopping": ["buy", "shop", "grocery", "store", "purchase", "order"],
+            "ai-learning": ["learn", "study", "course", "book", "education", "training", "practice"],
+            "ai-creative": ["creative", "design", "art", "music", "write", "brainstorm", "idea"],
+            "ai-urgent": ["urgent", "asap", "emergency", "immediately", "now"],
+            "ai-routine": ["daily", "weekly", "routine", "habit", "regular"],
+            "ai-travel": ["travel", "trip", "vacation", "flight", "hotel", "book"],
+            "ai-finance": ["money", "bank", "pay", "bill", "budget", "finance", "invest"]
         ]
         
         for (tag, keywords) in contextualTags {
@@ -594,6 +594,8 @@ class SmartInsights: ObservableObject {
             return "Creative flow! Great time for brainstorming and ideation."
         case .tired:
             return "Feeling tired? Take a short break or focus on simple, restorative tasks."
+        case .anxious:
+            return "Feeling anxious? Try some deep breathing or gentle, comforting tasks."
         }
     }
 }
@@ -796,6 +798,13 @@ class SmartTaskSuggestions: ObservableObject {
                 emotion: .routine,
                 priority: .low
             ))
+        case .anxious:
+            suggestions.append(TaskSuggestion(
+                title: "Breathing exercise",
+                description: "Start with calming breathwork",
+                emotion: .calming,
+                priority: .high
+            ))
         }
         
         return suggestions
@@ -846,6 +855,13 @@ class SmartTaskSuggestions: ObservableObject {
                 description: "Low-energy tasks are perfect for now",
                 emotion: .routine,
                 priority: .low
+            ))
+        case .anxious:
+            suggestions.append(TaskSuggestion(
+                title: "Gentle grounding exercise",
+                description: "Focus on calming activities",
+                emotion: .calming,
+                priority: .high
             ))
         }
         
@@ -898,6 +914,13 @@ class SmartTaskSuggestions: ObservableObject {
                 emotion: .routine,
                 priority: .low
             ))
+        case .anxious:
+            suggestions.append(TaskSuggestion(
+                title: "Calming evening routine",
+                description: "Focus on soothing activities",
+                emotion: .calming,
+                priority: .high
+            ))
         }
         
         return suggestions
@@ -934,6 +957,11 @@ class SmartTaskSuggestions: ObservableObject {
             return [
                 TaskSuggestion(title: "Rest and recharge", description: "Take a short nap if possible", emotion: .calming, priority: .high),
                 TaskSuggestion(title: "Simple organization", description: "Low-energy tasks to feel productive", emotion: .routine, priority: .low)
+            ]
+        case .anxious:
+            return [
+                TaskSuggestion(title: "Deep breathing exercise", description: "Calm your nervous system", emotion: .calming, priority: .high),
+                TaskSuggestion(title: "Comfort activities", description: "Do something familiar and soothing", emotion: .routine, priority: .medium)
             ]
         }
     }

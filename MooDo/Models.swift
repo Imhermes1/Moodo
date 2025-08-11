@@ -12,7 +12,7 @@ import UserNotifications
 
 // MARK: - Data Models
 
-struct TaskNote: Identifiable, Codable {
+struct TaskNote: Identifiable, Codable, Equatable {
     var id: UUID
     var text: String
     var timestamp: Date
@@ -21,6 +21,24 @@ struct TaskNote: Identifiable, Codable {
         self.id = id
         self.text = text
         self.timestamp = timestamp
+    }
+}
+
+// MARK: - Thoughts System
+
+struct Thought: Identifiable, Codable, Equatable {
+    var id: UUID
+    var title: String
+    var content: String
+    var dateCreated: Date
+    var mood: MoodType
+    
+    init(id: UUID = UUID(), title: String, content: String, dateCreated: Date = Date(), mood: MoodType = .calm) {
+        self.id = id
+        self.title = title
+        self.content = content
+        self.dateCreated = dateCreated
+        self.mood = mood
     }
 }
 
@@ -59,6 +77,7 @@ struct Task: Identifiable, Codable, Equatable {
          category: TaskCategory = .personal,
          estimatedTime: Int? = nil,
          completedAt: Date? = nil,
+         completedMood: MoodType? = nil,
          reminderAt: Date? = nil,
          deadlineAt: Date? = nil,
          naturalLanguageInput: String? = nil,
@@ -69,8 +88,6 @@ struct Task: Identifiable, Codable, Equatable {
          createdAt: Date = Date(),
          isAIGenerated: Bool = false,
          notes: [TaskNote] = []) {
-    
-    init(id: UUID = UUID(), title: String, description: String? = nil, isCompleted: Bool = false, isFlagged: Bool = false, isRecurring: Bool = false, priority: TaskPriority = .medium, emotion: TaskEmotion = .focused, category: TaskCategory = .personal, estimatedTime: Int? = nil, completedAt: Date? = nil, completedMood: MoodType? = nil, reminderAt: Date? = nil, deadlineAt: Date? = nil, naturalLanguageInput: String? = nil, list: TaskList? = nil, tags: [String] = [], subtasks: [Task]? = nil, eventKitIdentifier: String? = nil, createdAt: Date = Date(), isAIGenerated: Bool = false) {
         self.id = id
         self.title = title
         self.description = description
@@ -93,11 +110,6 @@ struct Task: Identifiable, Codable, Equatable {
         self.eventKitIdentifier = eventKitIdentifier
         self.isAIGenerated = isAIGenerated
         self.notes = notes
-    }
-    
-    // MARK: - Equatable
-    static func == (lhs: Task, rhs: Task) -> Bool {
-        return lhs.id == rhs.id
     }
 }
 
@@ -234,6 +246,7 @@ enum MoodType: String, CaseIterable, Codable {
     case creative = "creative"       // Inspired, good for brainstorming
     case stressed = "stressed"       // Overwhelmed, needs easy tasks
     case tired = "tired"            // Low energy, minimal tasks only
+    case anxious = "anxious"         // Anxious, needs calming activities
     
     var displayName: String {
         switch self {
@@ -243,6 +256,7 @@ enum MoodType: String, CaseIterable, Codable {
         case .creative: return "Creative"
         case .stressed: return "Stressed"
         case .tired: return "Tired"
+        case .anxious: return "Anxious"
         }
     }
     
@@ -254,6 +268,7 @@ enum MoodType: String, CaseIterable, Codable {
         case .creative: return "lightbulb"
         case .stressed: return "face.dashed"
         case .tired: return "bed.double"
+        case .anxious: return "heart.circle"
         }
     }
     
@@ -265,6 +280,7 @@ enum MoodType: String, CaseIterable, Codable {
         case .creative: return Color(red: 0.56, green: 0.27, blue: 0.68) // creative-purple
         case .stressed: return Color(red: 0.91, green: 0.3, blue: 0.24) // stressed-red
         case .tired: return Color(red: 0.6, green: 0.6, blue: 0.6) // tired-gray
+        case .anxious: return Color(red: 0.75, green: 0.55, blue: 0.85) // anxious-light-purple
         }
     }
     
@@ -276,6 +292,7 @@ enum MoodType: String, CaseIterable, Codable {
         case .creative: return 8.5
         case .stressed: return 3.0
         case .tired: return 2.0
+        case .anxious: return 4.0
         }
     }
     
@@ -294,6 +311,8 @@ enum MoodType: String, CaseIterable, Codable {
             return [.calming, .routine]
         case .tired:
             return [.calming]
+        case .anxious:
+            return [.calming, .routine]
         }
     }
 }
@@ -909,6 +928,96 @@ class VoiceCheckinManager: ObservableObject {
     }
 }
 
+// MARK: - Thoughts Manager
+
+@MainActor
+class ThoughtsManager: ObservableObject {
+    @Published var thoughts: [Thought] = []
+    
+    init() {
+        loadFromUserDefaults()
+        loadFromCloud()
+    }
+    
+    func addThought(_ thought: Thought) {
+        thoughts.append(thought)
+        saveThoughts()
+        saveToCloud()
+        
+        // Add haptic feedback
+        HapticManager.shared.buttonPressed()
+    }
+    
+    func deleteThought(_ thought: Thought) {
+        thoughts.removeAll { $0.id == thought.id }
+        saveThoughts()
+        deleteFromCloud(thought.id)
+    }
+    
+    func updateThought(_ thought: Thought) {
+        if let index = thoughts.firstIndex(where: { $0.id == thought.id }) {
+            thoughts[index] = thought
+            saveThoughts()
+            saveToCloud()
+        }
+    }
+    
+    var recentThoughts: [Thought] {
+        thoughts.sorted { $0.dateCreated > $1.dateCreated }
+    }
+    
+    var todaysThoughts: [Thought] {
+        let today = Calendar.current.startOfDay(for: Date())
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        return thoughts.filter { 
+            $0.dateCreated >= today && $0.dateCreated < tomorrow 
+        }.sorted { $0.dateCreated > $1.dateCreated }
+    }
+    
+    private func saveThoughts() {
+        if let encoded = try? JSONEncoder().encode(thoughts) {
+            UserDefaults.standard.set(encoded, forKey: "SavedThoughts")
+        }
+    }
+    
+    private func loadFromUserDefaults() {
+        if let data = UserDefaults.standard.data(forKey: "SavedThoughts"),
+           let decoded = try? JSONDecoder().decode([Thought].self, from: data) {
+            thoughts = decoded
+        }
+    }
+    
+    // MARK: - CloudKit Integration
+    
+    private func saveToCloud() {
+        _Concurrency.Task {
+            // TODO: Add CloudKit save for thoughts
+            // await CloudKitManager.shared.saveThoughts(thoughts)
+        }
+    }
+    
+    private func loadFromCloud() {
+        _Concurrency.Task {
+            // TODO: Add CloudKit load for thoughts
+            // let cloudThoughts = await CloudKitManager.shared.fetchThoughts()
+            // await MainActor.run {
+            //     // Merge logic here
+            // }
+        }
+    }
+    
+    private func deleteFromCloud(_ thoughtId: UUID) {
+        _Concurrency.Task {
+            // TODO: Add CloudKit delete for thoughts
+            // await CloudKitManager.shared.deleteThought(thoughtId)
+        }
+    }
+    
+    func syncWithCloud() {
+        loadFromCloud()
+    }
+}
+
 // MARK: - Data Managers
 
 @MainActor
@@ -1050,6 +1159,14 @@ class TaskScheduler: ObservableObject {
                 creativityBoost: 0.3,
                 focusCapacity: 0.5
             )
+        case .anxious:
+            return MoodTaskPreferences(
+                preferredEmotions: [.calming, .routine],
+                preferredPriorities: [.low, .medium],
+                timePreference: .gentle,
+                creativityBoost: 0.6,
+                focusCapacity: 0.8
+            )
         }
     }
     
@@ -1137,6 +1254,8 @@ class TaskScheduler: ObservableObject {
             baseCount = 7 // Creative flow, can handle variety
         case .tired:
             baseCount = 2 // Very low energy, only minimal tasks
+        case .anxious:
+            baseCount = 4 // Moderate capacity, need calming structure
         }
         
         // Adjust based on time of day
@@ -1243,6 +1362,27 @@ class TaskScheduler: ObservableObject {
             if task.priority == .high && task.emotion != .calming {
                 score -= 0.3  // Penalty for high-priority non-calm tasks
             }
+        case .anxious:
+            // Favor calming and routine tasks, avoid overwhelming options
+            if task.emotion == .calming { 
+                score += 0.7  // Strong boost for calming tasks
+            }
+            if task.emotion == .routine { 
+                score += 0.6  // Good boost for routine tasks
+            }
+            if task.priority == .low { 
+                score += 0.4  // Boost for low-priority tasks
+            }
+            // Penalize anxiety-inducing tasks
+            if task.emotion == .stressful {
+                score -= 0.4  // Penalty for stressful tasks
+            }
+            if task.emotion == .anxious {
+                score -= 0.3  // Penalty for anxious tasks
+            }
+            if task.priority == .high && task.emotion != .calming {
+                score -= 0.2  // Mild penalty for high-priority non-calm tasks
+            }
         case .focused:
             // Prefer challenging tasks
             if task.priority == .high { score += 0.4 }
@@ -1342,7 +1482,7 @@ enum SmartListType: String, CaseIterable {
     }
 }
 
-struct TaskList: Identifiable, Codable {
+struct TaskList: Identifiable, Codable, Equatable {
     var id = UUID()
     let name: String
     let colorName: String
