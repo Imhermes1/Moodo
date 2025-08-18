@@ -95,7 +95,11 @@ struct InsightsView: View {
                         .padding(.vertical, 12)
                         .background(
                             RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color.black, lineWidth: 2)
+                                .fill(Color.white.opacity(0.08))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.black, lineWidth: 2)
+                                )
                         )
                         .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
                         .shadow(color: .white.opacity(0.1), radius: 1, x: 0, y: -0.5)
@@ -136,8 +140,8 @@ struct InsightsView: View {
                                 .padding(.vertical, 12)
                                 .background(
                                     selectedInsightType == insightType ?
-                                    Color.white.opacity(0.15) :
-                                    Color.clear
+                                    Color.white.opacity(0.2) :
+                                    Color.white.opacity(0.05)
                                 )
                             }
                             .buttonStyle(PlainButtonStyle())

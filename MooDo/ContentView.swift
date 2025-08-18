@@ -26,6 +26,11 @@ struct ContentView: View {
                 UniversalBackground()
                     .ignoresSafeArea(.all, edges: .all)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .onAppear {
+                        // Set up bidirectional references
+                        taskManager.thoughtsManager = thoughtsManager
+                        thoughtsManager.taskManager = taskManager
+                    }
                 
                 ZStack {
                     // Main content area (full screen)
@@ -44,7 +49,8 @@ struct ContentView: View {
                         TasksView(
                             taskManager: taskManager,
                             moodManager: moodManager,
-                            screenSize: geometry.size
+                            screenSize: geometry.size,
+                            thoughtsManager: thoughtsManager
                         )
                         .tag(1)
                         

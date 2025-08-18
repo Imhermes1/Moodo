@@ -35,12 +35,12 @@ struct SmartListButton: View {
                 ZStack {
                                     // Base glass layer for smart list button
                 Capsule()
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.4)
+                    .fill(.thinMaterial)
+                    .opacity(0.5)
                     
                     // Color overlay
                     Capsule()
-                        .fill(isSelected ? type.color.opacity(0.25) : .white.opacity(0.08))
+                        .fill(isSelected ? type.color.opacity(0.3) : .white.opacity(0.12))
                     
                     // Inner highlight for 3D effect
                     Capsule()
@@ -106,12 +106,12 @@ struct TaskListButton: View {
                 ZStack {
                                     // Base glass layer for task list button
                 Capsule()
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.4)
+                    .fill(.thinMaterial)
+                    .opacity(0.5)
                     
                     // Color overlay
                     Capsule()
-                        .fill(isSelected ? list.color.opacity(0.25) : .white.opacity(0.08))
+                        .fill(isSelected ? list.color.opacity(0.3) : .white.opacity(0.12))
                     
                     // Inner highlight for 3D effect
                     Capsule()
@@ -176,8 +176,8 @@ struct SearchBar: View {
             ZStack {
                 // Base glass layer for search bar
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.3)
+                    .fill(.thinMaterial)
+                    .opacity(0.4)
                 
                 // Inner highlight for 3D effect
                 RoundedRectangle(cornerRadius: 16)
@@ -254,8 +254,8 @@ struct EmptyStateView: View {
                     ZStack {
                                         // Base glass layer for empty state button
                 RoundedRectangle(cornerRadius: 18)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.4)
+                    .fill(.thinMaterial)
+                    .opacity(0.5)
                         
                         // Inner highlight for 3D effect
                         RoundedRectangle(cornerRadius: 18)

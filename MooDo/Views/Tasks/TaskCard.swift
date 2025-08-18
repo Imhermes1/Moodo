@@ -17,7 +17,9 @@ struct TaskCard: View {
     let onTaskUpdate: (Task) -> Void
     let onDelete: (Task) -> Void
     @ObservedObject var taskManager: TaskManager
+    var thoughtsManager: ThoughtsManager? = nil
     @State private var showingEditView = false
+    @State private var showingOriginalThought = false
     @State private var dragOffset = CGSize.zero
     @State private var isBeingDeleted = false
     @State private var showingDeleteConfirmation = false
@@ -66,22 +68,31 @@ struct TaskCard: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .animation(.easeInOut(duration: 0.2), value: task.isCompleted)
                     
-                    // Priority badge with subtle glow
-                    Text(task.priority.displayName)
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(
-                            Capsule()
-                                .fill(.ultraThinMaterial)
-                                .overlay(
-                                    Capsule()
-                                        .stroke(task.priority.color.opacity(0.6), lineWidth: 1)
-                                )
-                                .shadow(color: task.priority.color.opacity(0.2), radius: 2, x: 0, y: 1)
-                        )
+                    // Priority badge with dynamic escalation
+                    HStack(spacing: 4) {
+                        if task.isEscalated {
+                            Image(systemName: "arrow.up")
+                                .font(.caption2)
+                                .foregroundColor(task.dynamicPriority.color)
+                        }
+                        Text(task.priorityDescription)
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .fill(.thinMaterial)
+                            .overlay(
+                                Capsule()
+                                    .stroke(task.dynamicPriority.color.opacity(0.6), lineWidth: 1)
+                            )
+                            .shadow(color: task.dynamicPriority.color.opacity(0.2), radius: 2, x: 0, y: 1)
+                    )
+                    .scaleEffect(task.isEscalated ? 1.05 : 1.0)
+                    .animation(.easeInOut(duration: 0.2), value: task.isEscalated)
                 }
                 
                 // Task metadata with improved spacing
@@ -101,7 +112,7 @@ struct TaskCard: View {
                     .padding(.vertical, 4)
                     .background(
                         Capsule()
-                            .fill(.ultraThinMaterial)
+                            .fill(.thinMaterial)
                             .overlay(
                                 Capsule()
                                     .stroke(task.emotion.color.opacity(0.4), lineWidth: 1)
@@ -169,10 +180,10 @@ struct TaskCard: View {
                                 .padding(.vertical, 3)
                                 .background(
                                     Capsule()
-                                        .fill(.white.opacity(0.1))
+                                        .fill(.white.opacity(0.12))
                                         .overlay(
                                             Capsule()
-                                                .stroke(.white.opacity(0.3), lineWidth: 1)
+                                                .stroke(.white.opacity(0.35), lineWidth: 1)
                                         )
                                 )
                         }
@@ -193,10 +204,43 @@ struct TaskCard: View {
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(.ultraThinMaterial)
+                                .fill(.thinMaterial)
                                 .overlay(
                                     Capsule()
                                         .stroke(Color.yellow.opacity(0.4), lineWidth: 1)
+                                )
+                        )
+                    }
+
+                    // Link indicator for tasks created from thoughts
+                    if task.sourceThoughtId != nil {
+                        Button(action: {
+                            if let thoughtsManager = thoughtsManager,
+                               let sourceId = task.sourceThoughtId,
+                               thoughtsManager.thoughts.contains(where: { $0.id == sourceId }) {
+                                showingOriginalThought = true
+                                HapticManager.shared.selection()
+                            }
+                        }) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "note.text")
+                                    .font(.caption2)
+                                    .foregroundColor(.orange)
+                                Text("From thought")
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white.opacity(0.8))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(.orange.opacity(0.2))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(.orange.opacity(0.4), lineWidth: 1)
                                 )
                         )
                     }
@@ -218,7 +262,7 @@ struct TaskCard: View {
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(.ultraThinMaterial)
+                                .fill(.thinMaterial)
                                 .overlay(
                                     Capsule()
                                         .stroke(.blue.opacity(0.4), lineWidth: 1)
@@ -231,7 +275,7 @@ struct TaskCard: View {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(.ultraThinMaterial)
+                    .fill(.thinMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
                             .stroke(
@@ -242,15 +286,15 @@ struct TaskCard: View {
                                     endPoint: .trailing
                                 ) :
                                 LinearGradient(
-                                    colors: [.white.opacity(0.2), .white.opacity(0.2)],
+                                    colors: [.white.opacity(0.35), .white.opacity(0.35)],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 ),
                                 lineWidth: task.isAIGenerated ? 1.5 : 1
                             )
                     )
-                    .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
-                    .shadow(color: .white.opacity(0.05), radius: 1, x: 0, y: -1)
+                    .shadow(color: .black.opacity(0.12), radius: 3, x: 0, y: 2)
+                    .shadow(color: .white.opacity(0.08), radius: 1, x: 0, y: -1)
             )
             .opacity(task.isCompleted ? 0.7 : 1.0)
             .scaleEffect(task.isCompleted ? 0.98 : 1.0)
@@ -325,6 +369,13 @@ struct TaskCard: View {
                 HapticManager.shared.notification(.warning)
             })
         }
+        .sheet(isPresented: $showingOriginalThought) {
+            if let thoughtsManager = thoughtsManager,
+               let sourceId = task.sourceThoughtId,
+               let originalThought = thoughtsManager.thoughts.first(where: { $0.id == sourceId }) {
+                EditThoughtView(thought: originalThought, thoughtsManager: thoughtsManager)
+            }
+        }
     }
     
     private func formatReminderTime(_ date: Date) -> String {
@@ -390,7 +441,8 @@ struct TaskCard: View {
             onToggleComplete: {},
             onTaskUpdate: { _ in },
             onDelete: { _ in },
-            taskManager: TaskManager()
+            taskManager: TaskManager(),
+            thoughtsManager: ThoughtsManager()
         )
         
         TaskCard(
@@ -407,7 +459,8 @@ struct TaskCard: View {
             onToggleComplete: {},
             onTaskUpdate: { _ in },
             onDelete: { _ in },
-            taskManager: TaskManager()
+            taskManager: TaskManager(),
+            thoughtsManager: ThoughtsManager()
         )
     }
     .padding()

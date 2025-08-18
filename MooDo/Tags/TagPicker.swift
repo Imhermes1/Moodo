@@ -115,7 +115,7 @@ struct TagPicker: View {
                     .fill(.ultraThinMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.3), lineWidth: 1)
+                            .stroke(Color.black.opacity(0.45), lineWidth: 1)
                     )
             )
             
@@ -174,7 +174,7 @@ struct TagPicker: View {
                                             .fill(Color.peacefulGreen.opacity(0.2))
                                             .overlay(
                                                 Capsule()
-                                                    .stroke(Color.peacefulGreen, lineWidth: 1)
+                                                    .stroke(Color.black, lineWidth: 1)
                                             )
                                     )
                                 }
@@ -251,7 +251,7 @@ struct SelectedTagChip: View {
                 .fill(tag.color.opacity(0.2))
                 .overlay(
                     Capsule()
-                        .stroke(tag.color, lineWidth: 1)
+                        .stroke(Color.black, lineWidth: 1)
                 )
         )
     }
@@ -285,7 +285,7 @@ struct SimpleTagChip: View {
                 .fill(.blue.opacity(0.2))
                 .overlay(
                     Capsule()
-                        .stroke(.blue, lineWidth: 1)
+                        .stroke(Color.black, lineWidth: 1)
                 )
         )
     }
@@ -317,10 +317,10 @@ struct SuggestedTagChip: View {
             .padding(.vertical, 6)
             .background(
                 Capsule()
-                    .fill(.white.opacity(0.1))
+                    .fill(.white.opacity(0.12))
                     .overlay(
                         Capsule()
-                            .stroke(tag.color.opacity(0.5), lineWidth: 1)
+                            .stroke(Color.black.opacity(0.4), lineWidth: 1)
                     )
             )
         }
@@ -393,7 +393,7 @@ struct InlineTagEditor: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                        .stroke(Color.black.opacity(0.35), lineWidth: 1)
                 )
         )
     }

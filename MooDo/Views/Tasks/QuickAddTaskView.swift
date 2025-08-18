@@ -143,6 +143,9 @@ struct QuickAddTaskView: View {
                             .onChange(of: taskTitle) {
                                 processNaturalLanguage(taskTitle)
                             }
+                            .onSubmit {
+                                addTask()
+                            }
                     }
                     .background(
                         RoundedRectangle(cornerRadius: 12)
@@ -584,12 +587,17 @@ struct QuickAddTaskView: View {
         // Detect and store ranges for highlighting
         var newDetectedRanges: [DetectedRange] = []
         
-        // Find time patterns
+        // Find time patterns (expanded to match SmartFeatures patterns)
         let timePatterns = [
             "\\d{1,2}:\\d{2}\\s*(am|pm|AM|PM)",
             "\\d{1,2}\\s*(am|pm|AM|PM)",
-            "at\\s+\\d{1,2}:\\d{2}", // Added: "at 2:30" pattern
-            "\\d{1,2}:\\d{2}(?!\\d)" // Fixed: Added negative lookahead to prevent matching partial numbers
+            "at\\s+\\d{1,2}(:\\d{2})?\\s*(am|pm|AM|PM)?",
+            "\\d{1,2}:\\d{2}(?!\\d)",
+            "in\\s+\\d+\\s*(minutes?|mins?|hours?|hrs?)",
+            "tonight", "this\\s+evening", "this\\s+morning", "this\\s+(afternoon|arvo)",
+            "(noon|midday)", "midnight", "(at\\s+lunch|lunch\\s+time)", "(after\\s+work|knock\\s+off)", "before\\s+bed",
+            "(after\\s+tea|after\\s+dinner)", "in\\s+a\\s+(bit|mo)", "shortly", "soon",
+            "by\\s+end\\s+of\\s+day", "before\\s+eod", "cob"
         ]
         
         for pattern in timePatterns {
@@ -602,13 +610,16 @@ struct QuickAddTaskView: View {
             }
         }
         
-        // Find date patterns
+        // Find date patterns (expanded to match SmartFeatures patterns)
         let datePatterns = [
             "\\b(today|tomorrow|yesterday)\\b",
+            "\\bday\\s+after\\s+tomorrow\\b", "\\bthis\\s+weekend\\b", "\\bnext\\s+month\\b", "\\bend\\s+of\\s+week\\b",
             "\\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b",
-            "\\b(january|february|march|april|may|june|july|august|september|october|november|december)\\s+\\d{1,2}\\b",
-            "\\b\\d{1,2}\\s+(january|february|march|april|may|june|july|august|september|october|november|december)\\b",
-            "\\b(next|this)\\s+(week|month|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b"
+            "\\b(next|this)\\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b",
+            "\\b(next|this)\\s+(week|month|year)\\b",
+            "\\b(january|february|march|april|may|june|july|august|september|october|november|december)\\s+\\d{1,2}(th|st|nd|rd)?\\b",
+            "\\b\\d{1,2}(th|st|nd|rd)?\\s+(january|february|march|april|may|june|july|august|september|october|november|december)\\b",
+            "\\bevery\\s+(day|week|month)\\b", "\\bdaily\\b", "\\bweekly\\b", "\\bmonthly\\b"
         ]
         
         for pattern in datePatterns {
@@ -621,10 +632,16 @@ struct QuickAddTaskView: View {
             }
         }
         
-        // Find priority patterns
+        // Find priority patterns (expanded to match SmartFeatures patterns)
         let priorityPatterns = [
-            "\\b(urgent|high|important|critical|asap)\\b",
-            "\\b(low|later|sometime|eventual)\\b"
+            "\\b(urgent|urgently|asap|important|importantly|critical|critically)\\b",
+            "\\b(emergency|deadline|priority|must|crisis)\\b",
+            "\\breally\\s+urgent\\b", "\\bsuper\\s+important\\b", "\\bextremely\\s+critical\\b",
+            "\\bhighly\\s+urgent\\b", "\\btop\\s+priority\\b", "\\bcrucial\\b", "\\bvital\\b", "\\bessential\\b",
+            "\\btime\\s+sensitive\\b", "\\bcan't\\s+wait\\b", "\\bneeds\\s+attention\\b", "\\bpressing\\b",
+            "\\b(low|later|sometime|eventually)\\b",
+            "\\bno\\s+rush\\b", "\\bno\\s+hurry\\b", "\\bwhenever\\b", "\\bwhen\\s+you\\s+can\\b",
+            "\\bwhen\\s+convenient\\b", "\\bif\\s+possible\\b", "\\boptional\\b", "\\bnice\\s+to\\s+have\\b", "\\bnot\\s+urgent\\b", "\\bnot\\s+important\\b"
         ]
         
         for pattern in priorityPatterns {
@@ -694,7 +711,7 @@ struct QuickAddTaskView: View {
     private func addTask() {
         guard !taskTitle.trimmingCharacters(in: .whitespaces).isEmpty else { return }
         
-        // Process the input one final time to get the cleaned title
+        // Process the input one final time to get the cleaned title and extracted data
         let processedTask = nlpProcessor.processNaturalLanguage(taskTitle)
         
         // If user hasn't overridden AI and there's a valid AI suggestion, use it
@@ -702,39 +719,21 @@ struct QuickAddTaskView: View {
             selectedEmotion = aiSuggested
         }
         
-        // Clean the title by removing detected natural language patterns
-        var cleanedTitle = taskTitle.trimmingCharacters(in: .whitespaces)
+        // Use the processed title (which is already cleaned by the enhanced NLP system)
+        let finalTitle = processedTask.title.isEmpty ? taskTitle.trimmingCharacters(in: .whitespaces) : processedTask.title
         
-        // Sort detected ranges by location in reverse order to avoid index shifting
-        let sortedRanges = detectedRanges.sorted { $0.range.location > $1.range.location }
+        // Use the smart priority if it was detected, otherwise use user selection
+        let finalPriority = processedTask.priority != .medium ? processedTask.priority : selectedPriority
         
-        // Remove detected patterns from the title
-        for detectedRange in sortedRanges {
-            if detectedRange.range.location + detectedRange.range.length <= cleanedTitle.count {
-                let nsString = cleanedTitle as NSString
-                let beforeRange = NSRange(location: 0, length: detectedRange.range.location)
-                let afterRange = NSRange(
-                    location: detectedRange.range.location + detectedRange.range.length,
-                    length: cleanedTitle.count - (detectedRange.range.location + detectedRange.range.length)
-                )
-                
-                let beforeText = nsString.substring(with: beforeRange)
-                let afterText = nsString.substring(with: afterRange)
-                
-                cleanedTitle = (beforeText + " " + afterText)
-                    .trimmingCharacters(in: .whitespaces)
-                    .replacingOccurrences(of: "  ", with: " ") // Remove double spaces
-            }
-        }
-        
-        // Use the processed title if available, otherwise use cleaned title
-        let finalTitle = processedTask.title.isEmpty ? cleanedTitle : processedTask.title
+        // Use the extracted reminder time if available, otherwise use user selection
+        let finalReminderTime = processedTask.reminderAt ?? reminderDate
         
         let newTask = Task(
             title: finalTitle,
-            priority: selectedPriority,
+            priority: finalPriority,
             emotion: selectedEmotion,
-            reminderAt: reminderDate
+            reminderAt: finalReminderTime,
+            tags: processedTask.tags // Include any hashtags detected
         )
         
         taskManager.addTask(newTask)

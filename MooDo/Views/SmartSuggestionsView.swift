@@ -37,7 +37,7 @@ struct SmartSuggestionsView: View {
                                 .fill(.yellow.opacity(0.3))
                                 .overlay(
                                     Circle()
-                                        .stroke(.yellow.opacity(0.5), lineWidth: 1)
+                                        .stroke(Color.black.opacity(0.3), lineWidth: 1)
                                 )
                         )
                         .rotationEffect(.degrees(isRefreshing ? 360 : 0))
@@ -86,7 +86,7 @@ struct SmartSuggestionsView: View {
                 // Base glass layer with 3D depth
                 RoundedRectangle(cornerRadius: 20)
                     .fill(.ultraThinMaterial)
-                    .opacity(0.4)
+                    .opacity(0.6)
                 
                 // Inner highlight layer for 3D effect
                 RoundedRectangle(cornerRadius: 20)
@@ -243,7 +243,7 @@ struct SuggestionCard: View {
                             .fill(.green.opacity(0.3))
                             .overlay(
                                 Circle()
-                                    .stroke(.green.opacity(0.5), lineWidth: 1)
+                                    .stroke(Color.black.opacity(0.3), lineWidth: 1)
                             )
                     )
             }
@@ -251,8 +251,8 @@ struct SuggestionCard: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(.ultraThinMaterial)
-                .opacity(0.4)
+                .fill(.thinMaterial)
+                .opacity(0.5)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(

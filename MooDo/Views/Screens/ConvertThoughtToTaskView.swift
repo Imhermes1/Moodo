@@ -23,15 +23,36 @@ struct ConvertThoughtToTaskView: View {
     @State private var reminderDate = Date()
     @State private var deleteOriginalThought = true
     
-    init(thought: Thought, thoughtsManager: ThoughtsManager) {
+    init(thought: Thought,
+         thoughtsManager: ThoughtsManager,
+         taskManager: TaskManager,
+         moodManager: MoodManager,
+         deleteOriginalThoughtDefault: Bool = true) {
         self.thought = thought
         self.thoughtsManager = thoughtsManager
-        self.taskManager = TaskManager()
-        self.moodManager = MoodManager()
-        self._taskDescription = State(initialValue: thought.content)
+        self.taskManager = taskManager
+        self.moodManager = moodManager
+        // Extract content without title for task description
+        let lines = thought.content.components(separatedBy: .newlines)
+        var contentWithoutTitle = thought.content
+        
+        // If the first line matches the title (case insensitive), remove it
+        if let firstLine = lines.first,
+           firstLine.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == thought.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            let remainingLines = Array(lines.dropFirst())
+            contentWithoutTitle = remainingLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        self._taskDescription = State(initialValue: contentWithoutTitle)
         
         // Smart title extraction - use the thought's title
         self._taskTitle = State(initialValue: thought.title)
+        
+        // Default emotion suggestion based on title analysis, fallback to mood compatibility
+        let analysis = EmotionAnalyzer.shared.getEmotionAnalysis(from: thought.title)
+        self._selectedEmotion = State(initialValue: analysis.suggestedEmotion)
+        
+        self._deleteOriginalThought = State(initialValue: deleteOriginalThoughtDefault)
     }
     
     var body: some View {
@@ -45,7 +66,7 @@ struct ConvertThoughtToTaskView: View {
                                 .font(.headline)
                                 .fontWeight(.semibold)
                             
-                            Text(thought.content)
+                            Text((try? AttributedString(markdown: thought.content)) ?? AttributedString(thought.content))
                                 .font(.body)
                                 .foregroundColor(.secondary)
                                 .padding(16)
@@ -73,20 +94,23 @@ struct ConvertThoughtToTaskView: View {
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                             }
                             
-                            // Task description
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Description")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                
-                                TextEditor(text: $taskDescription)
-                                    .frame(height: 80)
-                                    .padding(8)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(Color(.systemGray4), lineWidth: 1)
-                                    )
-                            }
+                        // Task description
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Description")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            
+                            TextEditor(text: $taskDescription)
+                                .frame(height: 80)
+                                .padding(8)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color(.systemGray4), lineWidth: 1)
+                                )
+                            Text("Prefilled with your thought content (title removed). Edit or clear if not needed.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
                             
                             // Priority
                             VStack(alignment: .leading, spacing: 8) {
@@ -140,7 +164,7 @@ struct ConvertThoughtToTaskView: View {
                             }
                             
                             // Delete original thought option
-                            Toggle("Delete original thought", isOn: $deleteOriginalThought)
+                            Toggle("Remove original note after creating task", isOn: $deleteOriginalThought)
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                         }
@@ -195,11 +219,17 @@ struct ConvertThoughtToTaskView: View {
             priority: selectedPriority,
             emotion: selectedEmotion,
             category: selectedCategory,
-            reminderAt: hasReminder ? reminderDate : nil
+            reminderAt: hasReminder ? reminderDate : nil,
+            sourceThoughtId: thought.id
         )
         
         // Add task to task manager
         taskManager.addTask(newTask)
+        
+        // Create bidirectional link - update thought with task ID
+        var updatedThought = thought
+        updatedThought.linkedTaskId = newTask.id
+        thoughtsManager.updateThought(updatedThought)
         
         // Delete original thought if requested
         if deleteOriginalThought {
@@ -211,13 +241,41 @@ struct ConvertThoughtToTaskView: View {
         
         dismiss()
     }
+    
+    // Helper function to extract content without title
+    private func extractContentWithoutTitle(from content: String, title: String) -> String {
+        let lines = content.components(separatedBy: .newlines)
+        
+        // If the first line matches the title (case insensitive), remove it
+        if let firstLine = lines.first,
+           firstLine.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            let remainingLines = Array(lines.dropFirst())
+            return remainingLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        // If title doesn't match first line, return original content
+        return content.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    // FUTURE ENHANCEMENT: Bullet points to subtasks
+    // When converting thoughts to tasks, parse markdown bullet points (lines starting with "- " or "* ")
+    // and convert them into subtasks. This will allow users to create hierarchical task structures
+    // directly from their thought notes. Example:
+    // Thought content: "Project planning\n- Research competitors\n- Define requirements\n- Create timeline"
+    // Would create a main task "Project planning" with 3 subtasks.
+    // Implementation would involve:
+    // 1. Scanning content for bullet point patterns
+    // 2. Creating Task objects for each bullet point 
+    // 3. Setting up parent-child relationships via subtasks array
 }
 
 struct ConvertThoughtToTaskView_Previews: PreviewProvider {
     static var previews: some View {
         ConvertThoughtToTaskView(
             thought: Thought(title: "Call Mom", content: "Need to call mom about dinner plans", mood: .calm),
-            thoughtsManager: ThoughtsManager()
+            thoughtsManager: ThoughtsManager(),
+            taskManager: TaskManager(),
+            moodManager: MoodManager()
         )
     }
 }

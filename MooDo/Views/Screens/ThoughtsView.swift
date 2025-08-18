@@ -55,7 +55,7 @@ struct ThoughtsView: View {
                     if !searchText.isEmpty {
                         Button(action: { searchText = "" }) {
                             Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(.black)
                         }
                     }
                     
@@ -63,18 +63,23 @@ struct ThoughtsView: View {
                     Button(action: { showingAddThought = true }) {
                         Image(systemName: "plus.circle.fill")
                             .font(.title3)
-                            .foregroundColor(.blue)
+                            .foregroundColor(.black)
                     }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.black.opacity(0.2))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.black.opacity(0.2))
+                        
+                        // Blue tint for search bar
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.blue.opacity(0.06))
+                        
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.black.opacity(0.4), lineWidth: 1.5)
+                    }
                 )
                     
                     // Mood Filter
@@ -90,10 +95,10 @@ struct ThoughtsView: View {
                                     .padding(.vertical, 6)
                                     .background(
                                         Capsule()
-                                            .fill(selectedMoodFilter == nil ? Color.blue.opacity(0.2) : Color.clear)
+                                            .fill(selectedMoodFilter == nil ? Color.blue.opacity(0.7) : Color.blue.opacity(0.25))
                                             .overlay(
                                                 Capsule()
-                                                    .stroke(selectedMoodFilter == nil ? Color.blue : Color.white.opacity(0.3), lineWidth: 1)
+                                                    .stroke(selectedMoodFilter == nil ? Color.black : Color.black.opacity(0.45), lineWidth: 1)
                                             )
                                     )
                             }
@@ -114,10 +119,10 @@ struct ThoughtsView: View {
                                     .padding(.vertical, 6)
                                     .background(
                                         Capsule()
-                                            .fill(selectedMoodFilter == mood ? mood.color.opacity(0.2) : Color.clear)
+                                            .fill(selectedMoodFilter == mood ? mood.color.opacity(0.7) : mood.color.opacity(0.25))
                                             .overlay(
                                                 Capsule()
-                                                    .stroke(selectedMoodFilter == mood ? mood.color : Color.white.opacity(0.3), lineWidth: 1)
+                                                    .stroke(selectedMoodFilter == mood ? Color.black : Color.black.opacity(0.45), lineWidth: 1)
                                             )
                                     )
                                 }
@@ -193,7 +198,11 @@ struct ThoughtsView: View {
             }
             .animation(nil, value: selectedMoodFilter) // Disable layout animations
             .sheet(isPresented: $showingAddThought) {
-                AddThoughtView(thoughtsManager: thoughtsManager)
+                AddThoughtView(
+                    thoughtsManager: thoughtsManager,
+                    taskManager: taskManager,
+                    moodManager: moodManager
+                )
             }
     }
 }
@@ -221,23 +230,28 @@ struct FullThoughtRowView: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Content
-            Text(thought.content)
-                .font(.body)
+        Button(action: { showingEditSheet = true }) {
+            VStack(alignment: .leading, spacing: 8) {
+            // Title (heading) on first row
+            Text(renderMarkdownText(thought.title))
+                .font(.headline)
+                .fontWeight(.semibold)
                 .foregroundColor(.white)
-                .multilineTextAlignment(.leading)
+                .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
-            // Metadata row
+            // Content preview on second row (if content exists)
+            if !thought.content.isEmpty {
+                let firstLine = extractFirstLine(from: thought.content)
+                Text(renderMarkdownText(firstLine))
+                    .font(.body)
+                    .foregroundColor(.white.opacity(0.8))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            
+            // Metadata and action row - streamlined
             HStack {
-                // Time
-                Text(timeAgo)
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
-                
-                Spacer()
-                
                 // Mood display
                 let mood = thought.mood
                 HStack(spacing: 4) {
@@ -249,31 +263,66 @@ struct FullThoughtRowView: View {
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.7))
                 }
-            }
-            
-            // Action buttons
-            HStack(spacing: 12) {
-                Button(action: { showingConvertSheet = true }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.right.circle")
-                            .font(.caption)
-                        Text("Convert to Task")
-                            .font(.caption)
-                    }
-                    .foregroundColor(.blue)
-                }
                 
                 Spacer()
                 
-                Button(action: { showingEditSheet = true }) {
-                    Image(systemName: "pencil")
+                // Time in middle
+                Text(timeAgo)
+                    .font(.caption)
+                    .foregroundColor(.white.opacity(0.6))
+                
+                Spacer()
+                
+                // Convert to task button only
+                Button(action: { showingConvertSheet = true }) {
+                    Text("Convert to Task")
+                        .font(.caption)
+                        .foregroundColor(.black)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(
+                            Capsule()
+                                .fill(Color.white.opacity(0.2))
+                                .overlay(
+                                    Capsule()
+                                        .stroke(Color.black.opacity(0.3), lineWidth: 1)
+                                )
+                        )
+                }
+            }
+
+            // Linked task indicator (if exists)
+            if let linkedId = thought.linkedTaskId,
+               let linkedTask = taskManager.tasks.first(where: { $0.id == linkedId }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "link")
                         .font(.caption)
                         .foregroundColor(.white.opacity(0.7))
+                    Text("Linked: \(linkedTask.title)")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.8))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
             }
         }
+        }
+        .buttonStyle(PlainButtonStyle())
         .padding(16)
-        .background(GlassPanelBackground())
+        .background(
+            ZStack {
+                GlassPanelBackground()
+                
+                // Blue tint for more vibrancy
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.blue.opacity(0.08))
+                
+                // Black outline for thought cards
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.black.opacity(0.4), lineWidth: 1.5)
+            }
+        )
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .contextMenu {
             Button(action: { showingEditSheet = true }) {
@@ -296,9 +345,61 @@ struct FullThoughtRowView: View {
         .sheet(isPresented: $showingConvertSheet) {
             ConvertThoughtToTaskView(
                 thought: thought,
-                thoughtsManager: thoughtsManager
+                thoughtsManager: thoughtsManager,
+                taskManager: taskManager,
+                moodManager: moodManager,
+                deleteOriginalThoughtDefault: false
             )
         }
+    }
+    
+    // Helper function to render markdown text properly
+    private func renderMarkdownText(_ text: String) -> AttributedString {
+        // Clean up any existing phone number markdown (not supported by SwiftUI)
+        var cleanedText = text
+        // Remove phone link syntax: [number](tel:number) -> number
+        cleanedText = cleanedText.replacingOccurrences(
+            of: "\\[([^\\]]+)\\]\\(tel:[^\\)]+\\)",
+            with: "$1",
+            options: .regularExpression
+        )
+        
+        // Try to parse remaining markdown (for URLs, bold, italic, etc)
+        if let attributedString = try? AttributedString(markdown: cleanedText) {
+            return attributedString
+        }
+        
+        // If markdown parsing fails, clean up any remaining link syntax
+        cleanedText = cleanedText.replacingOccurrences(
+            of: "\\[([^\\]]+)\\]\\([^\\)]+\\)",
+            with: "$1",
+            options: .regularExpression
+        )
+        return AttributedString(cleanedText)
+    }
+    
+    // Helper function to extract first line of content for preview
+    private func extractFirstLine(from content: String) -> String {
+        // Remove markdown syntax for a clean preview
+        let cleanContent = content
+            .replacingOccurrences(of: "^#{1,6}\\s+", with: "", options: .regularExpression) // Remove heading markers
+            .replacingOccurrences(of: "\\*\\*(.+?)\\*\\*", with: "$1", options: .regularExpression) // Remove bold
+            .replacingOccurrences(of: "\\*(.+?)\\*", with: "$1", options: .regularExpression) // Remove italic
+            .replacingOccurrences(of: "`(.+?)`", with: "$1", options: .regularExpression) // Remove code
+            .replacingOccurrences(of: "\\[(.+?)\\]\\(.+?\\)", with: "$1", options: .regularExpression) // Keep link text only
+            .replacingOccurrences(of: "^[\\-\\*\\+]\\s+", with: "", options: .regularExpression) // Remove bullet points
+        
+        // Get first line
+        let lines = cleanContent.components(separatedBy: .newlines)
+        let firstLine = lines.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        
+        // Limit length for preview
+        if firstLine.count > 60 {
+            let index = firstLine.index(firstLine.startIndex, offsetBy: 57)
+            return String(firstLine[..<index]) + "..."
+        }
+        
+        return firstLine.isEmpty ? "No content" : firstLine
     }
 }
 

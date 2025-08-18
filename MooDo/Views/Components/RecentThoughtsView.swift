@@ -9,6 +9,8 @@ import SwiftUI
 
 struct RecentThoughtsView: View {
     @ObservedObject var thoughtsManager: ThoughtsManager
+    @ObservedObject var taskManager: TaskManager
+    @ObservedObject var moodManager: MoodManager
     @State private var showingAddThought = false
     @State private var showingAllThoughts = false
     
@@ -56,7 +58,7 @@ struct RecentThoughtsView: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(thoughtsManager.recentThoughts.prefix(3)) { thought in
-                        ThoughtRowView(thought: thought)
+                        ThoughtRowView(thought: thought, thoughtsManager: thoughtsManager)
                     }
                     
                     if thoughtsManager.thoughts.count > 3 {
@@ -75,8 +77,12 @@ struct RecentThoughtsView: View {
             ZStack {
                 // Base glass layer with 3D depth
                 RoundedRectangle(cornerRadius: 24)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.4)
+                    .fill(.thinMaterial)
+                    .opacity(0.5)
+                
+                // Subtle blue tint layer
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color.blue.opacity(0.08))
                 
                 // Inner highlight layer for 3D effect
                 RoundedRectangle(cornerRadius: 24)
@@ -93,28 +99,9 @@ struct RecentThoughtsView: View {
                         )
                     )
                 
-                // Outer stroke with glass shimmer
+                // Consistent blue outline
                 RoundedRectangle(cornerRadius: 24)
-                    .strokeBorder(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                .white.opacity(0.6),
-                                .white.opacity(0.2),
-                                .white.opacity(0.05),
-                                .white.opacity(0.3)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.5
-                    )
-                
-                // Inner stroke for depth
-                RoundedRectangle(cornerRadius: 23)
-                    .strokeBorder(
-                        .white.opacity(0.1),
-                        lineWidth: 0.5
-                    )
+                    .strokeBorder(Color.blue.opacity(0.4), lineWidth: 1.5)
             }
         )
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
@@ -122,16 +109,26 @@ struct RecentThoughtsView: View {
         .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
         .clipShape(RoundedRectangle(cornerRadius: 24))
         .sheet(isPresented: $showingAddThought) {
-            AddThoughtView(thoughtsManager: thoughtsManager)
+            AddThoughtView(
+                thoughtsManager: thoughtsManager,
+                taskManager: taskManager,
+                moodManager: moodManager
+            )
         }
         .sheet(isPresented: $showingAllThoughts) {
-            AllThoughtsListView(thoughtsManager: thoughtsManager)
+            AllThoughtsListView(
+                thoughtsManager: thoughtsManager,
+                taskManager: taskManager,
+                moodManager: moodManager
+            )
         }
     }
     
     
     struct ThoughtRowView: View {
         let thought: Thought
+        @ObservedObject var thoughtsManager: ThoughtsManager
+        @State private var showingEditSheet = false
         
         private var timeAgo: String {
             let formatter = RelativeDateTimeFormatter()
@@ -140,11 +137,13 @@ struct RecentThoughtsView: View {
         }
         
         var body: some View {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(thought.content)
+            Button(action: { showingEditSheet = true }) {
+                VStack(alignment: .leading, spacing: 8) {
+                Text(renderMarkdownText(thought.title))
                     .font(.body)
                     .foregroundColor(.primary)
-                    .lineLimit(3)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .multilineTextAlignment(.leading)
                 
                 HStack {
@@ -164,25 +163,63 @@ struct RecentThoughtsView: View {
                     }
                 }
             }
+            }
+            .buttonStyle(PlainButtonStyle())
             .padding(12)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.3)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    )
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(.thinMaterial)
+                        .opacity(0.4)
+                    
+                    // Blue tint for thought cards
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue.opacity(0.06))
+                    
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                }
             )
+            .sheet(isPresented: $showingEditSheet) {
+                EditThoughtView(thought: thought, thoughtsManager: thoughtsManager)
+            }
+        }
+        
+        // Helper function to render markdown text properly
+        private func renderMarkdownText(_ text: String) -> AttributedString {
+            // Clean up any existing phone number markdown (not supported by SwiftUI)
+            var cleanedText = text
+            // Remove phone link syntax: [number](tel:number) -> number
+            cleanedText = cleanedText.replacingOccurrences(
+                of: "\\[([^\\]]+)\\]\\(tel:[^\\)]+\\)",
+                with: "$1",
+                options: .regularExpression
+            )
+            
+            // Try to parse remaining markdown (for URLs, bold, italic, etc)
+            if let attributedString = try? AttributedString(markdown: cleanedText) {
+                return attributedString
+            }
+            
+            // If markdown parsing fails, clean up any remaining link syntax
+            cleanedText = cleanedText.replacingOccurrences(
+                of: "\\[([^\\]]+)\\]\\([^\\)]+\\)",
+                with: "$1",
+                options: .regularExpression
+            )
+            return AttributedString(cleanedText)
         }
     }
     
     struct RecentThoughtsView_Previews: PreviewProvider {
         static var previews: some View {
-            RecentThoughtsView(thoughtsManager: ThoughtsManager())
-                .padding()
-                .background(UniversalBackground())
+            RecentThoughtsView(
+                thoughtsManager: ThoughtsManager(),
+                taskManager: TaskManager(),
+                moodManager: MoodManager()
+            )
+            .padding()
+            .background(UniversalBackground())
         }
     }
 }
-

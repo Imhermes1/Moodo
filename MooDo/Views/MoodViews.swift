@@ -23,7 +23,8 @@ struct MoodLensMoodCheckinView: View {
         (MoodType.calm, "leaf", "Calm"),
         (MoodType.creative, "lightbulb", "Creative"),
         (MoodType.stressed, "face.dashed", "Stressed"),
-        (MoodType.tired, "bed.double", "Tired")
+        (MoodType.tired, "bed.double", "Tired"),
+        (MoodType.anxious, "heart.circle", "Anxious")
     ]
     
     var body: some View {
@@ -95,15 +96,16 @@ struct MoodLensMoodCheckinView: View {
                                 .fontWeight(.medium)
                         }
                     }
-                    .foregroundColor(.primary)
+                    .foregroundColor(.black)
+                    .fontWeight(.medium)
                 }
                 .frame(width: 180, height: 48)
                 .background(
                     ZStack {
                         // Base glass layer for button
                         RoundedRectangle(cornerRadius: 25)
-                            .fill(.ultraThinMaterial)
-                            .opacity(0.4)
+                            .fill(.thinMaterial)
+                            .opacity(0.5)
                         
                         // Inner highlight for 3D effect
                         RoundedRectangle(cornerRadius: 25)
@@ -120,20 +122,20 @@ struct MoodLensMoodCheckinView: View {
                                 )
                             )
                         
-                        // Glass border
+                        // Glass border with black outline
                         RoundedRectangle(cornerRadius: 25)
                             .strokeBorder(
                                 LinearGradient(
                                     gradient: Gradient(colors: [
-                                        .white.opacity(0.5),
-                                        .white.opacity(0.15),
-                                        .white.opacity(0.05),
-                                        .white.opacity(0.25)
+                                        Color.black.opacity(0.4),
+                                        Color.black.opacity(0.2),
+                                        Color.black.opacity(0.1),
+                                        Color.black.opacity(0.3)
                                     ]),
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
-                                lineWidth: 1
+                                lineWidth: 1.5
                             )
                     }
                 )
@@ -150,8 +152,12 @@ struct MoodLensMoodCheckinView: View {
             ZStack {
                 // Base glass layer with 3D depth
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.4)
+                    .fill(.thinMaterial)
+                    .opacity(0.5)
+                
+                // Blue tint for consistency with other cards
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.blue.opacity(0.08))
                 
                 // Inner highlight layer for 3D effect
                 RoundedRectangle(cornerRadius: 20)
@@ -168,28 +174,9 @@ struct MoodLensMoodCheckinView: View {
                         )
                     )
                 
-                // Outer stroke with glass shimmer
+                // Consistent blue outline
                 RoundedRectangle(cornerRadius: 20)
-                    .strokeBorder(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                .white.opacity(0.6),
-                                .white.opacity(0.2),
-                                .white.opacity(0.05),
-                                .white.opacity(0.3)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.5
-                    )
-                
-                // Inner stroke for depth
-                RoundedRectangle(cornerRadius: 19)
-                    .strokeBorder(
-                        .white.opacity(0.1),
-                        lineWidth: 0.5
-                    )
+                    .strokeBorder(Color.blue.opacity(0.4), lineWidth: 1.5)
             }
         )
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
@@ -266,7 +253,7 @@ struct MoodIndicatorButton: View {
                     .frame(width: size, height: size)
                     .overlay(
                         Circle()
-                            .stroke(.white.opacity(isSelected ? 0.6 : 0.3), lineWidth: isSelected ? 3 : 1.5)
+                            .stroke(.white.opacity(isSelected ? 0.6 : 0.4), lineWidth: isSelected ? 3 : 1.5)
                     )
                     .shadow(
                         color: mood.color.opacity(isSelected ? 0.6 : 0.3),

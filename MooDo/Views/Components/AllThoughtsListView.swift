@@ -2,6 +2,8 @@ import SwiftUI
 
 struct AllThoughtsListView: View {
     @ObservedObject var thoughtsManager: ThoughtsManager
+    @ObservedObject var taskManager: TaskManager
+    @ObservedObject var moodManager: MoodManager
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
     @State private var selectedMoodFilter: MoodType?
@@ -63,13 +65,23 @@ struct AllThoughtsListView: View {
             }
         }
         .sheet(isPresented: $showingAddThought) {
-            AddThoughtView(thoughtsManager: thoughtsManager)
+            AddThoughtView(
+                thoughtsManager: thoughtsManager,
+                taskManager: taskManager,
+                moodManager: moodManager
+            )
         }
         .sheet(item: $editingThought) { thought in
             EditThoughtView(thought: thought, thoughtsManager: thoughtsManager)
         }
         .sheet(item: $convertingThought) { thought in
-            ConvertThoughtToTaskView(thought: thought, thoughtsManager: thoughtsManager)
+            ConvertThoughtToTaskView(
+                thought: thought,
+                thoughtsManager: thoughtsManager,
+                taskManager: taskManager,
+                moodManager: moodManager,
+                deleteOriginalThoughtDefault: false
+            )
         }
     }
     
@@ -236,7 +248,11 @@ struct EmptyThoughtsView: View {
 }
 
 #Preview {
-    AllThoughtsListView(thoughtsManager: ThoughtsManager())
+    AllThoughtsListView(
+        thoughtsManager: ThoughtsManager(),
+        taskManager: TaskManager(),
+        moodManager: MoodManager()
+    )
 }
 
 struct AllThoughtsRowView: View {
@@ -261,7 +277,7 @@ struct AllThoughtsRowView: View {
             }
             
             if !thought.content.isEmpty {
-                Text(thought.content)
+                Text((try? AttributedString(markdown: thought.content)) ?? AttributedString(thought.content))
                     .font(.body)
                     .foregroundColor(.secondary)
                     .lineLimit(3)

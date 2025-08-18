@@ -45,6 +45,9 @@ struct AddTaskModalView: View {
                             .foregroundColor(.white)
                             .frame(width: 32, height: 32)
                             .background(
+                                Color.white.opacity(0.1)
+                            )
+                            .background(
                                 GlassPanelBackground()
                             )
                             .clipShape(Circle())
@@ -65,7 +68,7 @@ struct AddTaskModalView: View {
                             .foregroundColor(.white)
                             .frame(width: 32, height: 32)
                             .background(
-                                taskInput.isEmpty ? Color.gray.opacity(0.3) : Color.green.opacity(0.3)
+                                taskInput.isEmpty ? Color.gray.opacity(0.15) : Color.green.opacity(0.2)
                             )
                             .background(
                                 GlassPanelBackground()

@@ -119,7 +119,7 @@ struct MoodLensBottomNavigationView: View {
                     )
                     .background(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                     )
                     .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: -4)
             }

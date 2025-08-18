@@ -205,12 +205,17 @@ struct WellnessActionCard: View {
             }
             .padding(12)
             .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.black.opacity(0.2))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(isCompleted ? Color.green.opacity(0.5) : Color.white.opacity(0.1), lineWidth: 1)
-                    )
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.black.opacity(0.2))
+                    
+                    // Blue tint for wellness cards
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue.opacity(0.08))
+                    
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isCompleted ? Color.green.opacity(0.5) : Color.blue.opacity(0.4), lineWidth: 1)
+                }
             )
         }
         .buttonStyle(PlainButtonStyle())

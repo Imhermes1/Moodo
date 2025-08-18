@@ -13,31 +13,80 @@ struct UniversalBackground: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Deep calming gradient with sophisticated colors - extends to all edges
-                LinearGradient(
+                // White base background
+                Color.white
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                // Top-left corner - Yellow glow
+                RadialGradient(
                     gradient: Gradient(stops: [
-                        .init(color: Color(red: 0.1, green: 0.2, blue: 0.4), location: 0.0),     // Deep navy
-                        .init(color: Color(red: 0.15, green: 0.25, blue: 0.35), location: 0.2),  // Midnight blue
-                        .init(color: Color(red: 0.2, green: 0.3, blue: 0.35), location: 0.4),    // Deep teal
-                        .init(color: Color(red: 0.25, green: 0.25, blue: 0.3), location: 0.6),   // Charcoal slate
-                        .init(color: Color(red: 0.3, green: 0.2, blue: 0.3), location: 0.8),     // Deep plum
-                        .init(color: Color(red: 0.25, green: 0.3, blue: 0.2), location: 1.0)     // Dark olive
+                        .init(color: Color(red: 1.0, green: 0.95, blue: 0.5).opacity(0.75), location: 0.0),
+                        .init(color: Color(red: 1.0, green: 0.95, blue: 0.5).opacity(0.6), location: 0.4),
+                        .init(color: Color(red: 1.0, green: 0.95, blue: 0.5).opacity(0.4), location: 0.7),
+                        .init(color: Color(red: 1.0, green: 0.95, blue: 0.5).opacity(0.15), location: 0.9),
+                        .init(color: Color.clear, location: 1.0)
                     ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+                    center: UnitPoint(x: 0, y: 0),
+                    startRadius: 0,
+                    endRadius: geometry.size.width * 1.2
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
-                // Gentle floating stars that move around naturally
-                ForEach(0..<15, id: \.self) { index in
+                // Top-right corner - Pink glow
+                RadialGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: Color(red: 1.0, green: 0.7, blue: 0.85).opacity(0.75), location: 0.0),
+                        .init(color: Color(red: 1.0, green: 0.7, blue: 0.85).opacity(0.6), location: 0.4),
+                        .init(color: Color(red: 1.0, green: 0.7, blue: 0.85).opacity(0.4), location: 0.7),
+                        .init(color: Color(red: 1.0, green: 0.7, blue: 0.85).opacity(0.15), location: 0.9),
+                        .init(color: Color.clear, location: 1.0)
+                    ]),
+                    center: UnitPoint(x: 1, y: 0),
+                    startRadius: 0,
+                    endRadius: geometry.size.width * 1.2
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                // Bottom-left corner - Green glow
+                RadialGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: Color(red: 0.6, green: 0.9, blue: 0.6).opacity(0.75), location: 0.0),
+                        .init(color: Color(red: 0.6, green: 0.9, blue: 0.6).opacity(0.6), location: 0.4),
+                        .init(color: Color(red: 0.6, green: 0.9, blue: 0.6).opacity(0.4), location: 0.7),
+                        .init(color: Color(red: 0.6, green: 0.9, blue: 0.6).opacity(0.15), location: 0.9),
+                        .init(color: Color.clear, location: 1.0)
+                    ]),
+                    center: UnitPoint(x: 0, y: 1),
+                    startRadius: 0,
+                    endRadius: geometry.size.width * 1.2
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                // Bottom-right corner - Sky blue glow
+                RadialGradient(
+                    gradient: Gradient(stops: [
+                        .init(color: Color(red: 0.5, green: 0.8, blue: 1.0).opacity(0.75), location: 0.0),
+                        .init(color: Color(red: 0.5, green: 0.8, blue: 1.0).opacity(0.6), location: 0.4),
+                        .init(color: Color(red: 0.5, green: 0.8, blue: 1.0).opacity(0.4), location: 0.7),
+                        .init(color: Color(red: 0.5, green: 0.8, blue: 1.0).opacity(0.15), location: 0.9),
+                        .init(color: Color.clear, location: 1.0)
+                    ]),
+                    center: UnitPoint(x: 1, y: 1),
+                    startRadius: 0,
+                    endRadius: geometry.size.width * 1.2
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                // Gentle floating particles for subtle animation
+                ForEach(0..<8, id: \.self) { index in
                     Circle()
-                        .fill(Color.white.opacity(0.25))
-                        .frame(width: CGFloat.random(in: 1.5...3))
+                        .fill(Color.white.opacity(0.4))
+                        .frame(width: CGFloat.random(in: 1.5...2.5))
                         .position(
-                            x: (CGFloat(index * 80 + 50) + sin(animationOffset * 0.3 + Double(index)) * 40).truncatingRemainder(dividingBy: geometry.size.width),
-                            y: (CGFloat(index * 70 + 80) + cos(animationOffset * 0.2 + Double(index) * 0.7) * 50).truncatingRemainder(dividingBy: geometry.size.height)
+                            x: (CGFloat(index * 120 + 50) + sin(animationOffset * 0.3 + Double(index)) * 30).truncatingRemainder(dividingBy: geometry.size.width),
+                            y: (CGFloat(index * 100 + 80) + cos(animationOffset * 0.2 + Double(index) * 0.7) * 40).truncatingRemainder(dividingBy: geometry.size.height)
                         )
-                        .opacity(sin(Double(animationOffset) * 0.5 + Double(index) * 0.8) * 0.4 + 0.6)
+                        .opacity(sin(Double(animationOffset) * 0.5 + Double(index) * 0.8) * 0.2 + 0.5)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

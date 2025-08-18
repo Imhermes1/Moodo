@@ -1858,10 +1858,14 @@ struct TodaysProgressView: View {
         .padding(24)
         .background(
             ZStack {
-                // Base glass layer with 3D depth
+                // Base glass layer with enhanced vibrancy
                 RoundedRectangle(cornerRadius: 24)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.4)
+                    .fill(.thinMaterial)
+                    .opacity(0.5)
+                
+                // Blue tint for consistency with other cards
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color.blue.opacity(0.08))
                 
                 // Inner highlight layer for 3D effect
                 RoundedRectangle(cornerRadius: 24)
@@ -1878,28 +1882,9 @@ struct TodaysProgressView: View {
                         )
                     )
                 
-                // Outer stroke with glass shimmer
+                // Consistent blue outline
                 RoundedRectangle(cornerRadius: 24)
-                    .strokeBorder(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                .white.opacity(0.6),
-                                .white.opacity(0.2),
-                                .white.opacity(0.05),
-                                .white.opacity(0.3)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.5
-                    )
-                
-                // Inner stroke for depth
-                RoundedRectangle(cornerRadius: 23)
-                    .strokeBorder(
-                        .white.opacity(0.1),
-                        lineWidth: 0.5
-                    )
+                    .strokeBorder(Color.blue.opacity(0.4), lineWidth: 1.5)
             }
         )
         .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
@@ -1937,8 +1922,8 @@ struct ProgressCard: View {
             ZStack {
                 // Base glass layer for progress cards
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.7)
+                    .fill(.thinMaterial)
+                    .opacity(0.6)
                 
                 // Color overlay with glass effect
                 RoundedRectangle(cornerRadius: 16)
@@ -1959,21 +1944,9 @@ struct ProgressCard: View {
                         )
                     )
                 
-                // Glass border
+                // Consistent blue outline for progress cards
                 RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                .white.opacity(0.4),
-                                .white.opacity(0.15),
-                                .white.opacity(0.05),
-                                .white.opacity(0.2)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
+                    .strokeBorder(Color.blue.opacity(0.4), lineWidth: 1)
             }
         )
         .shadow(color: .black.opacity(0.04), radius: 4, x: 0, y: 2)
@@ -2394,7 +2367,7 @@ struct DailyMoodTimelineView: View {
                 .fill(.white.opacity(0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                        .stroke(.white.opacity(0.15), lineWidth: 1)
                 )
         )
     }
@@ -2433,7 +2406,7 @@ struct MoodTimelineEntryView: View {
                 .frame(width: 12, height: 12)
                 .overlay(
                     Circle()
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                        .stroke(.white.opacity(0.4), lineWidth: 1)
                 )
             
             // Mood info
@@ -2558,7 +2531,7 @@ struct MoodPatternSummaryView: View {
                 .fill(.white.opacity(0.05))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                        .stroke(.white.opacity(0.15), lineWidth: 1)
                 )
         )
     }

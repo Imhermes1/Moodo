@@ -12,35 +12,89 @@ struct EditThoughtView: View {
     @ObservedObject var thoughtsManager: ThoughtsManager
     @Environment(\.dismiss) private var dismiss
     
-    @State private var thoughtText: String
+    @State private var thoughtTitle: String
+    @State private var thoughtContent: String
     @State private var selectedMood: MoodType?
-    @FocusState private var isTextFieldFocused: Bool
+    @FocusState private var isTitleFocused: Bool
+    @FocusState private var isContentFocused: Bool
     
     init(thought: Thought, thoughtsManager: ThoughtsManager) {
         self.thought = thought
         self.thoughtsManager = thoughtsManager
-        self._thoughtText = State(initialValue: thought.content)
+        self._thoughtTitle = State(initialValue: thought.title)
+        self._thoughtContent = State(initialValue: thought.content)
         self._selectedMood = State(initialValue: thought.mood)
     }
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                // Text input area
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Edit your thought")
-                        .font(.headline)
-                        .fontWeight(.semibold)
+            ScrollView {
+                VStack(spacing: 16) {
+                // Title input area
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Title")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
                     
-                    TextEditor(text: $thoughtText)
-                        .font(.body)
-                        .padding(16)
+                    TextField("What's on your mind?", text: $thoughtTitle)
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .padding(8)
                         .background(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(.systemGray6))
+                        )
+                        .focused($isTitleFocused)
+                }
+                
+                // Divider
+                Divider()
+                    .background(Color(.systemGray4))
+                
+                // Content input area with markdown support
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Content (supports Markdown)")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                    
+                    // Markdown formatting toolbar
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(markdownButtons, id: \.title) { button in
+                                Button(action: {
+                                    insertMarkdown(button.markdown)
+                                }) {
+                                    VStack(spacing: 2) {
+                                        Image(systemName: button.icon)
+                                            .font(.caption)
+                                        Text(button.title)
+                                            .font(.caption2)
+                                    }
+                                    .foregroundColor(.primary)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(Color(.systemGray5))
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                    
+                    TextEditor(text: $thoughtContent)
+                        .font(.body)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
                                 .fill(Color(.systemGray6))
                         )
                         .frame(minHeight: 120)
-                        .focused($isTextFieldFocused)
+                        .focused($isContentFocused)
                 }
                 
                 // Mood selector (optional)
@@ -83,8 +137,9 @@ struct EditThoughtView: View {
                 }
                 
                 Spacer()
+                }
+                .padding(16)
             }
-            .padding(20)
             .navigationTitle("Edit Thought")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -98,45 +153,114 @@ struct EditThoughtView: View {
                     Button("Save") {
                         saveThought()
                     }
-                    .disabled(thoughtText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(thoughtTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .onAppear {
-                isTextFieldFocused = true
+                isTitleFocused = true
             }
         }
     }
     
-    private func saveThought() {
-        let trimmedText = thoughtText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedText.isEmpty else { return }
+    // Markdown formatting buttons
+    private var markdownButtons: [(title: String, icon: String, markdown: String)] {
+        [
+            ("Bold", "bold", "**text**"),
+            ("Italic", "italic", "*text*"),
+            ("Heading", "textformat.size.larger", "## "),
+            ("List", "list.bullet", "- "),
+            ("Link", "link", "[text](url)"),
+            ("Code", "chevron.left.forwardslash.chevron.right", "`code`")
+        ]
+    }
+    
+    private func insertMarkdown(_ markdown: String) {
+        // Simple insertion for now - could be enhanced to wrap selected text
+        if markdown.contains("text") {
+            // For templates with placeholder, insert at cursor
+            thoughtContent += markdown
+        } else {
+            // For prefix patterns (like ## or -), insert at cursor
+            thoughtContent += markdown
+        }
+    }
+    
+    // Auto-detection functions for URLs only (phone numbers removed due to SwiftUI limitations)
+    private func autoDetectAndFormat(_ text: String) -> String {
+        var formattedText = text
         
-        // Extract title from first line or first few words
-        let title = extractTitle(from: trimmedText)
+        // Only detect and format URLs
+        formattedText = detectAndShortenURLs(in: formattedText)
+        
+        return formattedText
+    }
+    
+    // Phone number detection removed - SwiftUI doesn't support tel: links in markdown
+    // Keep phone numbers as plain text for now
+    
+    private func detectAndShortenURLs(in text: String) -> String {
+        // URL detection pattern
+        let urlPattern = "https?://[^\\s<>\"'{}|\\\\^`\\[\\]]+"
+        
+        guard let regex = try? NSRegularExpression(pattern: urlPattern, options: .caseInsensitive) else {
+            return text
+        }
+        
+        let matches = regex.matches(in: text, options: [], range: NSRange(location: 0, length: text.count))
+        var result = text
+        
+        // Process matches in reverse order to maintain string indices
+        for match in matches.reversed() {
+            let fullURL = (text as NSString).substring(with: match.range)
+            let shortURL = shortenURL(fullURL)
+            let markdownLink = "[🔗 \(shortURL)](\(fullURL))"
+            
+            result = (result as NSString).replacingCharacters(in: match.range, with: markdownLink)
+        }
+        
+        return result
+    }
+    
+    private func shortenURL(_ url: String) -> String {
+        // Remove protocol and www
+        var shortened = url
+            .replacingOccurrences(of: "https://", with: "")
+            .replacingOccurrences(of: "http://", with: "")
+            .replacingOccurrences(of: "www.", with: "")
+        
+        // Keep only domain and top-level path
+        let components = shortened.components(separatedBy: "/")
+        if let domain = components.first {
+            // If there's a path, show domain + /...
+            if components.count > 1 {
+                return "\(domain)/..."
+            } else {
+                return domain
+            }
+        }
+        
+        return shortened
+    }
+    
+    private func saveThought() {
+        let trimmedTitle = thoughtTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedContent = thoughtContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedTitle.isEmpty else { return }
+        
+        // Apply auto-detection and formatting to both title and content
+        let formattedTitle = autoDetectAndFormat(trimmedTitle)
+        let formattedContent = autoDetectAndFormat(trimmedContent)
         
         var updatedThought = thought
-        updatedThought.title = title
-        updatedThought.content = trimmedText
+        updatedThought.title = formattedTitle
+        updatedThought.content = formattedContent
         updatedThought.mood = selectedMood ?? .calm
         
         thoughtsManager.updateThought(updatedThought)
         dismiss()
     }
     
-    private func extractTitle(from text: String) -> String {
-        let lines = text.components(separatedBy: .newlines)
-        let firstLine = lines.first ?? ""
-        
-        // If first line is short enough, use it as title
-        if firstLine.count <= 50 {
-            return firstLine.isEmpty ? "Untitled Thought" : firstLine
-        }
-        
-        // Otherwise, take first few words
-        let words = firstLine.components(separatedBy: .whitespaces)
-        let firstWords = Array(words.prefix(6)).joined(separator: " ")
-        return firstWords.isEmpty ? "Untitled Thought" : firstWords + "..."
-    }
 }
 
 struct EditThoughtView_Previews: PreviewProvider {

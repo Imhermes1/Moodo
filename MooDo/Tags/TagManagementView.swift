@@ -74,7 +74,7 @@ struct TagManagementView: View {
                         .fill(.ultraThinMaterial)
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
-                                .stroke(.white.opacity(0.2), lineWidth: 1)
+                                .stroke(Color.black.opacity(0.35), lineWidth: 1)
                         )
                 )
                 .padding(.horizontal, 24)
@@ -218,7 +218,7 @@ struct TagRowView: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(.white.opacity(0.2), lineWidth: 1)
+                        .stroke(Color.black.opacity(0.35), lineWidth: 1)
                 )
         )
         .confirmationDialog(
@@ -317,7 +317,7 @@ struct AddTagView: View {
                                         .frame(width: 44, height: 44)
                                         .overlay(
                                             Circle()
-                                                .stroke(selectedColor == colorHex ? .white : .clear, lineWidth: 3)
+                                                .stroke(selectedColor == colorHex ? Color.black : .clear, lineWidth: 3)
                                         )
                                         .onTapGesture {
                                             selectedColor = colorHex
@@ -346,7 +346,7 @@ struct AddTagView: View {
                                     }
                                     .overlay(
                                         Circle()
-                                            .stroke(selectedIcon == icon ? Color(hex: selectedColor) : .clear, lineWidth: 2)
+                                            .stroke(selectedIcon == icon ? Color.black : .clear, lineWidth: 2)
                                     )
                                     .onTapGesture {
                                         selectedIcon = icon
@@ -379,7 +379,7 @@ struct AddTagView: View {
                                     .fill(Color(hex: selectedColor).opacity(0.2))
                                     .overlay(
                                         Capsule()
-                                            .stroke(Color(hex: selectedColor), lineWidth: 1)
+                                            .stroke(Color.black, lineWidth: 1)
                                     )
                             )
                         }
@@ -504,7 +504,7 @@ struct EditTagView: View {
                                         .frame(width: 44, height: 44)
                                         .overlay(
                                             Circle()
-                                                .stroke(selectedColor == colorHex ? .white : .clear, lineWidth: 3)
+                                                .stroke(selectedColor == colorHex ? Color.black : .clear, lineWidth: 3)
                                         )
                                         .onTapGesture {
                                             selectedColor = colorHex
@@ -533,7 +533,7 @@ struct EditTagView: View {
                                     }
                                     .overlay(
                                         Circle()
-                                            .stroke(selectedIcon == icon ? Color(hex: selectedColor) : .clear, lineWidth: 2)
+                                            .stroke(selectedIcon == icon ? Color.black : .clear, lineWidth: 2)
                                     )
                                     .onTapGesture {
                                         selectedIcon = icon
@@ -608,7 +608,7 @@ struct TagStatCard: View {
                 .fill(.ultraThinMaterial)
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(color.opacity(0.3), lineWidth: 1)
+                        .stroke(Color.black.opacity(0.3), lineWidth: 1)
                 )
         )
     }
@@ -630,7 +630,7 @@ struct StatBadge: View {
         .padding(8)
         .background(
             RoundedRectangle(cornerRadius: 8)
-                .fill(.white.opacity(0.1))
+                .fill(.white.opacity(0.12))
         )
     }
 }
@@ -666,7 +666,7 @@ struct CustomTextFieldStyle: TextFieldStyle {
                     .fill(.ultraThinMaterial)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
+                            .stroke(Color.black.opacity(0.35), lineWidth: 1)
                     )
             )
             .foregroundColor(.white)

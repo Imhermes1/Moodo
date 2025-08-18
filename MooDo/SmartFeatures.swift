@@ -72,23 +72,14 @@ class NaturalLanguageProcessor: ObservableObject {
         
         let lowercased = input.lowercased()
         
-        // Extract title (remove time and priority indicators)
-        var cleanTitle = input
-        let timePatterns = ["at \\d{1,2}(:\\d{2})?(am|pm)?", "in \\d+ (minutes?|hours?|days?)", "tomorrow", "today"]
-        for pattern in timePatterns {
-            cleanTitle = cleanTitle.replacingOccurrences(of: pattern, with: "", options: .regularExpression)
-        }
-        cleanTitle = cleanTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Extract reminder time before cleaning
+        let reminderTime = extractReminderTime(from: input)
         
-        // Determine priority
-        let priority: TaskPriority
-        if lowercased.contains("urgent") || lowercased.contains("asap") || lowercased.contains("important") {
-            priority = .high
-        } else if lowercased.contains("later") || lowercased.contains("sometime") {
-            priority = .low
-        } else {
-            priority = .medium
-        }
+        // Clean the title by removing all NLP patterns
+        let cleanTitle = cleanTitleFromNLPPatterns(input)
+        
+        // Determine priority with enhanced keyword detection
+        let priority: TaskPriority = determinePriority(from: lowercased, reminderTime: reminderTime)
         
         // Determine emotion based on context
         let emotion: TaskEmotion
@@ -108,9 +99,6 @@ class NaturalLanguageProcessor: ObservableObject {
             emotion = .routine
         }
         
-        // Extract reminder time
-        let reminderTime = extractReminderTime(from: input)
-        
         // Extract tags
         let tags = extractTags(from: input)
         
@@ -123,6 +111,148 @@ class NaturalLanguageProcessor: ObservableObject {
             deadlineAt: nil,
             tags: tags
         )
+    }
+    
+    // MARK: - Comprehensive Text Cleaning
+    
+    private func cleanTitleFromNLPPatterns(_ input: String) -> String {
+        var cleanTitle = input
+        let lowercased = input.lowercased()
+        
+        // Comprehensive list of patterns to remove
+        let allPatterns = [
+            // Time patterns
+            "\\bat\\s+\\d{1,2}(:\\d{2})?\\s*(am|pm)\\b", // at 5pm, at 2:30pm
+            "\\b\\d{1,2}(:\\d{2})?\\s*(am|pm)\\b", // 5pm, 2:30pm
+            "\\bin\\s+\\d+\\s*(minutes?|mins?|hours?|hrs?)\\b", // in 30 minutes, in 2 hours
+            "\\btonight\\b", "\\bthis\\s+evening\\b", "\\bthis\\s+morning\\b", "\\bthis\\s+(afternoon|arvo)\\b",
+            "\\b(noon|midday)\\b", "\\bmidnight\\b", "\\b(at\\s+lunch|lunch\\s+time)\\b", "\\b(after\\s+work|knock\\s+off)\\b", "\\bbefore\\s+bed\\b",
+            "\\b(after\\s+tea|after\\s+dinner)\\b", "\\bin\\s+a\\s+(bit|mo)\\b", "\\bshortly\\b", "\\bsoon\\b",
+            "\\bby\\s+end\\s+of\\s+day\\b", "\\bbefore\\s+eod\\b", "\\bcob\\b",
+            
+            // Date patterns
+            "\\btoday\\b", "\\btomorrow\\b", "\\byesterday\\b",
+            "\\bday\\s+after\\s+tomorrow\\b", "\\bthis\\s+weekend\\b", "\\bnext\\s+month\\b", "\\bend\\s+of\\s+week\\b",
+            "\\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b",
+            "\\b(next|this)\\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b",
+            "\\b(next|this)\\s+(week|month|year)\\b",
+            "\\b(january|february|march|april|may|june|july|august|september|october|november|december)\\s+\\d{1,2}(th|st|nd|rd)?\\b",
+            "\\b\\d{1,2}(th|st|nd|rd)?\\s+(january|february|march|april|may|june|july|august|september|october|november|december)\\b",
+            "\\bevery\\s+(day|week|month)\\b", "\\bdaily\\b", "\\bweekly\\b", "\\bmonthly\\b",
+            
+            // Priority patterns
+            "\\burgent(ly)?\\b", "\\basap\\b", "\\bimportant(ly)?\\b", "\\bcritical(ly)?\\b", 
+            "\\bemergency\\b", "\\bdeadline\\b", "\\bhigh\\s+priority\\b", "\\bmust\\b",
+            "\\breally\\s+urgent\\b", "\\bsuper\\s+important\\b", "\\bextremely\\s+critical\\b",
+            "\\blow\\s+priority\\b", "\\blater\\b", "\\bsometime\\b", "\\beventually\\b",
+            "\\bwhen\\s+possible\\b", "\\bmaybe\\b", "\\bno\\s+rush\\b", "\\bwhenever\\b", "\\bwhen\\s+you\\s+can\\b",
+            
+            // Emotion/context patterns that aren't core to the task
+            "\\bcalmly\\b", "\\bpeacefully\\b", "\\brelaxed\\b", "\\benergetically\\b",
+            "\\bfocused\\b", "\\bconcentrated\\b", "\\bcreatively\\b",
+            
+            // Common filler words and prepositions that get detected
+            "\\bat\\s+the\\s+end\\s+of\\b", "\\bby\\s+the\\s+end\\s+of\\b", "\\bon\\s+the\\b",
+            "\\bfor\\s+the\\b", "\\bduring\\s+the\\b", "\\bafter\\s+the\\b", "\\bbefore\\s+the\\b"
+        ]
+        
+        // Remove all patterns
+        for pattern in allPatterns {
+            cleanTitle = cleanTitle.replacingOccurrences(of: pattern, with: " ", options: [.regularExpression, .caseInsensitive])
+        }
+        
+        // Clean up multiple spaces and trim
+        cleanTitle = cleanTitle.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        cleanTitle = cleanTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // If cleaning removed everything meaningful, return the original
+        if cleanTitle.isEmpty || cleanTitle.count < 3 {
+            // Try a more conservative cleaning approach
+            return conservativeClean(input)
+        }
+        
+        return cleanTitle
+    }
+    
+    private func conservativeClean(_ input: String) -> String {
+        var cleanTitle = input
+        
+        // Only remove the most obvious time/date patterns
+        let basicPatterns = [
+            "\\bat\\s+\\d{1,2}(:\\d{2})?\\s*(am|pm)\\b", // at 5pm
+            "\\btonight\\b", "\\btomorrow\\b", "\\btoday\\b"
+        ]
+        
+        for pattern in basicPatterns {
+            cleanTitle = cleanTitle.replacingOccurrences(of: pattern, with: " ", options: [.regularExpression, .caseInsensitive])
+        }
+        
+        cleanTitle = cleanTitle.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        return cleanTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    // MARK: - Enhanced Priority Detection
+    
+    private func determinePriority(from lowercased: String, reminderTime: Date?) -> TaskPriority {
+        // Expanded high priority keywords with intensifiers
+        let highPriorityKeywords = [
+            "urgent", "urgently", "asap", "important", "importantly", "critical", "critically", 
+            "emergency", "deadline", "today", "tonight", "now", "immediately", "priority", 
+            "must", "presentation", "meeting", "interview", "exam", "due", "crisis",
+            "really urgent", "super important", "extremely critical", "very important",
+            "highly urgent", "top priority", "crucial", "vital", "essential",
+            "by end of day", "before eod", "cob", "close of business", "time sensitive",
+            "can't wait", "needs attention", "pressing", "rush", "hurry"
+        ]
+        
+        // Expanded low priority keywords with casual language
+        let lowPriorityKeywords = [
+            "later", "sometime", "eventually", "when possible", "maybe", "perhaps",
+            "consider", "think about", "would be nice", "if time", "leisurely",
+            "no rush", "no hurry", "whenever", "when you can", "when convenient",
+            "if possible", "could do", "might want to", "at some point",
+            "when free", "optional", "nice to have", "bonus", "extra", "not urgent",
+            "not important", "low priority", "not critical", "take your time"
+        ]
+        
+        // Medium priority keywords (explicit medium indicators)
+        let mediumPriorityKeywords = [
+            "should", "ought to", "need to", "planned", "scheduled",
+            "this week", "next week", "moderate", "normal", "regular"
+        ]
+        
+        // Check for high priority keywords (including multi-word phrases)
+        for keyword in highPriorityKeywords {
+            if lowercased.contains(keyword) {
+                return .high
+            }
+        }
+        
+        // Check deadline proximity if reminder time exists
+        if let reminder = reminderTime {
+            let daysUntil = Calendar.current.dateComponents([.day], 
+                from: Date(), to: reminder).day ?? 0
+            
+            if daysUntil <= 1 { return .high }      // Today/tomorrow
+            if daysUntil <= 3 { return .medium }    // This week-ish
+        }
+        
+        // Check for explicit medium priority keywords
+        for keyword in mediumPriorityKeywords {
+            if lowercased.contains(keyword) {
+                return .medium
+            }
+        }
+        
+        // Check for low priority keywords
+        for keyword in lowPriorityKeywords {
+            if lowercased.contains(keyword) {
+                return .low
+            }
+        }
+        
+        // Default to medium for regular tasks
+        return .medium
     }
     
     private func extractReminderTime(from input: String) -> Date? {
@@ -230,10 +360,132 @@ class NaturalLanguageProcessor: ObservableObject {
         return nil
     }
     
+    // MARK: - Enhanced Time of Day Extraction
+    
+    private func extractTimeOfDay(from lowercased: String, now: Date) -> Date? {
+        let calendar = Calendar.current
+        var targetHour: Int?
+        var targetMinute = 0
+        var targetDate = now
+        
+        // Handle specific time-of-day expressions (Australian conventions)
+        if lowercased.contains("tonight") || lowercased.contains("this evening") {
+            targetHour = 19 // 7:00 PM
+            // If it's already past 7 PM, set for tomorrow evening
+            let currentHour = calendar.component(.hour, from: now)
+            if currentHour >= 19 {
+                targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            }
+        } else if lowercased.contains("this morning") {
+            targetHour = 9 // 9:00 AM
+            // If it's already past 9 AM, set for tomorrow morning
+            let currentHour = calendar.component(.hour, from: now)
+            if currentHour >= 9 {
+                targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            }
+        } else if lowercased.contains("this afternoon") {
+            targetHour = 14 // 2:00 PM
+            // If it's already past 2 PM, set for tomorrow afternoon
+            let currentHour = calendar.component(.hour, from: now)
+            if currentHour >= 14 {
+                targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            }
+        } else if lowercased.contains("midday") || lowercased.contains("noon") {
+            targetHour = 12 // 12:00 PM
+            let currentHour = calendar.component(.hour, from: now)
+            if currentHour >= 12 {
+                targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            }
+        } else if lowercased.contains("midnight") {
+            targetHour = 0 // 12:00 AM
+            targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now // Always next midnight
+        } else if lowercased.contains("at lunch") || lowercased.contains("lunch time") {
+            targetHour = 12 // 12:30 PM
+            targetMinute = 30
+            let currentHour = calendar.component(.hour, from: now)
+            if currentHour >= 13 {
+                targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            }
+        } else if lowercased.contains("after work") {
+            targetHour = 17 // 5:30 PM (typical Australian finish time)
+            targetMinute = 30
+            let currentHour = calendar.component(.hour, from: now)
+            if currentHour >= 18 {
+                targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            }
+        } else if lowercased.contains("before bed") {
+            targetHour = 22 // 10:00 PM (slightly later for Australian lifestyle)
+            let currentHour = calendar.component(.hour, from: now)
+            if currentHour >= 22 {
+                targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            }
+        } else if lowercased.contains("after tea") || lowercased.contains("after dinner") {
+            targetHour = 19 // 7:00 PM (tea time in Australian English)
+            targetMinute = 30
+            let currentHour = calendar.component(.hour, from: now)
+            if currentHour >= 20 {
+                targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            }
+        } else if lowercased.contains("by end of day") || lowercased.contains("before eod") || lowercased.contains("cob") || lowercased.contains("close of business") {
+            targetHour = 17 // 5:00 PM (Australian business hours)
+            let currentHour = calendar.component(.hour, from: now)
+            if currentHour >= 17 {
+                targetDate = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+            }
+        }
+        
+        // If we found a target hour, create the date
+        if let hour = targetHour {
+            var dateComponents = calendar.dateComponents([.year, .month, .day], from: targetDate)
+            dateComponents.hour = hour
+            dateComponents.minute = targetMinute
+            return calendar.date(from: dateComponents)
+        }
+        
+        return nil
+    }
+    
     // MARK: - Enhanced Date Extraction
     
     private func extractSmartDate(from input: String, now: Date) -> Date? {
         let words = input.components(separatedBy: " ")
+        
+        // Handle expanded relative date expressions first
+        if input.contains("day after tomorrow") {
+            return calendar.date(byAdding: .day, value: 2, to: now)
+        }
+        
+        if input.contains("this weekend") {
+            // Set to Saturday at 10 AM
+            let currentWeekday = calendar.component(.weekday, from: now)
+            let daysToSaturday = 7 - currentWeekday // Saturday is weekday 7
+            let saturday = calendar.date(byAdding: .day, value: daysToSaturday, to: now) ?? now
+            var dateComponents = calendar.dateComponents([.year, .month, .day], from: saturday)
+            dateComponents.hour = 10
+            dateComponents.minute = 0
+            return calendar.date(from: dateComponents)
+        }
+        
+        if input.contains("end of week") {
+            // Set to Friday at 5 PM
+            let currentWeekday = calendar.component(.weekday, from: now)
+            let daysToFriday = 6 - currentWeekday // Friday is weekday 6
+            let friday = calendar.date(byAdding: .day, value: daysToFriday > 0 ? daysToFriday : 7, to: now) ?? now
+            var dateComponents = calendar.dateComponents([.year, .month, .day], from: friday)
+            dateComponents.hour = 17
+            dateComponents.minute = 0
+            return calendar.date(from: dateComponents)
+        }
+        
+        if input.contains("next month") {
+            // Set to first day of next month at 9 AM
+            let nextMonth = calendar.date(byAdding: .month, value: 1, to: now) ?? now
+            var dateComponents = calendar.dateComponents([.year, .month], from: nextMonth)
+            dateComponents.day = 1
+            dateComponents.hour = 9
+            dateComponents.minute = 0
+            return calendar.date(from: dateComponents)
+        }
         
         // Day names mapping
         let dayNames = [
@@ -242,12 +494,12 @@ class NaturalLanguageProcessor: ObservableObject {
             "mon": 2, "tue": 3, "wed": 4, "thu": 5, "fri": 6, "sat": 7, "sun": 1
         ]
         
-        // Month names mapping
+        // Month names mapping (expanded with more abbreviations)
         let monthNames = [
             "january": 1, "february": 2, "march": 3, "april": 4, "may": 5, "june": 6,
             "july": 7, "august": 8, "september": 9, "october": 10, "november": 11, "december": 12,
             "jan": 1, "feb": 2, "mar": 3, "apr": 4, "jun": 6, "jul": 7, "aug": 8,
-            "sep": 9, "oct": 10, "nov": 11, "dec": 12
+            "sep": 9, "oct": 10, "nov": 11, "dec": 12, "sept": 9
         ]
         
         var targetDate: Date?

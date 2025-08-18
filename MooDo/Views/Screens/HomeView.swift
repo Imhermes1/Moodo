@@ -35,7 +35,11 @@ struct HomeView: View {
                     )
                     
                     // Recent Thoughts (moved above Today's Progress)
-                    RecentThoughtsView(thoughtsManager: thoughtsManager)
+                    RecentThoughtsView(
+                        thoughtsManager: thoughtsManager,
+                        taskManager: taskManager,
+                        moodManager: moodManager
+                    )
                     
                     // Today's Progress (animated counters like web app)
                     TodaysProgressView(

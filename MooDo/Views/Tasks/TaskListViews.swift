@@ -1151,7 +1151,7 @@ struct MoodLensTaskRowView: View {
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(.white.opacity(0.2), lineWidth: 0.5)
+                            .stroke(.white.opacity(0.3), lineWidth: 0.5)
                             .blur(radius: 1)
                     )
                     .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)
@@ -1351,7 +1351,7 @@ struct StreamlinedTaskCard: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(.white.opacity(0.2), lineWidth: 0.5)
+                        .stroke(.white.opacity(0.3), lineWidth: 0.5)
                         .blur(radius: 1)
                 )
                 .shadow(color: .white.opacity(0.1), radius: 2, x: 0, y: -1)

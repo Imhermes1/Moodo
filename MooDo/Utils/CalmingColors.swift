@@ -40,7 +40,7 @@ extension Color {
     // MARK: - Semantic Colors
     
     /// Primary button and accent color
-    static let primaryAccent = calmingBlue
+    static let primaryAccent = Color.black
     
     /// Success states (completed tasks, positive actions)
     static let successAccent = peacefulGreen

@@ -78,7 +78,15 @@ struct WellnessView: View {
                         }
                     }
                     .padding(20)
-                    .background(GlassPanelBackground())
+                    .background(
+                        ZStack {
+                            GlassPanelBackground()
+                            
+                            // Blue tint for wellness check-in
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(Color.blue.opacity(0.06))
+                        }
+                    )
                     .clipShape(RoundedRectangle(cornerRadius: 20))
                 }
                 .buttonStyle(PlainButtonStyle())

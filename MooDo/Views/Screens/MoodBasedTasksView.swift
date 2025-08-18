@@ -72,6 +72,41 @@ struct MoodBasedTasksView: View {
                 taskManager.finalizeTaskCompletion(task, mood: mood)
             }
         }
+        .overlay(
+            // Task Completion Card Overlay
+            Group {
+                if let completionTask = taskManager.completionCardTask {
+                    ZStack {
+                        // Semi-transparent backdrop
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                            .onTapGesture {
+                                taskManager.dismissCompletionCard()
+                            }
+                        
+                        VStack {
+                            Spacer()
+                            
+                            TaskCompletionCard(
+                                task: completionTask,
+                                onMoodSelected: { mood in
+                                    taskManager.finalizeTaskCompletion(completionTask, mood: mood)
+                                },
+                                onDismiss: {
+                                    taskManager.dismissCompletionCard()
+                                }
+                            )
+                            .padding(.horizontal, 20)
+                            
+                            Spacer()
+                            Spacer()
+                        }
+                    }
+                    .transition(.opacity.combined(with: .scale))
+                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: taskManager.completionCardTask != nil)
+                }
+            }
+        )
     }
     
     // MARK: - Focus List Card
@@ -112,7 +147,11 @@ struct MoodBasedTasksView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(.purple.opacity(isRefreshingAI ? 0.2 : 0.3))
+                            .fill(.purple.opacity(isRefreshingAI ? 0.4 : 0.6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.black.opacity(0.5), lineWidth: 1.5)
+                            )
                     )
                     .overlay(
                         // Flowing rainbow outline when refreshing
@@ -139,7 +178,11 @@ struct MoodBasedTasksView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(.blue.opacity(0.3))
+                            .fill(.blue.opacity(0.6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.black.opacity(0.5), lineWidth: 1.5)
+                            )
                     )
                 }
                 
@@ -162,7 +205,11 @@ struct MoodBasedTasksView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
-                            .fill(.green.opacity(0.3))
+                            .fill(.green.opacity(0.6))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.black.opacity(0.5), lineWidth: 1.5)
+                            )
                     )
                 }
             }
@@ -179,6 +226,12 @@ struct MoodBasedTasksView: View {
                             isAIGenerated: task.isAIGenerated,
                             onToggleComplete: {
                                 taskManager.toggleTaskCompletion(task)
+                                
+                                // Record ML learning data when task is completed
+                                if task.isCompleted {
+                                    recordTaskCompletionForML(task)
+                                }
+                                
                                 refreshSmartTasks()
                             },
                             onTap: { editingTask = task }
@@ -192,9 +245,15 @@ struct MoodBasedTasksView: View {
                                 recommendation: aiRec,
                                 onAdd: {
                                     addAIRecommendationAsTask(aiRec)
+                                    
+                                    // Record that user accepted this AI recommendation
+                                    aiEngine.updateLearningData(recommendation: aiRec, accepted: true)
                                 },
                                 onDismiss: {
                                     dismissAIRecommendation(aiRec)
+                                    
+                                    // Record that user dismissed this AI recommendation
+                                    aiEngine.updateLearningData(recommendation: aiRec, accepted: false)
                                 }
                             )
                         }
@@ -228,10 +287,14 @@ struct MoodBasedTasksView: View {
         .padding(20)
         .background(
             ZStack {
-                // Base glass layer with 3D depth
+                // Base glass layer with enhanced vibrancy
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.4)
+                    .fill(.thinMaterial)
+                    .opacity(0.5)
+                
+                // Blue tint for consistency with other cards
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color.blue.opacity(0.08))
                 
                 // Inner highlight layer for 3D effect
                 RoundedRectangle(cornerRadius: 20)
@@ -248,28 +311,9 @@ struct MoodBasedTasksView: View {
                         )
                     )
                 
-                // Outer stroke with glass shimmer
+                // Consistent blue outline
                 RoundedRectangle(cornerRadius: 20)
-                    .strokeBorder(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                .white.opacity(0.5),
-                                .white.opacity(0.15),
-                                .white.opacity(0.05),
-                                .white.opacity(0.25)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1
-                    )
-                
-                // Inner stroke for depth
-                RoundedRectangle(cornerRadius: 19)
-                    .strokeBorder(
-                        .white.opacity(0.1),
-                        lineWidth: 0.5
-                    )
+                    .strokeBorder(Color.blue.opacity(0.4), lineWidth: 1.5)
             }
         )
         .shadow(color: .black.opacity(0.06), radius: 3, x: 0, y: 2)
@@ -432,9 +476,9 @@ struct MoodBasedTasksView: View {
         
         // Step 2: Sort by mood compatibility, priority, and urgency
         let sortedTasks = scoredTasks.sorted { first, second in
-            // High priority tasks get priority boost
-            let priorityBoost1 = first.task.priority == .high ? 0.3 : 0.0
-            let priorityBoost2 = second.task.priority == .high ? 0.3 : 0.0
+            // High priority tasks get priority boost (use dynamic priority)
+            let priorityBoost1 = first.task.dynamicPriority == .high ? 0.3 : 0.0
+            let priorityBoost2 = second.task.dynamicPriority == .high ? 0.3 : 0.0
             
             // Today's tasks get urgency boost
             let urgencyBoost1 = isTaskDueToday(first.task) ? 0.2 : 0.0
@@ -446,11 +490,45 @@ struct MoodBasedTasksView: View {
             return finalScore1 > finalScore2
         }
         
-        // Step 3: Return 2-5 recommendations based on available data
-        let recommendationCount = min(max(tasks.count >= 2 ? 2 : tasks.count, 0), 5)
-        let recommendations = Array(sortedTasks.prefix(recommendationCount).map { $0.task })
+        // Step 3: Apply emotion diversity filter to avoid clustering
+        let diverseRecommendations = selectDiverseRecommendations(from: sortedTasks.map { $0.task })
         
-        return recommendations
+        // Step 4: Return 2-5 recommendations based on available data
+        let recommendationCount = min(max(tasks.count >= 2 ? 2 : tasks.count, 0), 5)
+        return Array(diverseRecommendations.prefix(recommendationCount))
+    }
+    
+    private func selectDiverseRecommendations(from tasks: [Task]) -> [Task] {
+        var selectedTasks: [Task] = []
+        var usedEmotions: Set<TaskEmotion> = []
+        
+        // First pass: select tasks with different emotions
+        for task in tasks {
+            if !usedEmotions.contains(task.emotion) {
+                selectedTasks.append(task)
+                usedEmotions.insert(task.emotion)
+                
+                // Stop at 5 diverse emotions
+                if selectedTasks.count >= 5 {
+                    break
+                }
+            }
+        }
+        
+        // Second pass: if we need more tasks, add remaining high-scoring ones
+        if selectedTasks.count < min(tasks.count, 5) {
+            for task in tasks {
+                if !selectedTasks.contains(where: { $0.id == task.id }) {
+                    selectedTasks.append(task)
+                    
+                    if selectedTasks.count >= 5 {
+                        break
+                    }
+                }
+            }
+        }
+        
+        return selectedTasks
     }
     
     private func calculateMoodCompatibilityScore(task: Task, mood: MoodType) -> Double {
@@ -464,8 +542,8 @@ struct MoodBasedTasksView: View {
             score -= 0.4 // Avoid stressful tasks when stressed
         }
         
-        // Priority consideration (30% weight)
-        switch task.priority {
+        // Priority consideration (30% weight) - use dynamic priority
+        switch task.dynamicPriority {
         case .high: score += 0.2
         case .medium: score += 0.1
         case .low: score += 0.0
@@ -512,44 +590,145 @@ struct MoodBasedTasksView: View {
         let description = task.description?.lowercased() ?? ""
         let content = title + " " + description
         
-        // Content-based emotion detection
-        if content.contains("relax") || content.contains("walk") || content.contains("breathe") || content.contains("meditation") || content.contains("call") || content.contains("text") {
+        // Enhanced content-based emotion detection with learning integration
+        let baseEmotion = getBaseEmotionFromContent(content)
+        
+        // Apply learning-based adjustments if we have historical data
+        return applyLearningToEmotionDetection(baseEmotion, for: task)
+    }
+    
+    private func getBaseEmotionFromContent(_ content: String) -> TaskEmotion {
+        // Improved keyword detection with reduced calming bias
+        
+        // Calming - more specific keywords, removed generic ones like "call", "text"
+        if content.contains("relax") || content.contains("meditat") || content.contains("breathe") || 
+           content.contains("peaceful") || content.contains("calm") || content.contains("rest") {
             return .calming
         }
         
-        if content.contains("creative") || content.contains("brainstorm") || content.contains("design") || content.contains("art") || content.contains("idea") {
+        // Creative - enhanced pattern detection
+        if content.contains("creative") || content.contains("brainstorm") || content.contains("design") || 
+           content.contains("art") || content.contains("idea") || content.contains("draw") || content.contains("write") {
             return .creative
         }
         
-        if content.contains("focus") || content.contains("write") || content.contains("analyze") || content.contains("plan") || content.contains("study") {
+        // Focused - enhanced for concentration tasks
+        if content.contains("focus") || content.contains("analyze") || content.contains("plan") || 
+           content.contains("study") || content.contains("research") || content.contains("review") {
             return .focused
         }
         
-        if content.contains("energy") || content.contains("workout") || content.contains("exercise") || content.contains("project") || content.contains("taxes") {
+        // Energizing - physical and high-energy tasks
+        if content.contains("workout") || content.contains("exercise") || content.contains("gym") ||
+           content.contains("run") || content.contains("energy") || content.contains("active") {
             return .energizing
         }
 
-        if content.contains("anxious") || content.contains("anxiety") || content.contains("nervous") || content.contains("worry") {
+        // Anxious - anxiety-related content
+        if content.contains("anxious") || content.contains("anxiety") || content.contains("nervous") || 
+           content.contains("worry") || content.contains("fear") {
             return .anxious
         }
 
-        if content.contains("deadline") || content.contains("urgent") || content.contains("important") || content.contains("presentation") || content.contains("stress") {
+        // Stressful - high-pressure situations
+        if content.contains("deadline") || content.contains("urgent") || content.contains("emergency") || 
+           content.contains("presentation") || content.contains("interview") || content.contains("exam") {
             return .stressful
         }
         
-        if content.contains("organize") || content.contains("clean") || content.contains("routine") || content.contains("simple") || content.contains("grass") {
+        // Routine - organizational and maintenance tasks
+        if content.contains("organize") || content.contains("clean") || content.contains("routine") || 
+           content.contains("maintain") || content.contains("file") || content.contains("sort") {
             return .routine
         }
         
-        // Priority-based fallback
-        switch task.priority {
-        case .high:
-            return currentMood == .stressed ? .calming : .focused
-        case .medium:
-            return .routine
-        case .low:
-            return .calming
+        // Default to routine instead of calming for unmatched tasks
+        return .routine
+    }
+    
+    private func applyLearningToEmotionDetection(_ baseEmotion: TaskEmotion, for task: Task) -> TaskEmotion {
+        // Check if we have learning data to influence the emotion choice
+        let completionSuccessRate = getEmotionSuccessRate(baseEmotion, for: currentMood)
+        
+        // If the base emotion has low success rate for current mood, try alternatives
+        if completionSuccessRate < 0.3 {
+            // Find better emotion based on priority and learning data
+            switch task.dynamicPriority {
+            case .high:
+                // For high priority tasks, prefer focused or energizing based on mood
+                if currentMood == .stressed || currentMood == .anxious {
+                    return .calming // Exception: calming for stressed users with high priority
+                }
+                return getEmotionSuccessRate(.focused, for: currentMood) > getEmotionSuccessRate(.energizing, for: currentMood) ? .focused : .energizing
+                
+            case .medium:
+                // For medium priority, prefer routine or focused
+                return getEmotionSuccessRate(.routine, for: currentMood) > getEmotionSuccessRate(.focused, for: currentMood) ? .routine : .focused
+                
+            case .low:
+                // For low priority, prefer routine over calming to reduce bias
+                return .routine
+            }
         }
+        
+        return baseEmotion
+    }
+    
+    private func getEmotionSuccessRate(_ emotion: TaskEmotion, for mood: MoodType) -> Double {
+        // Try to get actual learning data first
+        let actualRate = getLearnedSuccessRate(emotion: emotion, mood: mood)
+        if actualRate > 0 {
+            return actualRate
+        }
+        
+        // Fallback to improved default rates based on research and user behavior
+        let defaultRates: [TaskEmotion: [MoodType: Double]] = [
+            .calming: [.stressed: 0.8, .anxious: 0.7, .tired: 0.7, .calm: 0.6, .focused: 0.4, .creative: 0.4, .energized: 0.3],
+            .focused: [.focused: 0.9, .calm: 0.8, .energized: 0.7, .creative: 0.6, .stressed: 0.4, .tired: 0.3, .anxious: 0.3],
+            .energizing: [.energized: 0.9, .creative: 0.7, .focused: 0.6, .calm: 0.4, .stressed: 0.3, .tired: 0.2, .anxious: 0.2],
+            .creative: [.creative: 0.9, .calm: 0.8, .energized: 0.7, .focused: 0.6, .stressed: 0.3, .tired: 0.3, .anxious: 0.3],
+            .routine: [.tired: 0.9, .calm: 0.8, .focused: 0.7, .stressed: 0.6, .anxious: 0.6, .creative: 0.4, .energized: 0.5],
+            .stressful: [.energized: 0.7, .focused: 0.6, .creative: 0.4, .calm: 0.3, .tired: 0.3, .stressed: 0.2, .anxious: 0.1],
+            .anxious: [.calm: 0.6, .focused: 0.5, .tired: 0.5, .energized: 0.3, .creative: 0.3, .stressed: 0.2, .anxious: 0.1]
+        ]
+        
+        return defaultRates[emotion]?[mood] ?? 0.5
+    }
+    
+    private func getLearnedSuccessRate(emotion: TaskEmotion, mood: MoodType) -> Double {
+        let key = "EmotionMoodSuccess_\(emotion.rawValue)_\(mood.rawValue)"
+        guard let data = UserDefaults.standard.dictionary(forKey: key) as? [String: Any],
+              let successRate = data["successRate"] as? Double,
+              let completions = data["completions"] as? Int,
+              completions >= 3 else { // Need at least 3 data points
+            return 0.0
+        }
+        
+        return successRate
+    }
+    
+    private func recordTaskCompletionForML(_ task: Task) {
+        // Record mood pattern with success rate for ML learning
+        let hour = Calendar.current.component(.hour, from: Date())
+        let successRate = 1.0 // Task was successfully completed
+        
+        aiEngine.recordMoodPattern(mood: currentMood, successRate: successRate)
+        
+        // Create synthetic recommendation for completed task to record learning
+        let syntheticRecommendation = AITaskRecommendation(
+            title: task.title,
+            description: task.description ?? "",
+            category: task.category,
+            priority: task.priority,
+            estimatedDuration: task.estimatedTime ?? 30,
+            confidence: 0.8,
+            reasoning: "Task completed successfully by user",
+            learningSource: .completedTaskPattern,
+            emotion: task.emotion
+        )
+        
+        // Record as accepted since the task was completed
+        aiEngine.updateLearningData(recommendation: syntheticRecommendation, accepted: true)
     }
     
     // MARK: - New Recommendation Methods
@@ -726,14 +905,22 @@ struct FocusTaskCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 HStack(spacing: 6) {
-                    // Left side: Mood/Emotion
+                    // Left side: Mood/Emotion with dynamic priority indicator
                     HStack(spacing: 4) {
                         Circle()
-                            .fill(task.priority.color)
+                            .fill(task.dynamicPriority.color)
                             .frame(width: 6, height: 6)
+                            .scaleEffect(task.isEscalated ? 1.2 : 1.0)
+                            .animation(.easeInOut(duration: 0.2), value: task.isEscalated)
                         Text(task.emotion.displayName)
                             .font(.caption2)
                             .foregroundColor(.white.opacity(0.7))
+                        
+                        if task.isEscalated {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.caption2)
+                                .foregroundColor(task.dynamicPriority.color.opacity(0.8))
+                        }
                     }
                     Spacer()
                     // Center: Auto-applied tags

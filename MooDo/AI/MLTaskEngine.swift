@@ -762,6 +762,7 @@ enum LearningSource {
     case temporalPatternAnalysis
     case naturalLanguageAnalysis
     case behaviorPatternAnalysis
+    case completedTaskPattern
 }
 
 struct UserContext {
