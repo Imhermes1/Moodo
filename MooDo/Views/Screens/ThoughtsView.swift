@@ -232,22 +232,27 @@ struct FullThoughtRowView: View {
     var body: some View {
         Button(action: { showingEditSheet = true }) {
             VStack(alignment: .leading, spacing: 8) {
-            // Title (heading) on first row
-            Text(renderMarkdownText(thought.title))
-                .font(.headline)
-                .fontWeight(.semibold)
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            // Title (heading) on first row - now clickable for phone numbers
+            ClickableText(
+                text: thought.title,
+                font: .headline,
+                color: .white,
+                linkColor: .blue.opacity(0.8),
+                lineLimit: 1
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
             
             // Content preview on second row (if content exists)
             if !thought.content.isEmpty {
                 let firstLine = extractFirstLine(from: thought.content)
-                Text(renderMarkdownText(firstLine))
-                    .font(.body)
-                    .foregroundColor(.white.opacity(0.8))
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                ClickableText(
+                    text: firstLine,
+                    font: .body,
+                    color: .white.opacity(0.8),
+                    linkColor: .blue.opacity(0.8),
+                    lineLimit: 1
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             
             // Metadata and action row - streamlined
@@ -310,20 +315,9 @@ struct FullThoughtRowView: View {
         }
         .buttonStyle(PlainButtonStyle())
         .padding(16)
-        .background(
-            ZStack {
-                GlassPanelBackground()
-                
-                // Blue tint for more vibrancy
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.blue.opacity(0.08))
-                
-                // Black outline for thought cards
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.black.opacity(0.4), lineWidth: 1.5)
-            }
-        )
+        .background(ThoughtGlassBackground(cornerRadius: 16))
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(GlassThinBorder(cornerRadius: 16))
         .contextMenu {
             Button(action: { showingEditSheet = true }) {
                 Label("Edit", systemImage: "pencil")

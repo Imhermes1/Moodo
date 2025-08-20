@@ -33,14 +33,16 @@ struct Thought: Identifiable, Codable, Equatable {
     var dateCreated: Date
     var mood: MoodType
     var linkedTaskId: UUID? // Optional link to an existing task
+    var richRTF: Data? // Optional rich text (RTF) for inline formatting/images
     
-    init(id: UUID = UUID(), title: String, content: String, dateCreated: Date = Date(), mood: MoodType = .calm, linkedTaskId: UUID? = nil) {
+    init(id: UUID = UUID(), title: String, content: String, dateCreated: Date = Date(), mood: MoodType = .calm, linkedTaskId: UUID? = nil, richRTF: Data? = nil) {
         self.id = id
         self.title = title
         self.content = content
         self.dateCreated = dateCreated
         self.mood = mood
         self.linkedTaskId = linkedTaskId
+        self.richRTF = richRTF
     }
 }
 

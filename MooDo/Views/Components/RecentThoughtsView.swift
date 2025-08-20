@@ -139,12 +139,14 @@ struct RecentThoughtsView: View {
         var body: some View {
             Button(action: { showingEditSheet = true }) {
                 VStack(alignment: .leading, spacing: 8) {
-                Text(renderMarkdownText(thought.title))
-                    .font(.body)
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .multilineTextAlignment(.leading)
+                ClickableText(
+                    text: thought.title,
+                    font: .body,
+                    color: .primary,
+                    linkColor: .blue,
+                    lineLimit: 1
+                )
+                .frame(maxWidth: .infinity, alignment: .leading)
                 
                 HStack {
                     Text(timeAgo)
@@ -166,20 +168,8 @@ struct RecentThoughtsView: View {
             }
             .buttonStyle(PlainButtonStyle())
             .padding(12)
-            .background(
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(.thinMaterial)
-                        .opacity(0.4)
-                    
-                    // Blue tint for thought cards
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.blue.opacity(0.06))
-                    
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.blue.opacity(0.3), lineWidth: 1)
-                }
-            )
+            .background(ThoughtGlassBackground(cornerRadius: 12))
+            .overlay(GlassThinBorder(cornerRadius: 12))
             .sheet(isPresented: $showingEditSheet) {
                 EditThoughtView(thought: thought, thoughtsManager: thoughtsManager)
             }

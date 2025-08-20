@@ -264,10 +264,13 @@ struct AllThoughtsRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(thought.title)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                    .lineLimit(1)
+                ClickableText(
+                    text: thought.title,
+                    font: .headline,
+                    color: .primary,
+                    linkColor: .blue,
+                    lineLimit: 1
+                )
                 
                 Spacer()
                 
@@ -277,10 +280,13 @@ struct AllThoughtsRowView: View {
             }
             
             if !thought.content.isEmpty {
-                Text((try? AttributedString(markdown: thought.content)) ?? AttributedString(thought.content))
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .lineLimit(3)
+                ClickableText(
+                    text: thought.content,
+                    font: .body,
+                    color: .secondary,
+                    linkColor: .blue,
+                    lineLimit: 3
+                )
             }
             
             HStack {
@@ -303,9 +309,10 @@ struct AllThoughtsRowView: View {
         }
         .padding(16)
         .background(
-            GlassPanelBackground()
+            ThoughtGlassBackground(cornerRadius: 12)
         )
         .cornerRadius(12)
+        .overlay(GlassThinBorder(cornerRadius: 12))
         .contextMenu {
             Button {
                 onEdit()

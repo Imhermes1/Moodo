@@ -37,6 +37,8 @@
 	<string>MooDo uses calendar access to create reminders for your tasks, helping you stay organized and never miss important deadlines or activities.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>MooDo processes your voice input to convert speech to text for task creation and mood tracking, helping you capture your thoughts quickly and naturally.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>MooDo inserts photos into your notes when you choose an image.</string>
 	<key>NSRemindersUsageDescription</key>
 	<string>MooDo uses notifications to help you stay on track with your tasks and maintain your daily routine.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

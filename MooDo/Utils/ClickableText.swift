@@ -43,7 +43,7 @@ struct ClickableText: View {
     }
     
     private func hasLinks(in text: String) -> Bool {
-        let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+        let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue | NSTextCheckingResult.CheckingType.phoneNumber.rawValue)
         let range = NSRange(location: 0, length: text.utf16.count)
         let matches = detector?.matches(in: text, options: [], range: range) ?? []
         return !matches.isEmpty
@@ -66,7 +66,7 @@ struct ClickableTextView: UIViewRepresentable {
         textView.backgroundColor = UIColor.clear
         textView.textContainerInset = UIEdgeInsets.zero
         textView.textContainer.lineFragmentPadding = 0
-        textView.dataDetectorTypes = [.link]
+        textView.dataDetectorTypes = [.link, .phoneNumber]
         textView.linkTextAttributes = [
             .foregroundColor: UIColor(linkColor),
             .underlineStyle: NSUnderlineStyle.single.rawValue
@@ -80,8 +80,8 @@ struct ClickableTextView: UIViewRepresentable {
         attributedString.addAttribute(.foregroundColor, value: UIColor(color), range: range)
         attributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: getFontSize(for: font)), range: range)
         
-        // Find and style links
-        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) {
+        // Find and style links and phone numbers
+        if let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue | NSTextCheckingResult.CheckingType.phoneNumber.rawValue) {
             let matches = detector.matches(in: text, options: [], range: range)
             for match in matches {
                 attributedString.addAttribute(.foregroundColor, value: UIColor(linkColor), range: match.range)
