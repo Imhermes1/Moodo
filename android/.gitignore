@@ -1,0 +1,38 @@
+gradle.properties
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Firebase
+google-services.json
+
+# Keystore files
+*.keystore
+*.jks
+
+# Signing configs
+keystore.properties
+
+# Generated files
+/app/build/
+
+# NDK
+obj/
+
+# Android Studio
+.idea/
+
+# Lint
+lint-results*

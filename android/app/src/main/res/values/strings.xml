@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MooDo</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_thoughts">Thoughts</string>
+    <string name="nav_wellness">Wellness</string>
+    <string name="nav_insights">Insights</string>
+    
+    <!-- Mood types -->
+    <string name="mood_energized">Energized</string>
+    <string name="mood_focused">Focused</string>
+    <string name="mood_calm">Calm</string>
+    <string name="mood_creative">Creative</string>
+    <string name="mood_stressed">Stressed</string>
+    <string name="mood_tired">Tired</string>
+    <string name="mood_anxious">Anxious</string>
+    
+    <!-- Task emotions -->
+    <string name="emotion_energizing">Energizing</string>
+    <string name="emotion_focused">Focused</string>
+    <string name="emotion_calming">Calming</string>
+    <string name="emotion_creative">Creative</string>
+    <string name="emotion_routine">Routine</string>
+    <string name="emotion_stressful">Stressful</string>
+    <string name="emotion_anxious">Anxious</string>
+    
+    <!-- Task priorities -->
+    <string name="priority_low">Low</string>
+    <string name="priority_medium">Medium</string>
+    <string name="priority_high">High</string>
+    
+    <!-- Common actions -->
+    <string name="add">Add</string>
+    <string name="cancel">Cancel</string>
+    <string name="done">Done</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    
+    <!-- Permissions -->
+    <string name="permission_calendar_title">Calendar Access</string>
+    <string name="permission_calendar_message">MooDo needs calendar access to create reminders for your tasks</string>
+    <string name="permission_microphone_title">Microphone Access</string>
+    <string name="permission_microphone_message">MooDo needs microphone access for voice input features</string>
+    <string name="permission_notifications_title">Notifications</string>
+    <string name="permission_notifications_message">MooDo needs notification permission to remind you about tasks</string>
+    
+    <!-- Error messages -->
+    <string name="error_network">Network error occurred</string>
+    <string name="error_authentication">Authentication failed</string>
+    <string name="error_sync">Sync failed</string>
+    <string name="error_unknown">An unknown error occurred</string>
+    
+    <!-- Accessibility -->
+    <string name="content_description_mood_icon">Mood indicator</string>
+    <string name="content_description_priority_icon">Priority indicator</string>
+    <string name="content_description_emotion_icon">Emotion indicator</string>
+    <string name="content_description_add_task">Add new task</string>
+    <string name="content_description_complete_task">Mark task as complete</string>
+</resources>

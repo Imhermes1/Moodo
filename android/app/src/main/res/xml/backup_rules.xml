@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Backup rules for Android backup/restore
+    -->
+    <full-backup-content>
+        <!-- Include user preferences -->
+        <include domain="sharedpref" path="user_preferences.xml"/>
+        
+        <!-- Exclude sensitive data -->
+        <exclude domain="database" path="moodo_database"/>
+        <exclude domain="sharedpref" path="auth_tokens.xml"/>
+        <exclude domain="file" path="sensitive/"/>
+    </full-backup-content>
+</resources>
