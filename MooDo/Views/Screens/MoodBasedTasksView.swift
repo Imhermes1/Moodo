@@ -72,41 +72,7 @@ struct MoodBasedTasksView: View {
                 taskManager.finalizeTaskCompletion(task, mood: mood)
             }
         }
-        .overlay(
-            // Task Completion Card Overlay
-            Group {
-                if let completionTask = taskManager.completionCardTask {
-                    ZStack {
-                        // Semi-transparent backdrop
-                        Color.black.opacity(0.3)
-                            .ignoresSafeArea()
-                            .onTapGesture {
-                                taskManager.dismissCompletionCard()
-                            }
-                        
-                        VStack {
-                            Spacer()
-                            
-                            TaskCompletionCard(
-                                task: completionTask,
-                                onMoodSelected: { mood in
-                                    taskManager.finalizeTaskCompletion(completionTask, mood: mood)
-                                },
-                                onDismiss: {
-                                    taskManager.dismissCompletionCard()
-                                }
-                            )
-                            .padding(.horizontal, 20)
-                            
-                            Spacer()
-                            Spacer()
-                        }
-                    }
-                    .transition(.opacity.combined(with: .scale))
-                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: taskManager.completionCardTask != nil)
-                }
-            }
-        )
+        // Overlay removed: moved to HomeView so it sits above all sections
     }
     
     // MARK: - Focus List Card

@@ -62,7 +62,35 @@ struct HomeView: View {
                 .frame(height: 1)
                 .ignoresSafeArea(edges: .bottom)
                 .allowsHitTesting(false)
+
+            // Global task completion overlay so it sits above all sections
+            Group {
+                if let completionTask = taskManager.completionCardTask {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                            .onTapGesture { taskManager.dismissCompletionCard() }
+
+                        VStack {
+                            Spacer()
+
+                            TaskCompletionCard(
+                                task: completionTask,
+                                onMoodSelected: { mood in
+                                    taskManager.finalizeTaskCompletion(completionTask, mood: mood)
+                                },
+                                onDismiss: { taskManager.dismissCompletionCard() }
+                            )
+                            .padding(.horizontal, 20)
+
+                            Spacer()
+                            Spacer()
+                        }
+                    }
+                    .transition(.opacity.combined(with: .scale))
+                    .animation(.spring(response: 0.5, dampingFraction: 0.8), value: taskManager.completionCardTask != nil)
+                }
+            }
         }
     }
 }
-

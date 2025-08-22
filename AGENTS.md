@@ -6,7 +6,7 @@
 
 ## Build, Test, and Development Commands
 - Build (Xcode): open `MooDo.xcodeproj`, select the `MooDo` scheme, build/run on a simulator.
-- Build (CLI): `xcodebuild -scheme MooDo -destination 'platform=iOS Simulator,name=iPhone 15' build`
+- Build (CLI): `xcodebuild -scheme MooDo -destination 'platform=iOS Simulator,name=iPhone 16' build`
 - Open in Xcode: `xed .`
 - Test (when tests exist): `xcodebuild test -scheme MooDo -destination 'platform=iOS Simulator,name=iPhone 15'`
 
@@ -28,3 +28,26 @@
 ## Security & Configuration Tips
 - Do not commit personal Apple IDs or secrets. Respect entitlements in `Moodo.entitlements` and Info.plist privacy strings.
 - Keep heavy/AI work off the main thread and behind user actions; avoid auto-running AI on launch.
+
+## Agent Defaults (Codex CLI)
+- Plan-first: Propose a concise 3–6 step plan and wait for approval before running commands or applying patches.
+- Scope control: Only modify files explicitly listed in the task; ask before touching others.
+- Output style: Be concise, prefer bullets, include file paths/commands in backticks.
+- Search/reads: Prefer `rg`; read files in chunks ≤250 lines.
+- Planning tool: Use `update_plan` to track steps; keep exactly one `in_progress` step until done.
+- Runtime: Ask before running `xcodebuild` or tests; no installs or network access unless explicitly approved.
+- iOS target: Use `-scheme MooDo -destination 'platform=iOS Simulator,name=iPhone 16'` when building/testing.
+- Code style: Swift 5, 4-space indentation, one type per file, organize with `// MARK:`; keep diffs minimal and focused.
+- UI overlays: Place cross-section overlays at the screen container level (e.g., `HomeView`); avoid `.zIndex` unless necessary.
+- Safety: No destructive commands; do not commit secrets; respect entitlements and privacy strings.
+- VCS: Do not create branches or commit unless requested.
+- Formatting: If configured, use existing tools (e.g., `swiftformat .`); do not add new formatters.
+
+## Task Template
+- Goal: <what to achieve>
+- Files: <paths to modify>
+- Constraints: <perf/UX/deps limits>
+- Out of scope: <exclude list>
+- Definition of done: <visual/behavioral checks>
+- Process: <plan-first / pause after step N>
+- Run: <build/test commands to run or avoid>
