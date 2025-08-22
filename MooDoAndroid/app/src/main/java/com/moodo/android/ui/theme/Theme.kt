@@ -26,13 +26,21 @@ private val LightColorScheme = lightColorScheme(
     primary = CalmingBlue,
     secondary = PeacefulGreen,
     tertiary = GentleYellow,
-    background = SoftCream,
-    surface = SoftCream,
+    background = Color.Transparent, // Transparent to show universal background
+    surface = Color.Transparent,    // Transparent to show glass effects
     onPrimary = Color.White,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
+    onTertiary = Color.Black,
+    onBackground = Color.White,     // White text on transparent background
+    onSurface = Color.White,        // White text on glass surfaces
+    primaryContainer = CalmingBlue.copy(alpha = 0.3f),
+    secondaryContainer = PeacefulGreen.copy(alpha = 0.3f),
+    tertiaryContainer = GentleYellow.copy(alpha = 0.3f),
+    onPrimaryContainer = Color.White,
+    onSecondaryContainer = Color.White,
+    onTertiaryContainer = Color.Black,
+    surfaceVariant = Color.White.copy(alpha = 0.1f),
+    onSurfaceVariant = Color.White.copy(alpha = 0.8f)
 )
 
 @Composable
